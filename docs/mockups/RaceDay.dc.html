@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Race-day control room</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+.aid{border:1px solid #dde3e2;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;background:#fff;font-size:14px}
+.tl{display:flex;gap:12px;font-size:14px;padding:8px 0;border-bottom:1px solid #eef2f1}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Module 8 · race morning, sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Race-day control room</h1>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="pill" style="background:#12262b;color:#fff;padding:8px 14px;font-size:14px">Clock 05:42</span><span class="pill" style="background:#c2521a;color:#fff;padding:8px 14px;font-size:14px">Send announcement</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">On the start line</span><div class="hd" style="font-size:38px">1,948</div><div style="font-size:13px;color:#3d5156">of 2,140 registered</div></div>
+      <div class="card"><span class="lbl">21K on course</span><div class="hd" style="font-size:38px">688</div><div style="font-size:13px;color:#3d5156">flag-off 05:15</div></div>
+      <div class="card"><span class="lbl">Finished</span><div class="hd" style="font-size:38px">0</div><div style="font-size:13px;color:#3d5156">first expected 06:10</div></div>
+      <div class="card"><span class="lbl">Open incidents</span><div class="hd" style="font-size:38px;color:#b3261e">2</div><div style="font-size:13px;color:#3d5156">0 serious</div></div>
+      <div class="card"><span class="lbl">Weather</span><div class="hd" style="font-size:38px">[ ]°</div><div style="font-size:13px;color:#3d5156">Rain chance [ ]%</div></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1.5 1 520px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Aid stations</b><span style="font-size:13px;color:#3d5156">Lead reports by phone or tap</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+          <div class="aid"><div style="display:flex;justify-content:space-between"><b>Aid 1 · 3 km</b><span class="pill" style="background:#d8efe2;color:#15613b">Ready</span></div><div style="color:#3d5156">Volunteers 18 / 18</div><div style="color:#3d5156">Water 90% · ORS 100%</div><div class="bar"><i style="width:90%"></i></div></div>
+          <div class="aid"><div style="display:flex;justify-content:space-between"><b>Aid 2 · 7 km</b><span class="pill" style="background:#d8efe2;color:#15613b">Ready</span></div><div style="color:#3d5156">Volunteers 12 / 12</div><div style="color:#3d5156">Water 100% · ORS 85%</div><div class="bar"><i style="width:92%"></i></div></div>
+          <div class="aid"><div style="display:flex;justify-content:space-between"><b>Aid 3 · 11 km</b><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Low water</span></div><div style="color:#3d5156">Volunteers 9 / 10</div><div style="color:#3d5156">Water 35% · tanker en route</div><div class="bar"><i style="width:35%;background:#c2851a"></i></div></div>
+          <div class="aid"><div style="display:flex;justify-content:space-between"><b>Aid 4 · 15 km</b><span class="pill" style="background:#f6d6d3;color:#8c1d15">Under-staffed</span></div><div style="color:#3d5156">Volunteers 3 / 10</div><div style="color:#3d5156">No lead</div><div class="bar"><i style="width:30%;background:#b3261e"></i></div></div>
+          <div class="aid"><div style="display:flex;justify-content:space-between"><b>Aid 5 · 18 km</b><span class="pill" style="background:#d8efe2;color:#15613b">Ready</span></div><div style="color:#3d5156">Volunteers 8 / 8</div><div style="color:#3d5156">Water 100%</div><div class="bar"><i style="width:100%"></i></div></div>
+          <div class="aid"><div style="display:flex;justify-content:space-between"><b>Finish line</b><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Short 11</span></div><div style="color:#3d5156">Volunteers 14 / 25</div><div style="color:#3d5156">Medals 100%</div><div class="bar"><i style="width:56%;background:#c2851a"></i></div></div>
+        </div>
+        <div style="font-size:13px;color:#3d5156">Tap an aid station to move volunteers from a surplus point, request supplies, or message its lead.</div>
+      </div>
+      <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <b style="font-size:18px">Run of show</b>
+          <div style="margin-top:6px">
+            <div class="tl"><b style="width:52px">03:30</b><span style="flex:1">Setup crews on site</span><span class="pill" style="background:#d8efe2;color:#15613b">Done</span></div>
+            <div class="tl"><b style="width:52px">04:45</b><span style="flex:1">Warm-up and announcements</span><span class="pill" style="background:#d8efe2;color:#15613b">Done</span></div>
+            <div class="tl" style="background:#eef7f8"><b style="width:52px">05:15</b><span style="flex:1">21K flag-off</span><span class="pill" style="background:#d8efe2;color:#15613b">Done</span></div>
+            <div class="tl"><b style="width:52px">05:45</b><span style="flex:1">10K flag-off · owner [Name]</span><span class="pill" style="background:#0b5d6b;color:#fff">Next</span></div>
+            <div class="tl"><b style="width:52px">06:15</b><span style="flex:1">5K flag-off</span><span class="pill" style="background:#e4eae9">Later</span></div>
+            <div class="tl"><b style="width:52px">07:30</b><span style="flex:1">Podium and awards</span><span class="pill" style="background:#e4eae9">Later</span></div>
+          </div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <b style="font-size:18px">Incident log</b>
+          <div style="border:1px solid #dde3e2;border-radius:10px;padding:10px;font-size:14px;display:flex;justify-content:space-between;gap:8px"><span><b>Runner cramp · 9 km</b><br><span style="color:#3d5156">Medic 2 attending · 05:38</span></span><span class="pill" style="background:#fbe8c8;color:#7a4e0a;align-self:flex-start">Open</span></div>
+          <div style="border:1px solid #dde3e2;border-radius:10px;padding:10px;font-size:14px;display:flex;justify-content:space-between;gap:8px"><span><b>Barricade moved · start</b><br><span style="color:#3d5156">Marshal reset · 05:30</span></span><span class="pill" style="background:#fbe8c8;color:#7a4e0a;align-self:flex-start">Open</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-left:5px solid #c2851a;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:17px">Ideas from similar tools · new</b><a href="Features.dc.html" style="font-size:13px">Pick them in the shortlist →</a></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Live tracking with chip alerts for families</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Announcer window</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Offline scoring and data checks before publishing</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Photos by bib and digital certificates</span></div></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

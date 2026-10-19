@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Race website builder</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.fld{border:1px solid #c9d3d2;border-radius:8px;padding:9px 12px;font-size:14px;background:#fff}
+.pg{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:8px;font-size:14px}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Module 3 · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Race website</h1>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span style="font-size:13px;color:#3d5156">Draft saved · live at vtra.run/vhm</span>
+        <span class="pill" style="background:#e4eae9;padding:8px 14px;font-size:14px">Preview</span>
+        <span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">Publish to Wix</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <div class="card" style="flex:0 0 220px;display:flex;flex-direction:column;gap:4px;padding:14px">
+        <span class="lbl" style="padding:4px 10px">Pages</span>
+        <div class="pg" style="background:#e6f1f2;font-weight:600"><span>Home</span><span class="pill" style="background:#d8efe2;color:#15613b">Live</span></div>
+        <div class="pg"><span>Race categories</span><span class="pill" style="background:#d8efe2;color:#15613b">Live</span></div>
+        <div class="pg"><span>Course and map</span><span class="pill" style="background:#d8efe2;color:#15613b">Live</span></div>
+        <div class="pg"><span>Register</span><span class="pill" style="background:#d8efe2;color:#15613b">Live</span></div>
+        <div class="pg"><span>Find my bib</span><span class="pill" style="background:#d8efe2;color:#15613b">Live</span></div>
+        <div class="pg"><span>Expo and kit</span><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Draft</span></div>
+        <div class="pg"><span>Sponsors</span><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Draft</span></div>
+        <div class="pg"><span>FAQ</span><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Draft</span></div>
+        <div class="pg"><span>Results</span><span class="pill" style="background:#e4eae9">Hidden</span></div>
+        <div class="pg" style="color:#0b5d6b;font-weight:600">+ Add page</div>
+      </div>
+
+      <div style="flex:1 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px">
+        <div style="border:1px solid #c9d3d2;border-radius:14px;overflow:hidden;background:#fff">
+          <div style="background:#e4eae9;padding:8px 14px;font-size:12px;color:#3d5156">vtra.run/vhm · Home</div>
+          <div style="background:linear-gradient(135deg,#0b5d6b,#12262b);color:#fff;padding:44px 36px">
+            <span style="font-size:12px;letter-spacing:.14em;font-weight:700;color:#f0a77f">[RACE DATE] · VISAKHAPATNAM</span>
+            <div class="hd" style="font-size:64px;line-height:.95;margin:8px 0 12px">Vizag Half Marathon</div>
+            <div style="font-size:17px;max-width:480px;color:#d4e0e2">21K, 10K and 5K along the coast. All paces welcome.</div>
+            <div style="display:flex;gap:10px;margin-top:20px"><span class="pill" style="background:#e8742a;color:#fff;padding:10px 20px;font-size:15px">Register now</span><span class="pill" style="background:rgba(255,255,255,.15);padding:10px 20px;font-size:15px">Find my bib</span></div>
+          </div>
+          <div style="padding:22px 36px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <div style="border:1px solid #dde3e2;border-radius:10px;padding:14px"><div class="hd" style="font-size:30px">21K</div><div style="font-size:13px;color:#3d5156">From the race record</div></div>
+            <div style="border:1px solid #dde3e2;border-radius:10px;padding:14px"><div class="hd" style="font-size:30px">10K</div><div style="font-size:13px;color:#3d5156">From the race record</div></div>
+            <div style="border:1px solid #dde3e2;border-radius:10px;padding:14px"><div class="hd" style="font-size:30px">5K</div><div style="font-size:13px;color:#3d5156">From the race record</div></div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:#3d5156">Everything with "From the race record" updates itself when you change the Vision screen.</div>
+      </div>
+
+      <div class="card" style="flex:0 0 250px;display:flex;flex-direction:column;gap:12px">
+        <b style="font-size:16px">Hero section</b>
+        <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Headline</span><div class="fld">Vizag Half Marathon</div></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Subline</span><div class="fld">21K, 10K and 5K along the coast.</div></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Main button</span><div class="fld">Register now → Registration portal</div></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Show countdown</span><div class="fld">On</div></div>
+        <div style="border-top:1px solid #dde3e2;padding-top:10px;font-size:13px;color:#3d5156">Connected: Wix site · findmybib page · registration portal · expo page</div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

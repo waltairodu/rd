@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Suite map and flow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.mod{display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px;text-decoration:none;color:#12262b}
+.mod:hover{border-color:#0b5d6b;box-shadow:0 6px 20px rgba(11,93,107,.12);color:#12262b}
+.mod ul{margin:0;padding-left:18px;color:#3d5156;font-size:14px;line-height:1.5}
+.pill{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:99px}
+</style>
+</helmet>
+<div style="max-width:1440px;margin:0 auto;padding:48px 56px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:32px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-end">
+    <div style="flex:1 1 560px;display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:13px;font-weight:700;letter-spacing:.14em;color:#c2521a">VTRA · RACE DIRECTOR SUITE · MOCKUPS FOR DECISION</span>
+      <h1 class="hd" style="margin:0;font-size:60px;line-height:1;color:#12262b">One race record, from the first idea to the finisher's certificate</h1>
+      <p style="margin:0;font-size:18px;line-height:1.5;color:#3d5156;max-width:760px">Four zones. <b>Race</b> is the nine modules below, around a single race record. <b>Community</b>, <b>Coach</b> and <b>More features</b> sit beside it. You set the race once (name, date, categories, capacity, budget) and every module reads from it. Click a module card to open its screen; every screen is a clickable mockup with sample data.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:16px 20px;min-width:260px">
+      <span style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156">LEGEND</span>
+      <div style="display:flex;gap:8px;align-items:center"><span class="pill" style="background:#d8efe2;color:#15613b">Built</span><span style="font-size:14px">Working today on vtra.run</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span><span style="font-size:14px">Screen to approve</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><span class="pill" style="background:#e4e9ee;color:#34495e">Later</span><span style="font-size:14px">Phase 3 or after</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center" aria-label="Race lifecycle">
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">1 Envision</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">2 Plan and budget</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">3 Website</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">4 Registration</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">5 Promote</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">6 Volunteers</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#0b5d6b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">7 Expo</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">8 Race day</span><span aria-hidden="true" style="color:#7a8f93">→</span>
+    <span style="background:#12262b;color:#fff;border-radius:99px;padding:8px 14px;font-size:14px;font-weight:600">9 After the race</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+    <a class="mod" href="Vision.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">1 · Vision and plan</span><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span></div>
+      <ul><li>Race concept, distances, date, capacity targets</li><li>Milestone timeline with go / no-go gates</li><li>Permits, route, vendors and approvals tracker</li></ul>
+    </a>
+    <a class="mod" href="Budget.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">2 · Budget and sponsors</span><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span></div>
+      <ul><li>Income vs expense, budget vs actual, break-even</li><li>Sponsor pipeline with deliverables owed</li><li>Expense approvals with receipts</li></ul>
+    </a>
+    <a class="mod" href="Website.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">3 · Race website</span><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span></div>
+      <ul><li>Page builder fed by the race record</li><li>Publishes to your Wix site (vtra.run)</li><li>Course, FAQ, sponsors, results pages</li></ul>
+    </a>
+    <a class="mod" href="Register.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">4 · Registration portal</span><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span></div>
+      <ul><li>Runner sign-up, T-shirt size, payment, waitlist</li><li>Admin: price tiers, coupons, caps, transfers</li><li>Feeds findmybib and the expo desks</li></ul>
+    </a>
+    <a class="mod" href="Marketing.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">5 · Marketing</span><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span></div>
+      <ul><li>Campaign calendar across Instagram, WhatsApp, email</li><li>Referral codes and registration funnel</li><li>Content library and approvals</li></ul>
+    </a>
+    <a class="mod" href="Volunteers.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">6 · Volunteers</span><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span></div>
+      <ul><li>Roles, shifts and sign-up link</li><li>Roster grid with gaps highlighted</li><li>Briefing, reminders and check-in</li></ul>
+    </a>
+    <a class="mod" href="Expo.dc.html" style="border-color:#0b5d6b">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">7 · Expo production</span><span class="pill" style="background:#d8efe2;color:#15613b">Built</span></div>
+      <ul><li>Bib and T-shirt hand-over with selfie proof</li><li>Three desks, one login each, stock lot per size</li><li>Race and desk locked per login</li></ul>
+    </a>
+    <a class="mod" href="RaceDay.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">8 · Race-day control</span><span class="pill" style="background:#fde7d8;color:#8d3a0c">Mockup</span></div>
+      <ul><li>Run of show by the minute, with owners</li><li>Aid stations: supplies, staffing, status</li><li>Incidents, medical and live announcements</li></ul>
+    </a>
+    <a class="mod" href="PostRace.dc.html">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:28px">9 · After the race</span><span class="pill" style="background:#e4e9ee;color:#34495e">Later</span></div>
+      <ul><li>Results, certificates, finisher photos</li><li>Feedback survey and learnings</li><li>Final profit and loss, next-year clone</li></ul>
+    </a>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+    <div style="background:#fff;border:1px solid #dde3e2;border-top:5px solid #0b5d6b;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+      <span class="hd" style="font-size:26px">Community · new</span><span style="font-size:14px;color:#3d5156">People programmes that run all year across races.</span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><a href="Clubs.dc.html" style="padding:6px 12px;border-radius:99px;background:#eef7f8;text-decoration:none;font-weight:600;font-size:14px">Clubs</a><a href="Ambassadors.dc.html" style="padding:6px 12px;border-radius:99px;background:#eef7f8;text-decoration:none;font-weight:600;font-size:14px">Ambassadors</a><a href="Pacers.dc.html" style="padding:6px 12px;border-radius:99px;background:#eef7f8;text-decoration:none;font-weight:600;font-size:14px">Pacers</a><a href="Academy.dc.html" style="padding:6px 12px;border-radius:99px;background:#eef7f8;text-decoration:none;font-weight:600;font-size:14px">Race-day academy</a></div>
+    </div>
+    <div style="background:#fff;border:1px solid #dde3e2;border-top:5px solid #c2851a;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+      <span class="hd" style="font-size:26px">Coach · new</span><span style="font-size:14px;color:#3d5156">A separate product for runners and coaches: free and coached plans.</span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><a href="Training.dc.html" style="padding:6px 12px;border-radius:99px;background:#eef7f8;text-decoration:none;font-weight:600;font-size:14px">Runner plans</a><a href="Coaching.dc.html" style="padding:6px 12px;border-radius:99px;background:#eef7f8;text-decoration:none;font-weight:600;font-size:14px">Coach console</a></div>
+    </div>
+    <div style="background:#fff;border:1px solid #dde3e2;border-top:5px solid #c9d3d2;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+      <span class="hd" style="font-size:26px">More features · new</span><span style="font-size:14px;color:#3d5156">Shortlist of extras for you to pick from.</span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><a href="Features.dc.html" style="padding:6px 12px;border-radius:99px;background:#eef7f8;text-decoration:none;font-weight:600;font-size:14px">Feature shortlist</a></div>
+    </div>
+  </div>
+
+  <div style="background:#12262b;color:#fff;border-radius:16px;padding:24px 28px;display:flex;flex-wrap:wrap;gap:24px;align-items:center">
+    <div style="flex:1 1 220px"><span style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#f0a77f">SHARED SPINE</span><div class="hd" style="font-size:30px;line-height:1.1;margin-top:6px">Built once, used by every module</div></div>
+    <div style="flex:3 1 560px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:12px"><b style="font-size:14px">Race record</b><div style="font-size:13px;color:#c9d6d8;margin-top:4px">Name, date, categories, capacity</div></div>
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:12px"><b style="font-size:14px">People</b><div style="font-size:13px;color:#c9d6d8;margin-top:4px">Runners, volunteers, sponsors, vendors</div></div>
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:12px"><b style="font-size:14px">Money</b><div style="font-size:13px;color:#c9d6d8;margin-top:4px">One ledger for fees, sponsors, costs</div></div>
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:12px"><b style="font-size:14px">Tasks</b><div style="font-size:13px;color:#c9d6d8;margin-top:4px">Owners, dates, approvals</div></div>
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:12px"><b style="font-size:14px">Roles and logins</b><div style="font-size:13px;color:#c9d6d8;margin-top:4px">Director, team lead, desk, volunteer</div></div>
+    </div>
+  </div>
+  <div style="font-size:14px;color:#3d5156">Next screen to open: <a href="Command.dc.html">Command centre</a> · or jump to <a href="Decisions.dc.html">Decisions and build order</a>.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1230}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

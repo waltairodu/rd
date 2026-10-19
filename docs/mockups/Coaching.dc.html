@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Coach platform</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#3d5156;padding:8px 10px;border-bottom:1px solid #dde3e2}
+td{padding:10px;border-bottom:1px solid #eef2f1}
+.wk{border:1px solid #dde3e2;border-radius:8px;padding:8px;font-size:12px;text-align:center;background:#fff}
+
+.ph{border:1px solid #dde3e2;border-radius:12px;background:#fff;padding:12px;font-size:13px}
+.ln{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:5px 0;border-bottom:1px solid #eef2f1}
+.msg{border-radius:10px;padding:8px 10px;font-size:13px;max-width:88%}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Coach · console · modelled on TrainingPeaks · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Coach console</h1>
+        <p style="margin:6px 0 0;color:#3d5156;max-width:780px">Where coaches plan, message and track runners on coached plans. Free-plan runners never appear here and cannot message coaches.</p>
+      </div>
+      <div style="display:flex;gap:10px"><span class="pill" style="background:#e4eae9;padding:8px 14px;font-size:14px">Invite a runner</span><span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">+ New workout</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">Runners coached</span><div class="hd" style="font-size:38px">42</div><div style="font-size:13px;color:#3d5156">of 60 capacity · 4 coaches</div></div>
+      <div class="card"><span class="lbl">Compliance this week</span><div class="hd" style="font-size:38px">78%</div><div class="bar"><i style="width:78%"></i></div></div>
+      <div class="card"><span class="lbl">Unanswered messages</span><div class="hd" style="font-size:38px">6</div><div style="font-size:13px;color:#8c1d15">2 older than a day</div></div>
+      <div class="card"><span class="lbl">Need attention</span><div class="hd" style="font-size:38px">5</div><div style="font-size:13px;color:#3d5156">missed runs, pain flags, load spikes</div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:18px">1 · Athlete dashboard</b><span style="font-size:13px;color:#3d5156">Who needs you first</span></div>
+      <table style="margin-top:6px"><tr><th>Runner</th><th>Status</th><th>Compliance</th><th>Load trend</th><th>Last upload</th><th>Flag</th></tr><tr><td><b>[Runner A]</b><br><span style="font-size:12px;color:#3d5156">Half · goal 1:50</span></td><td><span class="pill" style="background:#d8efe2;color:#15613b">On track</span></td><td><div class="bar"><i style="width:92%"></i></div><span style="font-size:12px">92%</span></td><td>Building</td><td>Today</td><td></td></tr><tr><td><b>[Runner B]</b><br><span style="font-size:12px;color:#3d5156">Half · finish</span></td><td><span class="pill" style="background:#d8efe2;color:#15613b">On track</span></td><td><div class="bar"><i style="width:81%"></i></div><span style="font-size:12px">81%</span></td><td>Steady</td><td>Yesterday</td><td></td></tr><tr><td><b>[Runner C]</b><br><span style="font-size:12px;color:#3d5156">10K · first time</span></td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Slipping</span></td><td><div class="bar"><i style="width:54%"></i></div><span style="font-size:12px">54%</span></td><td>Low</td><td>4 days ago</td><td>Missed 2 runs</td></tr><tr><td><b>[Runner D]</b><br><span style="font-size:12px;color:#3d5156">Half · goal 1:45</span></td><td><span class="pill" style="background:#f6d6d3;color:#8c1d15">Check in</span></td><td><div class="bar"><i style="width:38%"></i></div><span style="font-size:12px">38%</span></td><td>Spiking</td><td>6 days ago</td><td>Knee pain flagged</td></tr><tr><td><b>[Runner E]</b><br><span style="font-size:12px;color:#3d5156">Half · finish</span></td><td><span class="pill" style="background:#d8efe2;color:#15613b">On track</span></td><td><div class="bar"><i style="width:88%"></i></div><span style="font-size:12px">88%</span></td><td>Steady</td><td>Today</td><td></td></tr></table>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1.3 1 520px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:18px">2 · Calendar and workout builder · [Runner D]</b><span style="font-size:13px;color:#3d5156">Drag a saved workout onto a day</span></div>
+        <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px"><div class="wk"><span class="lbl">Mon</span><br>Rest</div><div class="wk"><span class="lbl">Tue</span><br>6×800<br><span class="pill" style="background:#d8efe2;color:#15613b">Done</span></div><div class="wk"><span class="lbl">Wed</span><br>Easy 5<br><span class="pill" style="background:#f6d6d3;color:#8c1d15">Missed</span></div><div class="wk"><span class="lbl">Thu</span><br>Tempo 8<br><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Partly</span></div><div class="wk"><span class="lbl">Fri</span><br>Rest</div><div class="wk"><span class="lbl">Sat</span><br>Group</div><div class="wk"><span class="lbl">Sun</span><br>Long 16</div></div>
+        <div class="ph"><b>Workout builder</b><br>Warm-up 2 km easy · 6 × 800 m at 4:05 / km with 400 m jog · cool-down 1.5 km. Targets by pace or heart-rate zone. Save to the library and reuse.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill" style="background:#eef7f8;color:#08434d">Plan vs done on each day</span><span class="pill" style="background:#eef7f8;color:#08434d">Hard and easy balance</span><span class="pill" style="background:#eef7f8;color:#08434d">Copy week to others</span><span class="pill" style="background:#eef7f8;color:#08434d">Runner travel notes</span></div>
+      </div>
+      <div class="card" style="flex:1 1 400px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between"><b style="font-size:18px">3 · Two-way messages and feedback</b><span class="pill" style="background:#eef7f8;color:#08434d">Coached only</span></div>
+        <div class="msg" style="background:#eef2f1;align-self:flex-start"><b>[Runner D], Tue run:</b> Felt strong. Right knee tight after rep 5. Effort 8 of 10.</div>
+        <div class="msg" style="background:#0b5d6b;color:#fff;align-self:flex-end"><b>Coach:</b> Thanks. Skip Wednesday, ice tonight, tell me how it feels tomorrow. I moved the tempo to Friday.</div>
+        <div class="msg" style="background:#eef2f1;align-self:flex-start">Knee fine this morning. Can I do the long run?</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill" style="background:#e4eae9;color:#12262b">Comment on any workout</span><span class="pill" style="background:#e4eae9;color:#12262b">Photos and files</span><span class="pill" style="background:#e4eae9;color:#12262b">One runner or a group</span><span class="pill" style="background:#e4eae9;color:#12262b">Reply target 24 h</span></div>
+        <div style="font-size:13px;color:#3d5156">A pain flag raises a banner for the coach; repeated flags ask the runner to see a doctor. Coaches do not diagnose.</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1 1 440px;display:flex;flex-direction:column;gap:8px">
+        <b style="font-size:18px">4 · Fitness, fatigue and form</b>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:90px;padding:6px 0"><i style="flex:1;background:#0b5d6b;height:30%"></i><i style="flex:1;background:#0b5d6b;height:36%"></i><i style="flex:1;background:#0b5d6b;height:42%"></i><i style="flex:1;background:#0b5d6b;height:50%"></i><i style="flex:1;background:#0b5d6b;height:55%"></i><i style="flex:1;background:#c2851a;height:78%"></i><i style="flex:1;background:#b3261e;height:92%"></i><i style="flex:1;background:#0b5d6b;height:60%"></i></div>
+        <div style="font-size:13px;color:#3d5156">Weekly load. A jump over about 30% shows amber; a spike with a pain flag shows red. Behind it are three numbers: fitness (long-term load), fatigue (short-term load) and form (the gap), the same idea as TrainingPeaks' performance chart. Load per run uses distance, time and heart rate where available, otherwise effort times minutes.</div>
+      </div>
+      <div class="card" style="flex:1 1 300px;display:flex;flex-direction:column;gap:8px">
+        <b style="font-size:18px">5 · Plans library</b>
+        <div class="ln"><span>5K first-timer · 8 wks</span><b>Template</b></div><div class="ln"><span>10K improver · 10 wks</span><b>Template</b></div><div class="ln"><span>Half: finish · 12 wks</span><b>Template</b></div><div class="ln"><span>Half: goal time · 12 wks</span><b>Template</b></div><div class="ln" style=border:0><span>Trail 25K · 14 wks</span><b>Template</b></div>
+        <div style="font-size:13px;color:#3d5156">Free plans come from these templates. Coaches copy one to a runner and edit it.</div>
+      </div>
+      <div class="card" style="flex:1 1 300px;display:flex;flex-direction:column;gap:8px">
+        <b style="font-size:18px">6 · Coach onboarding and rules</b>
+        <div style="font-size:14px">1 · Apply with credentials and race record</div><div style="font-size:14px">2 · Vetted and approved by the Race Director</div><div style="font-size:14px">3 · Coach academy and safeguarding module</div><div style="font-size:14px">4 · Set capacity and availability</div><div style="font-size:14px">5 · Runners assigned, or pick from coach profiles</div>
+        <div style="font-size:13px;color:#3d5156">Coaches see only their own runners. Messages stay inside the platform and are kept for review. Group runs link to <a href="Ambassadors.dc.html">Ambassadors</a>.</div>
+      </div>
+    </div>
+    <div class="card" style="border-left:5px solid #c2851a;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:17px">Ideas from similar tools · new</b><a href="Features.dc.html" style="font-size:13px">Pick them in the shortlist →</a></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Adaptive paces and heat adjustment (Runna)</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Not feeling 100% button</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Strength and warm-up sessions in plans</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Team wall, QR attendance, loyalty points (Final Surge)</span></div></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1800}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

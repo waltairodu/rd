@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Race-day academy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#3d5156;padding:8px 10px;border-bottom:1px solid #dde3e2}
+td{padding:10px;border-bottom:1px solid #eef2f1}
+.wk{border:1px solid #dde3e2;border-radius:8px;padding:8px;font-size:12px;text-align:center;background:#fff}
+
+.ph{border:1px solid #dde3e2;border-radius:12px;background:#fff;padding:12px;font-size:13px}
+.ln{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:5px 0;border-bottom:1px solid #eef2f1}
+.msg{border-radius:10px;padding:8px 10px;font-size:13px;max-width:88%}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Community · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Race-day academy</h1>
+        <p style="margin:6px 0 0;color:#3d5156;max-width:780px">Short online modules that volunteers, pacers, ambassadors, club leaders and coaches finish before they get a role. Completion feeds the rosters, so nobody is rostered untrained.</p>
+      </div>
+      <span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">+ New module</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">Modules</span><div class="hd" style="font-size:38px">9</div></div>
+      <div class="card"><span class="lbl">People enrolled</span><div class="hd" style="font-size:38px">214</div></div>
+      <div class="card"><span class="lbl">Fully cleared</span><div class="hd" style="font-size:38px">162</div><div class="bar"><i style="width:76%"></i></div></div>
+      <div class="card"><span class="lbl">Not yet cleared</span><div class="hd" style="font-size:38px">52</div><div style="font-size:13px;color:#8c1d15">shown as not cleared on rosters</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1.6 1 520px">
+        <b style="font-size:18px">Modules and completion</b>
+        <table style="margin-top:6px"><tr><th>Module</th><th>For</th><th>Length</th><th>Done</th></tr>
+        <tr><td><b>Race-day basics and safety</b></td><td>Everyone</td><td>15 min</td><td style="min-width:140px"><div class="bar"><i style="width:82%;background:#0b5d6b"></i></div></td></tr><tr><td><b>Aid station operations</b></td><td>Aid crews</td><td>20 min</td><td style="min-width:140px"><div class="bar"><i style="width:64%;background:#0b5d6b"></i></div></td></tr><tr><td><b>Marshals: course and crowd</b></td><td>Marshals</td><td>20 min</td><td style="min-width:140px"><div class="bar"><i style="width:71%;background:#0b5d6b"></i></div></td></tr><tr><td><b>Expo desk procedures</b></td><td>Desk volunteers</td><td>15 min</td><td style="min-width:140px"><div class="bar"><i style="width:90%;background:#0b5d6b"></i></div></td></tr><tr><td><b>First response and escalation</b></td><td>Medical, leads</td><td>30 min</td><td style="min-width:140px"><div class="bar"><i style="width:48%;background:#c2851a"></i></div></td></tr><tr><td><b>Pacing a group</b></td><td>Pacers</td><td>25 min</td><td style="min-width:140px"><div class="bar"><i style="width:75%;background:#0b5d6b"></i></div></td></tr><tr><td><b>Ambassador basics</b></td><td>Ambassadors</td><td>20 min</td><td style="min-width:140px"><div class="bar"><i style="width:58%;background:#0b5d6b"></i></div></td></tr><tr><td><b>Club leader basics</b></td><td>Club leaders</td><td>20 min</td><td style="min-width:140px"><div class="bar"><i style="width:60%;background:#0b5d6b"></i></div></td></tr><tr><td><b>Coach safeguarding</b></td><td>Coaches</td><td>25 min</td><td style="min-width:140px"><div class="bar"><i style="width:70%;background:#0b5d6b"></i></div></td></tr></table>
+      </div>
+      <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:16px">
+        <div class="card" style="display:flex;flex-direction:column;gap:8px"><b style="font-size:18px">How it works</b>
+          <div style="font-size:14px">• Short video or slides, then a 5-question check</div><div style="font-size:14px">• Certificate on completion</div><div style="font-size:14px">• Reminders by WhatsApp and email</div><div style="font-size:14px">• Required modules depend on the role</div></div>
+        <div style="background:#fbe8c8;color:#7a4e0a;border-radius:12px;padding:12px 14px;font-size:14px">52 people have not finished a required module. Send a reminder, or the roster will mark them as not cleared.</div>
+        <div class="card" style="font-size:13px;color:#3d5156">Feeds <a href="Volunteers.dc.html">Volunteers</a>, <a href="Pacers.dc.html">Pacers</a>, <a href="Ambassadors.dc.html">Ambassadors</a>, <a href="Clubs.dc.html">Clubs</a> and the <a href="Coaching.dc.html">Coach console</a>.</div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

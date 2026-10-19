@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Expo production</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+.tile{border:1px solid #dde3e2;border-radius:10px;padding:10px;text-align:center;background:#fff}
+.tog{display:flex;gap:10px;align-items:center;border:1.5px solid #c9d3d2;border-radius:10px;padding:10px 12px;font-size:14px;background:#fff}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Module 7 · already built · sample numbers</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Expo production</h1>
+        <p style="margin:6px 0 0;color:#3d5156;max-width:700px">The expo desk software on vtra.run/exposoft, seen from the director's chair: who is at which desk, what is left, and what is out of step.</p>
+      </div>
+      <span class="pill" style="background:#d8efe2;color:#15613b;padding:8px 14px;font-size:14px">Live · synced from findmybib</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+      <div class="card" style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between"><b style="font-size:17px">Desk 1 · BIB</b><span class="pill" style="background:#d8efe2;color:#15613b">● In use</span></div><div style="font-size:14px;color:#3d5156">Login: [bib login] · gives bibs and checks in</div><div class="hd" style="font-size:34px">1,184 <span style="font-size:16px;color:#3d5156">bibs out</span></div></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between"><b style="font-size:17px">Desk 2 · Tshirt</b><span class="pill" style="background:#d8efe2;color:#15613b">● In use</span></div><div style="font-size:14px;color:#3d5156">Login: [shirt login] · T-shirts only, selfie proof</div><div class="hd" style="font-size:34px">1,097 <span style="font-size:16px;color:#3d5156">T-shirts out</span></div></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between"><b style="font-size:17px">Desk 3 · Misc</b><span class="pill" style="background:#e4eae9">○ Idle</span></div><div style="font-size:14px;color:#3d5156">Login: [misc login] · lookups, corrections, walk-ins</div><div class="hd" style="font-size:34px">9 <span style="font-size:16px;color:#3d5156">corrections</span></div></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1.2 1 460px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Stock left by size</b><span style="font-size:13px;color:#3d5156">Lot typed once. Everything else updates itself.</span></div>
+        <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px">
+          <div class="tile"><div class="lbl">XS</div><div class="hd" style="font-size:30px">42</div></div>
+          <div class="tile"><div class="lbl">S</div><div class="hd" style="font-size:30px">118</div></div>
+          <div class="tile"><div class="lbl">M</div><div class="hd" style="font-size:30px">251</div></div>
+          <div class="tile"><div class="lbl">L</div><div class="hd" style="font-size:30px">187</div></div>
+          <div class="tile" style="border-color:#c2851a;background:#fff7e8"><div class="lbl">XL</div><div class="hd" style="font-size:30px;color:#7a4e0a">24</div><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Low</span></div>
+          <div class="tile"><div class="lbl">XXL</div><div class="hd" style="font-size:30px">61</div></div>
+        </div>
+        <div style="font-size:14px;display:flex;justify-content:space-between"><span>Bibs handed over</span><b>1,184 / 2,140</b></div><div class="bar"><i style="width:55%"></i></div>
+        <div style="font-size:14px;display:flex;justify-content:space-between"><span>Checked in</span><b>1,210 / 2,140</b></div><div class="bar"><i style="width:57%"></i></div>
+        <div style="font-size:13px;color:#7a4e0a;background:#fbe8c8;border-radius:8px;padding:8px 10px">XL left (24) is below XL registrations still to collect (31). Order extra or plan a swap list.</div>
+      </div>
+
+      <div class="card" style="flex:1 1 360px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">What a desk sees</b><span class="pill" style="background:#e4eae9">Desk 2 · Tshirt</span></div>
+        <div style="background:#12262b;color:#fff;border-radius:12px;padding:14px"><div style="font-size:12px;color:#f0a77f;letter-spacing:.1em;font-weight:700">BIB [BIB] · 21K</div><div class="hd" style="font-size:26px">Sample runner</div><div style="font-size:13px;color:#c9d6d8">Registered size <b>M</b> · fixed, cannot be changed</div></div>
+        <div class="tog" style="border-style:dashed;background:#f3f5f4"><span style="color:#3d5156">Bib and check-in: send to Desk 1 - BIB</span></div>
+        <div class="tog" style="border-color:#0b5d6b;background:#eef7f8"><span style="width:20px;height:20px;border-radius:5px;background:#0b5d6b;color:#fff;text-align:center;font-weight:700">✓</span><b>T-shirt · size M</b></div>
+        <div style="display:flex;gap:8px;font-size:13px"><span class="pill" style="background:#0b5d6b;color:#fff;padding:6px 12px">The runner</span><span class="pill" style="background:#e4eae9;padding:6px 12px">A friend</span></div>
+        <div style="border:1px dashed #c9d3d2;border-radius:10px;padding:14px;text-align:center;font-size:14px;color:#3d5156">Take selfie of the person collecting</div>
+        <div style="background:#0b5d6b;color:#fff;border-radius:10px;padding:12px;text-align:center;font-weight:700">Hand over T-shirt (M)</div>
+      </div>
+    </div>
+
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:20px">
+      <div style="flex:1 1 280px"><b>Rules baked in</b><div style="font-size:14px;color:#3d5156;margin-top:6px;line-height:1.6">Each desk only gives its own item. One login, one desk. Race and desk fixed per login. Findmybib data is never overwritten.</div></div>
+      <div style="flex:1 1 280px"><b>Proof of pickup</b><div style="font-size:14px;color:#3d5156;margin-top:6px;line-height:1.6">Selfie for self or friend, stored privately. SMS one-time code can be added later.</div></div>
+      <div style="flex:1 1 280px"><b>Joins to the suite</b><div style="font-size:14px;color:#3d5156;margin-top:6px;line-height:1.6">Registration feeds the runner list. Budget reads the lot cost. Race day reads the collected counts.</div></div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

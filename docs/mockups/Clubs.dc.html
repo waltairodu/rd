@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clubs onboarding and tracking</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#3d5156;padding:8px 10px;border-bottom:1px solid #dde3e2}
+td{padding:10px;border-bottom:1px solid #eef2f1}
+.col{background:#f3f5f4;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.kc{background:#fff;border:1px solid #dde3e2;border-radius:8px;padding:8px 10px;font-size:13px}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Community · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Clubs: onboarding and tracking</h1>
+        <p style="margin:6px 0 0;color:#3d5156;max-width:720px">Running clubs are your steadiest source of runners. Track each club from first contact to loyal partner, and give leaders their own link and view.</p>
+      </div>
+      <div style="display:flex;gap:10px"><span class="pill" style="background:#e4eae9;padding:8px 14px;font-size:14px">Import club list</span><span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">+ Add club</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">Clubs in pipeline</span><div class="hd" style="font-size:38px">31</div><div style="font-size:13px;color:#3d5156">12 active this race</div></div>
+      <div class="card"><span class="lbl">Runners via clubs</span><div class="hd" style="font-size:38px">406</div><div style="font-size:13px;color:#3d5156">19% of registrations</div></div>
+      <div class="card"><span class="lbl">Club leaders onboarded</span><div class="hd" style="font-size:38px">12 <span style="font-size:20px;color:#3d5156">/ 31</span></div><div class="bar"><i style="width:39%"></i></div></div>
+      <div class="card"><span class="lbl">Group bib pickups booked</span><div class="hd" style="font-size:38px">7</div><div style="font-size:13px;color:#3d5156">covers 188 runners</div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Club pipeline</b><span style="font-size:13px;color:#3d5156">Drag a club to the next stage</span></div>
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:12px">
+        <div class="col"><span class="lbl">Prospect · 9</span><div class="kc"><b>[Club A]</b><br><span style="color:#3d5156">Found via Instagram</span></div><div class="kc"><b>[Club B]</b><br><span style="color:#3d5156">Referred by runner</span></div></div>
+        <div class="col"><span class="lbl">Contacted · 6</span><div class="kc"><b>[Club C]</b><br><span style="color:#3d5156">Call set for Thu</span></div><div class="kc"><b>[Club D]</b><br><span style="color:#3d5156">Waiting on reply</span></div></div>
+        <div class="col"><span class="lbl">Onboarding · 4</span><div class="kc"><b>[Club E]</b><br><span style="color:#3d5156">Code issued, 2 of 5 steps</span></div><div class="kc"><b>[Club F]</b><br><span style="color:#3d5156">Leader training pending</span></div></div>
+        <div class="col"><span class="lbl">Active · 9</span><div class="kc"><b>[Club G]</b><br><span style="color:#15613b">48 registered</span></div><div class="kc"><b>[Club H]</b><br><span style="color:#15613b">31 registered</span></div></div>
+        <div class="col"><span class="lbl">Champion · 3</span><div class="kc"><b>[Club I]</b><br><span style="color:#15613b">3rd year, 90 runners</span></div></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1.5 1 480px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Active clubs</b><span style="font-size:13px;color:#3d5156">Ranked by registrations</span></div>
+        <table style="margin-top:6px">
+          <tr><th>Club</th><th>Leader</th><th>Code</th><th>Registered</th><th>Tier</th><th>Bib pickup</th></tr>
+          <tr><td><b>[Club G]</b></td><td>[Leader]</td><td>[CODE]</td><td>48</td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Gold</span></td><td><span class="pill" style="background:#d8efe2;color:#15613b">Booked</span></td></tr>
+          <tr><td><b>[Club H]</b></td><td>[Leader]</td><td>[CODE]</td><td>31</td><td><span class="pill" style="background:#e4eae9">Silver</span></td><td><span class="pill" style="background:#d8efe2;color:#15613b">Booked</span></td></tr>
+          <tr><td><b>[Club J]</b></td><td>[Leader]</td><td>[CODE]</td><td>22</td><td><span class="pill" style="background:#e4eae9">Silver</span></td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Not yet</span></td></tr>
+          <tr><td><b>[Club K]</b></td><td>[Leader]</td><td>[CODE]</td><td>9</td><td><span class="pill" style="background:#f0e4d8;color:#6b4a2a">Bronze</span></td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Not yet</span></td></tr>
+        </table>
+        <div style="font-size:13px;color:#3d5156;margin-top:8px">Tier thresholds and perks are yours to set (for example a group discount or a club banner spot at the expo).</div>
+      </div>
+      <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:16px">
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <b style="font-size:18px">Onboarding checklist · [Club E]</b>
+          <div style="font-size:14px">✓ First call and agreement of terms</div>
+          <div style="font-size:14px">✓ Club code and group link issued</div>
+          <div style="font-size:14px;color:#3d5156">○ Leader completes the short training</div>
+          <div style="font-size:14px;color:#3d5156">○ Club announces to members (template provided)</div>
+          <div style="font-size:14px;color:#3d5156">○ Group bib pickup slot chosen</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <b style="font-size:18px">What the club leader sees</b>
+          <div style="font-size:14px">• Own sign-up link and live count of members registered</div>
+          <div style="font-size:14px">• List of members with payment and T-shirt size status</div>
+          <div style="font-size:14px">• Book a group bib pickup: leader collects, each member's selfie or ID check still applies at the expo desk</div>
+          <div style="font-size:13px;color:#3d5156;margin-top:4px">Links to <a href="Expo.dc.html">Expo production</a> and <a href="Marketing.dc.html">Marketing</a>.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-left:5px solid #c2851a;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:17px">Ideas from similar tools · new</b><a href="Features.dc.html" style="font-size:13px">Pick them in the shortlist →</a></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Member database with medical certificate field</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Attendance, polls and surveys</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Leaders see only their own group</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Dues, receipts and late reminders</span></div></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

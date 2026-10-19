@@ -1,0 +1,261 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-18T14:30:00Z"
+  },
+  "title": "Race Director Suite Mockups",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1230,
+      "title": "0 \u00b7 Suite map and flow",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Command.dc.html": {
+      "x": 0,
+      "y": 1500,
+      "w": 1360,
+      "h": 980,
+      "title": "1a \u00b7 Command centre",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Vision.dc.html": {
+      "x": 1440,
+      "y": 1500,
+      "w": 1360,
+      "h": 980,
+      "title": "1b \u00b7 Vision and race plan",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Website.dc.html": {
+      "x": 2880,
+      "y": 1500,
+      "w": 1360,
+      "h": 980,
+      "title": "1c \u00b7 Race website",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Register.dc.html": {
+      "x": 0,
+      "y": 2600,
+      "w": 1360,
+      "h": 980,
+      "title": "2a \u00b7 Runner registration (public)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "RegAdmin.dc.html": {
+      "x": 1440,
+      "y": 2600,
+      "w": 1360,
+      "h": 980,
+      "title": "2b \u00b7 Registration admin",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Budget.dc.html": {
+      "x": 2880,
+      "y": 2600,
+      "w": 1360,
+      "h": 980,
+      "title": "2c \u00b7 Budget and sponsors",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Marketing.dc.html": {
+      "x": 0,
+      "y": 3700,
+      "w": 1360,
+      "h": 980,
+      "title": "3a \u00b7 Marketing",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Volunteers.dc.html": {
+      "x": 1440,
+      "y": 3700,
+      "w": 1360,
+      "h": 980,
+      "title": "3b \u00b7 Volunteers",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Expo.dc.html": {
+      "x": 2880,
+      "y": 3700,
+      "w": 1360,
+      "h": 980,
+      "title": "3c \u00b7 Expo production",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "RaceDay.dc.html": {
+      "x": 0,
+      "y": 4800,
+      "w": 1360,
+      "h": 980,
+      "title": "4a \u00b7 Race-day control room",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "PostRace.dc.html": {
+      "x": 1440,
+      "y": 4800,
+      "w": 1360,
+      "h": 980,
+      "title": "4b \u00b7 After the race",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Decisions.dc.html": {
+      "x": 2880,
+      "y": 4800,
+      "w": 1360,
+      "h": 1500,
+      "title": "4c \u00b7 Decisions and build order",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Clubs.dc.html": {
+      "x": 0,
+      "y": 6500,
+      "w": 1360,
+      "h": 980,
+      "title": "5a \u00b7 Clubs: onboarding and tracking",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Ambassadors.dc.html": {
+      "x": 1440,
+      "y": 6500,
+      "w": 1360,
+      "h": 980,
+      "title": "5b \u00b7 Ambassadors: onboarding and tracking",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Pacers.dc.html": {
+      "x": 2880,
+      "y": 6500,
+      "w": 1360,
+      "h": 980,
+      "title": "5c \u00b7 Pacers: plan, onboarding, tracking",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Training.dc.html": {
+      "x": 0,
+      "y": 7600,
+      "w": 1360,
+      "h": 1200,
+      "title": "6a \u00b7 Coach: runner plans",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Coaching.dc.html": {
+      "x": 1440,
+      "y": 7600,
+      "w": 1360,
+      "h": 1800,
+      "title": "6b \u00b7 Coach: console",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Academy.dc.html": {
+      "x": 4320,
+      "y": 6500,
+      "w": 1360,
+      "h": 980,
+      "title": "5d \u00b7 Community: race-day academy",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Features.dc.html": {
+      "x": 2880,
+      "y": 7600,
+      "w": 1360,
+      "h": 3600,
+      "title": "6c \u00b7 More features: shortlist",
+      "expand": "fill",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Command.dc.html",
+    "Vision.dc.html",
+    "Website.dc.html",
+    "Register.dc.html",
+    "RegAdmin.dc.html",
+    "Budget.dc.html",
+    "Marketing.dc.html",
+    "Volunteers.dc.html",
+    "Expo.dc.html",
+    "RaceDay.dc.html",
+    "PostRace.dc.html",
+    "Decisions.dc.html",
+    "Clubs.dc.html",
+    "Ambassadors.dc.html",
+    "Pacers.dc.html",
+    "Academy.dc.html",
+    "Training.dc.html",
+    "Coaching.dc.html",
+    "Features.dc.html"
+  ],
+  "notes": {
+    "r1": {
+      "x": 0,
+      "y": 1260,
+      "text": "RACE \u00b7 1 \u00b7 Plan and launch",
+      "kind": "title1",
+      "maxW": 5600
+    },
+    "r2": {
+      "x": 0,
+      "y": 2360,
+      "text": "RACE \u00b7 2 \u00b7 Sell and fund",
+      "kind": "title1",
+      "maxW": 5600
+    },
+    "r3": {
+      "x": 0,
+      "y": 3460,
+      "text": "RACE \u00b7 3 \u00b7 People, promotion and expo",
+      "kind": "title1",
+      "maxW": 5600
+    },
+    "r4": {
+      "x": 0,
+      "y": 4560,
+      "text": "RACE \u00b7 4 \u00b7 Race day, after the race, decisions",
+      "kind": "title1",
+      "maxW": 5600
+    },
+    "r5": {
+      "x": 0,
+      "y": 6260,
+      "text": "COMMUNITY \u00b7 clubs, ambassadors, pacers, academy",
+      "kind": "title1",
+      "maxW": 5600
+    },
+    "r6": {
+      "x": 0,
+      "y": 7360,
+      "text": "COACH and MORE FEATURES",
+      "kind": "title1",
+      "maxW": 5600
+    }
+  },
+  "designSystems": []
+}

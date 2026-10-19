@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Command centre</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Race in focus · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Vizag Half Marathon · 5th edition</h1>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="background:#12262b;color:#fff;border-radius:12px;padding:10px 16px;text-align:center"><div class="hd" style="font-size:34px;line-height:1">38</div><div style="font-size:12px;color:#c9d6d8">days to race day</div></div>
+        <div style="background:#fff;border:1px solid #dde3e2;border-radius:10px;padding:10px 14px;font-size:14px">Switch race ▾</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">Registrations</span><div class="hd" style="font-size:38px">2,140</div><div class="bar"><i style="width:71%"></i></div><div style="font-size:13px;color:#3d5156;margin-top:6px">of 3,000 cap · 71%</div></div>
+      <div class="card"><span class="lbl">Fees collected</span><div class="hd" style="font-size:38px">₹18.4 L</div><div style="font-size:13px;color:#15613b;margin-top:6px">▲ ₹1.2 L this week</div></div>
+      <div class="card"><span class="lbl">Budget used</span><div class="hd" style="font-size:38px">62%</div><div class="bar"><i style="width:62%;background:#c2851a"></i></div><div style="font-size:13px;color:#3d5156;margin-top:6px">Forecast on plan</div></div>
+      <div class="card"><span class="lbl">Volunteers</span><div class="hd" style="font-size:38px">214</div><div class="bar"><i style="width:71%"></i></div><div style="font-size:13px;color:#3d5156;margin-top:6px">of 300 needed</div></div>
+      <div class="card"><span class="lbl">Overdue tasks</span><div class="hd" style="font-size:38px;color:#b3261e">4</div><div style="font-size:13px;color:#3d5156;margin-top:6px">2 need you</div></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:stretch">
+      <div class="card" style="flex:1.3 1 420px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between"><b style="font-size:18px">Readiness by module</b><span style="font-size:13px;color:#3d5156">Target: all green 7 days out</span></div>
+        <div style="display:grid;grid-template-columns:150px 1fr 48px;gap:10px 14px;align-items:center;font-size:14px">
+          <span>Plan and permits</span><div class="bar"><i style="width:80%"></i></div><b>80%</b>
+          <span>Budget</span><div class="bar"><i style="width:90%"></i></div><b>90%</b>
+          <span>Website</span><div class="bar"><i style="width:100%;background:#15613b"></i></div><b>100%</b>
+          <span>Registration</span><div class="bar"><i style="width:71%"></i></div><b>71%</b>
+          <span>Marketing</span><div class="bar"><i style="width:55%;background:#c2851a"></i></div><b>55%</b>
+          <span>Volunteers</span><div class="bar"><i style="width:71%"></i></div><b>71%</b>
+          <span>Expo</span><div class="bar"><i style="width:40%;background:#c2851a"></i></div><b>40%</b>
+          <span>Race-day plan</span><div class="bar"><i style="width:35%;background:#b3261e"></i></div><b>35%</b>
+        </div>
+      </div>
+      <div class="card" style="flex:1 1 320px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Waiting for your decision</b><span class="pill" style="background:#fde7d8;color:#8d3a0c">3</span></div>
+        <div style="border:1px solid #dde3e2;border-radius:10px;padding:12px"><b style="font-size:15px">Approve ₹85,000: finisher medals</b><div style="font-size:13px;color:#3d5156">Vendor quote B · within budget line</div><div style="display:flex;gap:8px;margin-top:8px"><span class="pill" style="background:#0b5d6b;color:#fff">Approve</span><span class="pill" style="background:#e4eae9">Ask question</span></div></div>
+        <div style="border:1px solid #dde3e2;border-radius:10px;padding:12px"><b style="font-size:15px">Open 10K late registration?</b><div style="font-size:13px;color:#3d5156">Cap reached in 3 days at current pace</div><div style="display:flex;gap:8px;margin-top:8px"><span class="pill" style="background:#0b5d6b;color:#fff">Raise cap</span><span class="pill" style="background:#e4eae9">Keep closed</span></div></div>
+        <div style="border:1px solid #dde3e2;border-radius:10px;padding:12px"><b style="font-size:15px">Sponsor logo approval</b><div style="font-size:13px;color:#3d5156">Title sponsor sent the final artwork</div><div style="display:flex;gap:8px;margin-top:8px"><span class="pill" style="background:#0b5d6b;color:#fff">Review</span></div></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px">
+      <div class="card" style="flex:1 1 380px">
+        <b style="font-size:18px">Next 14 days</b>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;font-size:14px">
+          <div style="display:flex;gap:12px"><span class="lbl" style="width:62px">Mon</span><span>Route permit renewal due · <i>Plan</i></span></div>
+          <div style="display:flex;gap:12px"><span class="lbl" style="width:62px">Wed</span><span>Early-bird price ends · <i>Registration</i></span></div>
+          <div style="display:flex;gap:12px"><span class="lbl" style="width:62px">Fri</span><span>Volunteer briefing #1 · <i>Volunteers</i></span></div>
+          <div style="display:flex;gap:12px"><span class="lbl" style="width:62px">Next Mon</span><span>Bib and T-shirt lot arrives · <i>Expo</i></span></div>
+        </div>
+      </div>
+      <div class="card" style="flex:1 1 380px">
+        <b style="font-size:18px">Top risks</b>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;font-size:14px">
+          <div style="display:flex;gap:10px;align-items:center"><span class="pill" style="background:#f6d6d3;color:#8c1d15">High</span><span>Aid station 4 has no volunteer lead</span></div>
+          <div style="display:flex;gap:10px;align-items:center"><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Medium</span><span>T-shirt size XL stock below registrations</span></div>
+          <div style="display:flex;gap:10px;align-items:center"><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Medium</span><span>Rain forecast risk on race morning</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

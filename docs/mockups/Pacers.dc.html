@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pacers plan onboarding tracking</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#3d5156;padding:8px 10px;border-bottom:1px solid #dde3e2}
+td{padding:10px;border-bottom:1px solid #eef2f1}
+.stp{border:1.5px solid #c9d3d2;border-radius:10px;padding:12px;background:#fff;font-size:14px;display:flex;flex-direction:column;gap:4px}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Community · 21K pace groups · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Pacers: plan, onboarding, tracking</h1>
+        <p style="margin:6px 0 0;color:#3d5156;max-width:740px">Design the pace groups, recruit and vet pacers, then follow each group on race day against its target.</p>
+      </div>
+      <div style="display:flex;gap:10px"><span class="pill" style="background:#e4eae9;padding:8px 14px;font-size:14px">Pacer apply page</span><span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">+ Add pace group</span></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><b style="font-size:18px">1 · Pace plan (21.1 km)</b><span style="font-size:13px;color:#3d5156">Pace per km is worked out from the finish time</span></div>
+      <table style="margin-top:6px">
+        <tr><th>Group</th><th>Finish time</th><th>Pace / km</th><th>5 km</th><th>10 km</th><th>15 km</th><th>Pacers</th><th>Status</th></tr>
+        <tr><td><b>1:30</b></td><td>1:30:00</td><td>4:16</td><td>0:21:20</td><td>0:42:40</td><td>1:04:00</td><td>2 of 2</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Ready</span></td></tr>
+        <tr><td><b>1:45</b></td><td>1:45:00</td><td>4:59</td><td>0:24:55</td><td>0:49:50</td><td>1:14:45</td><td>2 of 2</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Ready</span></td></tr>
+        <tr><td><b>2:00</b></td><td>2:00:00</td><td>5:41</td><td>0:28:25</td><td>0:56:50</td><td>1:25:15</td><td>3 of 3</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Ready</span></td></tr>
+        <tr><td><b>2:15</b></td><td>2:15:00</td><td>6:24</td><td>0:32:00</td><td>1:04:00</td><td>1:36:00</td><td>2 of 3</td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Need 1</span></td></tr>
+        <tr><td><b>2:30</b></td><td>2:30:00</td><td>7:07</td><td>0:35:35</td><td>1:11:10</td><td>1:46:45</td><td>1 of 2</td><td><span class="pill" style="background:#f6d6d3;color:#8c1d15">Need 1</span></td></tr>
+        <tr><td><b>3:00</b></td><td>3:00:00</td><td>8:32</td><td>0:42:40</td><td>1:25:20</td><td>2:08:00</td><td>2 of 2</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Ready</span></td></tr>
+      </table>
+      <div style="font-size:13px;color:#3d5156;margin-top:8px">Splits shown are even-pace targets. Choose even or slightly negative split per group, and whether to adjust for aid station stops. Groups and pacer counts are yours to set.</div>
+    </div>
+
+    <div class="card">
+      <b style="font-size:18px">2 · Pacer onboarding</b>
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:12px">
+        <div class="stp"><span class="lbl">Apply</span>Recent race result as proof, club, availability</div>
+        <div class="stp"><span class="lbl">Pace test</span>Hold the target pace on a trial run and log it</div>
+        <div class="stp"><span class="lbl">Brief and train</span>Pacing, crowd handling, safety, aid stations</div>
+        <div class="stp"><span class="lbl">Kit</span>Pace flag or sign, pacer shirt, bib marked Pacer</div>
+        <div class="stp"><span class="lbl">Agree</span>Finish within the set margin; no racing own time</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1.4 1 480px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">3 · Pacer roster and tracking</b><span style="font-size:13px;color:#3d5156">One row per pacer</span></div>
+        <table style="margin-top:6px">
+          <tr><th>Pacer</th><th>Group</th><th>Trial</th><th>Briefing</th><th>Kit</th></tr>
+          <tr><td><b>[Name A]</b></td><td>2:00</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Passed</span></td><td><span class="pill" style="background:#d8efe2;color:#15613b">Done</span></td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">At expo</span></td></tr>
+          <tr><td><b>[Name B]</b></td><td>2:15</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Passed</span></td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Fri</span></td><td><span class="pill" style="background:#e4eae9">No</span></td></tr>
+          <tr><td><b>[Name C]</b></td><td>2:30</td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Re-test</span></td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Fri</span></td><td><span class="pill" style="background:#e4eae9">No</span></td></tr>
+          <tr><td><b>[Name D]</b></td><td>Reserve</td><td><span class="pill" style="background:#e4eae9">Waiting</span></td><td><span class="pill" style="background:#e4eae9">No</span></td><td><span class="pill" style="background:#e4eae9">No</span></td></tr>
+        </table>
+      </div>
+      <div class="card" style="flex:1 1 380px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Race day · group 2:00</b><span class="pill" style="background:#d8efe2;color:#15613b">On target</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span>5 km split</span><b>0:28:20 <span style="color:#15613b">(5 s ahead)</span></b></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span>10 km split</span><b>0:56:55 <span style="color:#7a4e0a">(5 s behind)</span></b></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span>15 km split</span><b style="color:#3d5156">Pending</b></div>
+        <div style="font-size:13px;color:#3d5156">Chip mats at the checkpoints feed the pacer's own chip. Control room sees any group more than a set margin off target and can send a message.</div>
+        <div style="border-top:1px solid #dde3e2;padding-top:8px;font-size:13px">Runners see pace groups on the website and the registration form, and can note their intended group.</div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

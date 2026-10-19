@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ambassadors onboarding and tracking</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#3d5156;padding:8px 10px;border-bottom:1px solid #dde3e2}
+td{padding:10px;border-bottom:1px solid #eef2f1}
+.stp{border:1.5px solid #c9d3d2;border-radius:10px;padding:12px;background:#fff;font-size:14px;display:flex;flex-direction:column;gap:4px}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Community · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Ambassadors: onboarding and tracking</h1>
+        <p style="margin:6px 0 0;color:#3d5156;max-width:720px">Local runners and club members who spread the word. Each gets a unique code, clear tasks and rewards that scale with results.</p>
+      </div>
+      <div style="display:flex;gap:10px"><span class="pill" style="background:#e4eae9;padding:8px 14px;font-size:14px">Public apply page</span><span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">Review applications · 11</span></div>
+    </div>
+
+    <div class="card">
+      <b style="font-size:18px">Onboarding journey</b>
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:12px">
+        <div class="stp"><span class="lbl">1 · Apply</span>Form: running history, social links, club, area</div>
+        <div class="stp"><span class="lbl">2 · Vet</span>Team lead reviews fit and community ties</div>
+        <div class="stp"><span class="lbl">3 · Onboard</span>Welcome kit, terms, 20-minute training, code issued</div>
+        <div class="stp"><span class="lbl">4 · Activate</span>Monthly tasks, content brief, test-drive run</div>
+        <div class="stp"><span class="lbl">5 · Reward</span>Free entry, gear, public thanks, exclusive spots</div>
+      </div>
+      <div style="font-size:13px;color:#3d5156;margin-top:10px">Ambassadors never get admin access. They see only their own code, numbers and tasks.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">Active ambassadors</span><div class="hd" style="font-size:38px">38</div><div style="font-size:13px;color:#3d5156">Cap set by free-entry budget</div></div>
+      <div class="card"><span class="lbl">Sign-ups by code</span><div class="hd" style="font-size:38px">412</div><div style="font-size:13px;color:#15613b">▲ 38 this week</div></div>
+      <div class="card"><span class="lbl">Free entries earned</span><div class="hd" style="font-size:38px">24</div><div style="font-size:13px;color:#3d5156">Budget allows 40</div></div>
+      <div class="card"><span class="lbl">Tasks done this month</span><div class="hd" style="font-size:38px">71%</div><div class="bar"><i style="width:71%"></i></div></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <div class="card" style="flex:1.6 1 520px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Leaderboard and tasks</b><span style="font-size:13px;color:#3d5156">Updated live from registrations</span></div>
+        <table style="margin-top:6px">
+          <tr><th>Ambassador</th><th>Code</th><th>Sign-ups</th><th>Reward progress</th><th>Posts</th><th>Expo shift</th></tr>
+          <tr><td><b>[Name]</b><br><span style="color:#3d5156;font-size:12px">[Club]</span></td><td>[CODE]</td><td>57</td><td><div class="bar"><i style="width:100%;background:#15613b"></i></div><span style="font-size:12px;color:#15613b">Top tier unlocked</span></td><td>9 / 8</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Done</span></td></tr>
+          <tr><td><b>[Name]</b><br><span style="color:#3d5156;font-size:12px">[Club]</span></td><td>[CODE]</td><td>34</td><td><div class="bar"><i style="width:68%"></i></div><span style="font-size:12px;color:#3d5156">16 to next reward</span></td><td>6 / 8</td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Booked</span></td></tr>
+          <tr><td><b>[Name]</b><br><span style="color:#3d5156;font-size:12px">[Gym]</span></td><td>[CODE]</td><td>12</td><td><div class="bar"><i style="width:24%;background:#c2851a"></i></div><span style="font-size:12px;color:#3d5156">Below pace</span></td><td>2 / 8</td><td><span class="pill" style="background:#e4eae9">None</span></td></tr>
+          <tr><td><b>[Name]</b><br><span style="color:#3d5156;font-size:12px">[Campus]</span></td><td>[CODE]</td><td>3</td><td><div class="bar"><i style="width:6%;background:#b3261e"></i></div><span style="font-size:12px;color:#8c1d15">Needs a check-in call</span></td><td>0 / 8</td><td><span class="pill" style="background:#e4eae9">None</span></td></tr>
+        </table>
+      </div>
+      <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:16px">
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <b style="font-size:18px">Reward ladder (you set the numbers)</b>
+          <div style="display:flex;justify-content:space-between;font-size:14px"><span>[5] sign-ups</span><b>Free entry</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px"><span>[15] sign-ups</span><b>Race gear</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px"><span>[30] sign-ups</span><b>Free entry for a friend</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px"><span>[50] sign-ups</span><b>Title: Lead ambassador</b></div>
+          <div style="font-size:13px;color:#3d5156">Rewards are funded from the Budget screen. Sponsors can add gear or cash.</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <b style="font-size:18px">Typical monthly tasks</b>
+          <div style="font-size:14px">• Post or reel about training or the course</div>
+          <div style="font-size:14px">• Lead one test-drive run on the course</div>
+          <div style="font-size:14px">• Hand out flyers at a club or store</div>
+          <div style="font-size:14px">• Help at the expo desk, without clashing with their own race</div>
+          <div style="font-size:14px">• Give feedback on new ideas</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-left:5px solid #c2851a;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:17px">Ideas from similar tools · new</b><a href="Features.dc.html" style="font-size:13px">Pick them in the shortlist →</a></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Loyalty points for runs, volunteering and referrals</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Referral links open to every runner</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">List group runs on Strava events</span></div></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Expo Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky desk header with four tabs. The Desk tab pairs a bib-styled hand-over card with a live stock rail; Stock, Log and Setup are plain working tables and forms. */
+:root{
+  --bg:#edf0f0; --surface:#ffffff; --surface-2:#f4f6f6; --line:#d2dadb;
+  --ink:#11242b; --ink-2:#4b5f66;
+  --primary:#0b5d6b; --on-primary:#ffffff;
+  --good:#17803d; --warn:#a85a00; --bad:#b42318;
+  --k1:#1e8a4c; --k2:#2457c5; --k3:#c26a00; --k4:#c4262e; --k5:#7a3fc4; --k6:#56666c; --on-k:#ffffff;
+  --f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --f-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1619; --surface:#142125; --surface-2:#1a2b30; --line:#2a3d43;
+    --ink:#e6eef0; --ink-2:#9db0b6;
+    --primary:#5cc7d6; --on-primary:#06191d;
+    --good:#4cc77a; --warn:#f0a640; --bad:#ff8a80;
+    --k1:#5fd08b; --k2:#7ba3ff; --k3:#ffb04a; --k4:#ff7b7f; --k5:#c49cff; --k6:#8fa2a8; --on-k:#0b1418;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1619; --surface:#142125; --surface-2:#1a2b30; --line:#2a3d43;
+  --ink:#e6eef0; --ink-2:#9db0b6;
+  --primary:#5cc7d6; --on-primary:#06191d;
+  --good:#4cc77a; --warn:#f0a640; --bad:#ff8a80;
+  --k1:#5fd08b; --k2:#7ba3ff; --k3:#ffb04a; --k4:#ff7b7f; --k5:#c49cff; --k6:#8fa2a8; --on-k:#0b1418;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+h2,h3,p{margin:0}
+small{font-size:13px;color:var(--ink-2)}
+.app{max-width:1180px;margin-inline:auto;padding-inline:16px;padding-block:0 56px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);padding-block:12px 0;border-bottom:1px solid var(--line);margin-bottom:18px}
+.top-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.brand{min-width:0}
+.eyebrow{font:600 13px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+h1{margin:3px 0 0;font:700 clamp(24px,5vw,34px)/1.05 var(--f-display);letter-spacing:.01em;overflow-wrap:anywhere}
+.tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.deskin{display:flex;align-items:center;gap:8px;font:600 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.deskin input{width:118px;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:500 15px var(--f-body);letter-spacing:0;text-transform:none}
+.live{display:inline-flex;align-items:center;gap:7px;font:600 13px var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ink-2)}
+.live.ok .dot{background:var(--good)}
+.live.wait .dot{background:var(--warn)}
+.live.bad .dot{background:var(--bad)}
+.tabs{display:flex;gap:2px;margin-top:8px;overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 16px 8px;font:600 19px var(--f-display);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--primary)}
+
+/* shared pieces */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.card + .card{margin-top:16px}
+.h{font:700 15px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:12px}
+.banner{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 12%,var(--surface));color:var(--ink);border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between}
+.banner[hidden]{display:none}
+.btn{min-height:44px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:600}
+.btn.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font:700 19px var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.btn.big{min-height:58px;width:100%;font-size:22px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.armed{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.sm{min-height:34px;padding:0 12px;font-size:13px}
+.link{background:none;border:0;padding:0;color:var(--primary);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;border:1px solid currentColor;font:700 12px/1.5 var(--f-display);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.pill.ok{color:var(--good)} .pill.low{color:var(--warn)} .pill.out,.pill.over{color:var(--bad)} .pill.none{color:var(--ink-2)}
+.bar{height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+.bar>i{display:block;height:100%;background:var(--primary)}
+.chip{display:inline-block;min-width:76px;padding:3px 10px;border-radius:7px;background:var(--kc,var(--k6));color:var(--on-k);font:800 26px/1.1 var(--f-display);letter-spacing:.02em;text-align:center;font-variant-numeric:tabular-nums}
+.chip.sm{min-width:58px;font-size:20px;padding:2px 8px}
+.note{font-size:14px;color:var(--ink-2)}
+.note.warn{color:var(--warn);font-weight:600}
+.empty{padding:28px 18px;text-align:center;border:1px dashed var(--line);border-radius:10px;color:var(--ink-2);display:grid;gap:10px;justify-items:center}
+.empty b{color:var(--ink);font:700 22px var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+
+/* desk */
+.desk{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:900px){.desk{grid-template-columns:minmax(0,1fr)}}
+.searchbox{display:grid;gap:6px;margin-bottom:14px}
+.lbl{font:700 14px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+#q{height:62px;width:100%;padding:0 18px;border:2px solid var(--ink);border-radius:10px;background:var(--surface);font-size:24px;font-weight:500}
+#results{display:grid;gap:8px}
+.res{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;text-align:left;width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;min-height:66px}
+.res:hover{border-color:var(--ink-2)}
+.res .who{display:grid;min-width:0}
+.res .who b{font-size:17px;overflow-wrap:anywhere}
+.marks{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.mk{padding:2px 9px;border-radius:999px;border:1px solid var(--line);font:600 13px var(--f-body);color:var(--ink-2)}
+.mk.on{color:var(--good);border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,var(--surface))}
+.issue{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:18px;align-items:start}
+.back{margin-bottom:12px;display:block}
+
+/* the bib */
+.bibcard{position:relative;background:var(--surface);border:2px solid var(--ink);border-radius:12px;overflow:hidden}
+.bibcard .band{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:11px 36px;background:var(--kc,var(--k6));color:var(--on-k);font:700 16px var(--f-display);letter-spacing:.1em;text-transform:uppercase}
+.bibcard .band span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bibcard .num{padding:16px 10px 2px;text-align:center;font:800 clamp(78px,15vw,132px)/.9 var(--f-display);letter-spacing:.01em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.bibcard .num.long{font-size:clamp(54px,10vw,92px)}
+.bibcard .nm{padding:6px 14px 18px;text-align:center;font:600 26px/1.1 var(--f-display);letter-spacing:.07em;text-transform:uppercase;overflow-wrap:anywhere}
+.bibcard .tear{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:11px 36px;border-top:2px dashed var(--ink-2);font-size:13px;color:var(--ink-2)}
+.bibcard .tear b{color:var(--ink)}
+.pin{position:absolute;width:13px;height:13px;border-radius:50%;background:var(--bg);border:2px solid var(--ink-2)}
+.pin.a{top:11px;left:12px}.pin.b{top:11px;right:12px}.pin.c{bottom:11px;left:12px}.pin.d{bottom:11px;right:12px}
+
+/* hand-over controls */
+.hand{display:grid;gap:12px}
+.tog{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:2px solid var(--line);border-radius:10px;background:var(--surface);text-align:left}
+.tog b{display:block;font-size:17px}
+.tog[aria-pressed="true"]{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 10%,var(--surface))}
+.tog:disabled{opacity:.55;cursor:not-allowed}
+.box{width:26px;height:26px;border:2px solid var(--ink-2);border-radius:6px;display:grid;place-items:center;flex:none;font-weight:800;line-height:1}
+.tog[aria-pressed="true"] .box{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.item.done{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border:2px solid var(--good);border-radius:10px;background:color-mix(in srgb,var(--good) 10%,var(--surface))}
+.item.done b{display:block;font-size:17px}
+.item.done b::before{content:"✓ ";color:var(--good)}
+.sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(66px,1fr));gap:8px}
+.sz{display:grid;gap:0;justify-items:center;padding:8px 4px;min-height:62px;border:2px solid var(--line);border-radius:10px;background:var(--surface)}
+.sz b{font:700 24px/1.1 var(--f-display);letter-spacing:.04em}
+.sz small{font-size:12px;font-variant-numeric:tabular-nums}
+.sz.reg{border-style:dashed;border-color:var(--ink-2)}
+.sz[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);border-style:solid;color:var(--on-primary)}
+.sz[aria-pressed="true"] small{color:inherit}
+.sz:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+.sz.low small{color:var(--warn);font-weight:700}
+
+.lockedsize{display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid var(--ink-2);border-radius:10px;background:var(--surface-2)}
+.lockedsize b{font:700 30px/1 var(--f-display);letter-spacing:.04em}
+
+/* who collects + selfie */
+.who{display:grid;gap:10px;padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:var(--surface)}
+.who input[type=text],.who input[type=tel]{height:46px;width:100%;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:16px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{min-height:48px;border:2px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600;color:var(--ink)}
+.seg button[aria-pressed="true"]{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 10%,var(--surface))}
+.seg button:disabled{opacity:.5;cursor:not-allowed}
+.pkrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.selfie{width:112px;height:112px;object-fit:cover;border-radius:10px;border:2px solid var(--line)}
+.selfie.sm{width:64px;height:64px}
+.pkdone{display:flex;gap:12px;align-items:center;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+
+/* rail */
+.prog + .prog{margin-top:14px}
+.pl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+.pl span{font-weight:600}
+.pl b{font:700 22px var(--f-display);font-variant-numeric:tabular-nums}
+.pl b i{font-style:normal;font-weight:500;color:var(--ink-2);font-size:16px}
+.prog small{display:block;margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
+.tile{display:grid;gap:3px;padding:10px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);min-width:0}
+.tile .s{font:700 15px var(--f-display);letter-spacing:.12em;color:var(--ink-2);display:flex;justify-content:space-between;gap:6px;align-items:center}
+.tile .n{font:800 36px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.tile.low{border-color:var(--warn)} .tile.low .n{color:var(--warn)}
+.tile.out,.tile.over{border-color:var(--bad)} .tile.out .n,.tile.over .n{color:var(--bad)}
+
+/* stock tab */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px;margin-bottom:16px}
+.stat{display:grid;gap:2px}
+.stat .n{font:800 52px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.stat .t{font:700 14px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font:700 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+td.neg{color:var(--bad);font-weight:700}
+tfoot td{font-weight:700;border-bottom:0}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--kc,var(--k6));margin-right:8px;vertical-align:-1px}
+
+/* log */
+.log{list-style:none;margin:0;padding:0}
+.log li{display:grid;grid-template-columns:64px auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.log li:last-child{border-bottom:0}
+.log time{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:14px}
+.log .lw{display:grid;min-width:0}
+.log .lw b{overflow-wrap:anywhere}
+@media (max-width:560px){.log li{grid-template-columns:auto minmax(0,1fr) auto}.log time{grid-column:1/-1}}
+
+/* setup */
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+.cols .card+.card{margin-top:0}
+.field{display:grid;gap:5px;margin-bottom:12px}
+.field label,legend{font:700 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+input[type=text],input[type=number],input[type=search],select,textarea{width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+textarea{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
+fieldset{border:0;margin:0 0 14px;padding:0;min-width:0}
+.sizegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:10px;margin-top:6px}
+.sizegrid label{display:grid;gap:4px;font:700 14px var(--f-display);letter-spacing:.1em;color:var(--ink-2)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.formgrid .field{margin-bottom:0}
+.msg{font-size:14px;color:var(--ink-2)}
+.msg.bad{color:var(--bad);font-weight:600}
+.msg.good{color:var(--good);font-weight:600}
+.progress{height:8px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin-top:10px}
+.progress i{display:block;height:100%;width:0;background:var(--primary)}
+
+/* toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;max-width:min(580px,calc(100vw - 32px));width:max-content;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:10px;display:flex;gap:14px;align-items:center;font-weight:500}
+.toast.err{background:var(--bad);color:#fff}
+.toast[hidden]{display:none}
+.toast button{background:none;color:inherit;border:1px solid currentColor;border-radius:6px;padding:4px 12px;font-weight:700}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.deskin select{height:36px;max-width:210px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:500 15px var(--f-body);letter-spacing:0;text-transform:none}
+details.more{margin-top:16px}details.more>summary{cursor:pointer;font:600 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);padding:10px 2px}details.more>.card{margin-top:8px}
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.gatebox{width:100%;max-width:420px}.gatebox h1{margin:6px 0 18px}
+.gatebox .field input,.gatebox .field select{height:42px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:500 16px var(--f-body);width:100%;box-sizing:border-box}
+.item.notdesk{opacity:.75;border-style:dashed}
+</style>
+<style>html,body{margin:0;min-height:100%}</style>
+</head>
+<body>
+
+<div id="gate" class="gate" hidden>
+  <div class="card gatebox">
+    <div class="eyebrow">Expo desk</div>
+    <h1>Race expo</h1>
+    <form id="loginForm" autocomplete="on">
+      <div class="field"><label for="lgUser">Username</label><input id="lgUser" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></div>
+      <div class="field"><label for="lgPass">Password</label><input id="lgPass" type="password" autocomplete="current-password" required></div>
+      <div class="row"><button type="submit" class="btn primary" id="lgBtn">Log in</button><span class="msg" id="lgMsg"></span></div>
+    </form>
+    <p class="note" id="lgDiag" hidden style="margin-top:10px;color:var(--bad,#a3261a)"></p>
+    <form id="pickForm" hidden>
+      <p class="note" id="pickHi" style="margin-bottom:12px"></p>
+      <div class="field"><label for="pkRace">Race</label><select id="pkRace"></select></div>
+      <div class="field"><label for="pkDesk">Desk</label><select id="pkDesk"></select></div>
+      <div class="row"><button type="submit" class="btn primary" id="pkBtn">Start</button><button type="button" class="btn" data-act="logout">Log out</button><span class="msg" id="pkMsg"></span></div>
+    </form>
+    <details class="more" id="firstSetup"><summary>First-time setup (owner only)</summary>
+      <form id="setupForm" autocomplete="off">
+        <p class="note" style="margin:8px 0 12px">Creates the database and the first admin login. Needs the setup key you put in <b>expo.web.js</b>.</p>
+        <div class="field"><label for="fsKey">Setup key</label><input id="fsKey" type="password" autocomplete="off"></div>
+        <div class="field"><label for="fsUser">Admin username</label><input id="fsUser" type="text" autocomplete="off" autocapitalize="off"></div>
+        <div class="field"><label for="fsPass">Admin password</label><input id="fsPass" type="password" autocomplete="new-password"></div>
+        <div class="row"><button type="submit" class="btn">Create database</button><span class="msg" id="fsMsg"></span></div>
+      </form>
+    </details>
+  </div>
+</div>
+<div class="app" id="app" hidden>
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">
+        <div class="eyebrow">Expo desk</div>
+        <h1 id="evName">Race expo</h1>
+      </div>
+      <div class="tools">
+        <label class="deskin" for="raceSel">Race <select id="raceSel" aria-label="Race"><option value="">Loading…</option></select></label>
+        <label class="deskin" for="deskName">Desk <input id="deskName" readonly type="text" maxlength="20" placeholder="Desk 1" autocomplete="off"></label>
+        <span class="live wait" id="live"><span class="dot"></span><span id="liveTxt">Connecting</span></span>
+        <button type="button" class="btn sm" data-act="change-desk">Change race or desk</button><button type="button" class="btn sm" data-act="logout">Log out</button>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" id="t-desk" data-act="tab" data-tab="desk" aria-selected="true">Desk</button>
+      <button type="button" role="tab" id="t-stock" data-act="tab" data-tab="stock" aria-selected="false">Stock</button>
+      <button type="button" role="tab" id="t-log" data-act="tab" data-tab="log" aria-selected="false">Log</button>
+      <button type="button" role="tab" id="t-setup" data-act="tab" data-tab="setup" aria-selected="false">Setup</button>
+    </nav>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section id="tab-desk" aria-labelledby="t-desk">
+    <div class="desk">
+      <div>
+        <label class="searchbox" for="q"><span class="lbl">Find runner</span>
+          <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Bib number, name, phone or email">
+        </label>
+        <div id="results"></div>
+        <div id="panel"></div>
+      </div>
+      <aside id="rail" aria-label="Live stock"></aside>
+    </div>
+  </section>
+
+  <section id="tab-stock" aria-labelledby="t-stock" hidden><div id="lotHolder" style="margin-bottom:16px"><div class="card" id="cfgCard">
+          <h2 class="h">Stock lot: enter what you received</h2>
+          <div class="field"><label for="cfgName">Race name shown to everyone</label><input id="cfgName" type="text" maxlength="40" placeholder="e.g. Vizag Half Marathon"><small class="note" id="cfgNameNote"></small></div>
+          <div class="field"><label for="cfgBib">Bibs in lot</label><input id="cfgBib" type="number" min="0" inputmode="numeric"></div>
+          <fieldset><legend>T-shirts in lot, by size</legend><div class="sizegrid" id="cfgSizes"></div></fieldset>
+          <div class="row"><button type="button" class="btn primary" id="saveCfg" data-act="save-cfg">Save lot</button><span class="msg" id="cfgMsg"></span></div>
+          <p class="note" style="margin-top:12px">This is the only thing you type in. Every bib and T-shirt handed over at a desk is deducted automatically, and the stock left updates on all desks.</p>
+        </div></div><div id="stockBody"></div></section>
+  <section id="tab-log" aria-labelledby="t-log" hidden></section>
+
+  <section id="tab-setup" aria-labelledby="t-setup" hidden>
+    <div class="cols">
+      <div>
+        <div class="card" id="raceCard">
+          <h2 class="h">Races</h2>
+          <p class="note" id="raceInfo">Races come from your findmybib collections.</p>
+          <p class="note" style="margin-top:8px">Every collection whose ID starts with <b>Import</b> is a race, named after the collection's display name in the Wix CMS (Import910 is VHM). To add a race, upload its list to a new collection such as ImportUltribe with the display name Ultribe, then press Refresh.</p>
+          <div class="row"><button type="button" class="btn" id="refreshRaces" data-act="refresh-races">Refresh races</button><span class="msg" id="raceMsg"></span></div>
+        </div>
+        <div class="card" id="sampleCard" hidden>
+          <h2 class="h">Sample data</h2>
+          <p class="note">Load 20 example runners to try the desk, then remove them before the expo opens. Example runners are never mixed into your real list.</p>
+          <div class="row"><button type="button" class="btn" id="loadSample" data-act="load-sample">Load sample runners</button><button type="button" class="btn" id="rmSample" data-act="rm-sample">Remove sample data</button><span class="msg" id="rmMsg"></span></div>
+        </div>
+      </div>
+      <div>
+        <div class="card" id="fmbCard">
+          <h2 class="h">Sync runners from findmybib</h2>
+          <p class="note">Copies the runners in the selected race's findmybib collection into the expo list. Safe to repeat any time; it adds new runners and updates details, and never changes what has been handed over.</p>
+          <div class="row"><button type="button" class="btn" id="fmbCheck" data-act="fmb-preview">Check data</button><button type="button" class="btn primary" id="fmbSync" data-act="fmb-sync" disabled>Sync runners</button><span class="msg" id="fmbMsg"></span></div>
+          <pre id="fmbInfo" class="note" hidden style="white-space:pre-wrap;margin-top:10px"></pre>
+        </div>
+        <details class="more"><summary>Other ways to add runners (CSV, one at a time, sample data)</summary>
+        <div class="card" id="impCard">
+          <h2 class="h">Import runners</h2>
+          <p class="note" style="margin-bottom:10px">Paste rows from Excel or load a CSV. Columns: bib, name, category, T-shirt size, phone. A header row is detected. Only new runners are added. Registered runners are never changed, their T-shirt size included. Only the findmybib sync updates registration details, and your findmybib collection itself is never written to.</p>
+          <textarea id="csv" rows="6" spellcheck="false" placeholder="bib,name,category,size,phone"></textarea>
+          <div class="row"><input id="csvFile" type="file" accept=".csv,.tsv,.txt" aria-label="Choose a CSV file"></div>
+          <div class="row"><button type="button" class="btn primary" id="doImport" data-act="import" disabled>Import</button><span class="msg" id="impInfo">Nothing to import yet.</span></div>
+          <div class="progress" id="impProg" hidden><i></i></div>
+        </div>
+        <div class="card">
+          <h2 class="h">Add one runner</h2>
+          <form id="addForm" autocomplete="off">
+            <div class="formgrid">
+              <div class="field"><label for="addBib">Bib</label><input id="addBib" type="text" maxlength="12" required></div>
+              <div class="field"><label for="addName">Name</label><input id="addName" type="text" maxlength="60" required></div>
+              <div class="field"><label for="addCat">Category</label><input id="addCat" type="text" maxlength="20" list="catList" placeholder="21K"></div>
+              <div class="field"><label for="addSize">T-shirt size</label><select id="addSize"></select></div>
+              <div class="field"><label for="addPhone">Phone</label><input id="addPhone" type="text" inputmode="tel" maxlength="20"></div>
+            </div>
+            <datalist id="catList"></datalist>
+            <div class="row"><button type="submit" class="btn primary" id="addBtn">Add runner</button><span class="msg" id="addMsg"></span></div>
+          </form>
+        </div>
+        </details>
+        <div class="card" id="prepCard">
+          <h2 class="h">Staff logins</h2>
+          <p class="note">Logins are kept in the Wix CMS, in the <b>ExpoStaff</b> collection. Add one row per person: <b>username</b>, <b>password</b>, <b>role</b> (admin or desk). The three desks are fixed in the software: Desk 1 - BIB, Desk 2 - Tshirt, Desk 3 - Misc. Leave <b>desk</b> empty to let that login choose any desk, or enter 1, 2 or 3 (several separated by commas) to limit it. Delete the row to remove access.</p>
+        </div>
+        <div class="card">
+          <h2 class="h">Export</h2>
+          <div class="row"><button type="button" class="btn" data-act="export-roster">Runners and status (CSV)</button><button type="button" class="btn" data-act="export-stock">Stock summary (CSV)</button></div>
+          <p class="msg" id="expMsg" style="margin-top:10px"></p>
+          <textarea id="expText" rows="6" readonly hidden aria-label="Exported CSV text"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<input type="file" id="pkFile" accept="image/*" capture="user" hidden>
+
+<script>
+(function(){
+'use strict';
+var SIZES=['XS','S','M','L','XL','XXL'];
+var nf=new Intl.NumberFormat('en-IN');
+var $=function(s,r){return (r||document).querySelector(s)};
+var n=function(x){return nf.format(x)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+
+var S={tab:'desk',q:'',sel:null,pick:{check:true,bib:true,shirt:true,size:null},runners:[],byId:new Map(),
+  cfg:{name:'',bibLot:0,shirtLot:{},example:false},token:'',me:null,ev:'',events:[],live:false,err:null,canWrite:false,canAdmin:false,since:'',label:'',notStaff:false,setup:false,ready:false,
+  desk:'',busy:false,lastOp:null,armed:null,D:null,imp:null,cfgDirty:false,importing:false,pickups:{}};
+function newPickup(){return {by:'self',friendName:'',friendPhone:'',selfie:''}}
+S.pickup=newPickup();
+
+/* ---------- helpers ---------- */
+function docId(b){var s=String(b).trim().replace(/[^A-Za-z0-9_\-.~:@+]/g,'-').slice(0,100);return (s==='.'||s==='..'||!s)?'x'+s:s}
+var DESK_FOR={check:'Desk 1 - BIB',bib:'Desk 1 - BIB',shirt:'Desk 2 - Tshirt'};
+function canDo(kind,item){var c=S.me&&S.me.can;if(!c)return false;if(kind==='addRunner')return !!c.addRunner;return (c[kind]||[]).indexOf(item)>=0}
+function defaultPick(r){return {check:!!r&&!r.checkedIn&&canDo('give','check'),bib:!!r&&!r.bibIssued&&canDo('give','bib'),shirt:!!r&&!r.shirtIssued&&!!r.size&&canDo('give','shirt'),size:r&&r.size||null}}
+function notHere(label,item){return '<div class="item notdesk"><div><b>'+label+'</b><small>Not handed over at this desk. Send the runner to '+esc(DESK_FOR[item])+'.</small></div></div>'}
+function writable(){return S.canWrite===true&&S.live&&!S.notStaff}
+function when(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';var t=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  return d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString([], {day:'numeric',month:'short'})+' '+t}
+function catNum(cat){var s=String(cat);if(/half/i.test(s))return 21.1;if(/full|marathon/i.test(s))return 42.2;var m=s.match(/(\d+(\.\d+)?)/);return m?parseFloat(m[1]):NaN}
+function catColor(cat){var x=catNum(cat);if(isNaN(x))return 'var(--k6)';if(x<=5)return 'var(--k1)';if(x<=10)return 'var(--k2)';if(x<=21.2)return 'var(--k3)';if(x<=42.2)return 'var(--k4)';return 'var(--k5)'}
+function setHTML(el,html){
+  if(el._h===html)return;
+  var a=document.activeElement,key=(a&&el.contains(a))?a.getAttribute('data-fk'):null;
+  el.innerHTML=html;el._h=html;
+  if(key){var t=el.querySelector('[data-fk="'+key+'"]');if(t&&!t.disabled)t.focus()}
+}
+function normSize(v){
+  var s=String(v||'').trim().toUpperCase().replace(/[\s\-_]/g,'');
+  var map={SMALL:'S',MEDIUM:'M',LARGE:'L',XLARGE:'XL',EXTRALARGE:'XL','2XL':'XXL',XXLARGE:'XXL',XSMALL:'XS',EXTRASMALL:'XS'};
+  if(map[s])s=map[s];
+  return SIZES.indexOf(s)>=0?s:''
+}
+
+/* ---------- bridge to the Wix page code ---------- */
+var pending={},seq=0;
+window.addEventListener('message',function(e){
+  var m=e.data;if(!m||m.kind!=='result'||!pending[m.id])return;
+  var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);
+  if(m.ok)p.res(m.result);else{if((m.error==='not_logged_in'||m.error==='desk_busy')&&S.canWrite)forceLogin(m.error);p.rej(new Error(m.error||'failed'))}
+});
+function api(method,arg,ms){
+  return new Promise(function(res,rej){
+    var id=++seq;
+    var t=setTimeout(function(){delete pending[id];rej(new Error('timeout'))},ms||30000);
+    pending[id]={res:res,rej:rej,t:t};
+    var a=Object.assign({ev:S.ev,token:S.token},arg||{});window.parent.postMessage({kind:'call',id:id,method:method,arg:a},'*');
+  });
+}
+
+/* ---------- data in ---------- */
+function normRunner(x){
+  var bib=String(x.bib!=null?x.bib:x.id),name=String(x.name||'');
+  return {id:x.id,bib:bib,name:name,cat:String(x.cat||''),size:String(x.size||''),phone:String(x.phone||''),email:String(x.email||''),emailL:String(x.email||'').toLowerCase(),example:!!x.example,
+    checkedIn:!!x.checkedIn,checkedInAt:x.checkedInAt||null,checkedInDesk:x.checkedInDesk||'',
+    bibIssued:!!x.bibIssued,bibAt:x.bibAt||null,bibDesk:x.bibDesk||'',
+    shirtIssued:!!x.shirtIssued,shirtSize:x.shirtSize||'',shirtAt:x.shirtAt||null,shirtDesk:x.shirtDesk||'',
+    nameL:name.toLowerCase(),bibL:bib.toLowerCase(),phoneDigits:String(x.phone||'').replace(/\D/g,''),bibN:parseFloat(bib.replace(/\D/g,''))||0}
+}
+function trackSince(items){items.forEach(function(x){if(x.updated&&x.updated>S.since)S.since=x.updated})}
+function rebuild(){
+  S.runners=Array.from(S.byId.values()).sort(function(a,b){return a.bibN-b.bibN||(a.bib<b.bib?-1:1)});
+  derive();
+}
+function replaceAll(items){S.byId=new Map();items.forEach(function(x){S.byId.set(x.id,normRunner(x))});S.since='';trackSince(items);rebuild()}
+function mergeItems(items){if(!items.length)return;items.forEach(function(x){S.byId.set(x.id,normRunner(x))});trackSince(items);rebuild()}
+function applyResult(r){if(r&&r.runner){S.byId.set(r.runner.id,normRunner(r.runner));trackSince([r.runner]);rebuild()}}
+function derive(){
+  var D={total:S.runners.length,checkOut:0,bibOut:0,shirtOut:0,pending:0,examples:0,given:{},due:{},cat:new Map()};
+  SIZES.forEach(function(s){D.given[s]=0;D.due[s]=0});
+  S.runners.forEach(function(r){
+    var c=D.cat.get(r.cat)||{reg:0,chk:0,bib:0,shirt:0};c.reg++;
+    if(r.example)D.examples++;
+    if(r.checkedIn){D.checkOut++;c.chk++}
+    if(r.bibIssued){D.bibOut++;c.bib++}
+    if(r.shirtIssued){D.shirtOut++;c.shirt++;if(D.given[r.shirtSize]!==undefined)D.given[r.shirtSize]++}
+    else if(D.due[r.size]!==undefined)D.due[r.size]++;
+    if(!(r.bibIssued&&r.shirtIssued))D.pending++;
+    D.cat.set(r.cat,c);
+  });
+  S.D=D;
+}
+function normCfg(x){
+  var lot={};SIZES.forEach(function(s){lot[s]=Math.max(0,parseInt(x.shirtLot&&x.shirtLot[s],10)||0)});
+  return {id:String(x.id||''),source:String(x.source||''),name:String(x.name||''),bibLot:Math.max(0,parseInt(x.bibLot,10)||0),shirtLot:lot,example:!!x.example}
+}
+function shirtState(sz){
+  var lot=S.cfg.shirtLot[sz]||0,given=S.D?S.D.given[sz]:0,due=S.D?S.D.due[sz]:0,rem=lot-given,st;
+  if(lot===0&&given===0)st='none';
+  else if(rem<0)st='over';
+  else if(rem===0)st='out';
+  else if(rem<=Math.max(5,Math.ceil(lot*.1)))st='low';
+  else st='ok';
+  return {lot:lot,given:given,rem:rem,due:due,spare:rem-due,state:st}
+}
+var STATE_LABEL={ok:'In stock',low:'Low',out:'Out',over:'Oversold',none:'No lot'};
+function totals(){
+  var lot=0;SIZES.forEach(function(s){lot+=S.cfg.shirtLot[s]||0});
+  return {shirtLot:lot,bibLot:S.cfg.bibLot}
+}
+
+/* ---------- search ---------- */
+function search(q){
+  q=q.trim().toLowerCase();if(!q)return {list:[],more:0};
+  var hits=[],digits=/^\d+$/.test(q);
+  S.runners.forEach(function(r){
+    var s=-1;
+    if(digits){
+      if(r.bibL===q)s=0;else if(r.bibL.indexOf(q)===0)s=1;else if(q.length>=3&&r.bibL.indexOf(q)>=0)s=2;
+      else if(q.length>=4&&r.phoneDigits.slice(-q.length)===q)s=3;else if(q.length>=4&&r.phoneDigits.indexOf(q)>=0)s=4;
+    }else{
+      if(q.indexOf('@')>0){if(r.emailL.indexOf(q)>=0)s=r.emailL===q?0:2}
+      var toks=q.split(/\s+/);
+      if(s<0&&toks.every(function(t){return r.nameL.indexOf(t)>=0}))s=r.nameL.indexOf(toks[0])===0?1:2;
+      else if(toks.length===1&&r.bibL.indexOf(q)===0)s=1;
+    }
+    if(s>=0)hits.push([s,r]);
+  });
+  hits.sort(function(a,b){return a[0]-b[0]||a[1].bibN-b[1].bibN});
+  return {list:hits.slice(0,8).map(function(h){return h[1]}),more:Math.max(0,hits.length-8),exact:hits.length&&hits[0][0]===0}
+}
+
+/* ---------- render ---------- */
+var raf=0;
+function schedule(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;renderAll()})}
+function renderAll(){
+  $('#evName').textContent=S.cfg.name||'Race expo';
+  var live=$('#live'),txt=$('#liveTxt');
+  if(S.notStaff){live.className='live bad';txt.textContent='No access'}
+  else if(S.err){live.className='live bad';txt.textContent='Offline'}
+  else if(S.live){live.className='live ok';txt.textContent='Live · '+n(S.runners.length)+' runners'}
+  else{live.className='live wait';txt.textContent='Connecting'}
+  renderBanner();
+  if(S.ready&&!S.notStaff&&S.canWrite&&!S.ev){var bn=$('#banner');bn.hidden=false;bn.textContent=S.canAdmin?'No race found. In the Wix CMS, make sure the ID of your findmybib collection starts with Import (for example Import910), then open Setup and press Refresh races.':'No race found yet. Ask the admin to check the findmybib collection.'}
+  ['desk','stock','log','setup'].forEach(function(t){
+    $('#tab-'+t).hidden=S.tab!==t;
+    $('#t-'+t).setAttribute('aria-selected',S.tab===t?'true':'false');
+  });
+  if(S.tab==='desk'){renderResults();renderPanel();renderRail()}
+  else if(S.tab==='stock'){renderStock();renderSetupLive();fillSetup()}
+  else if(S.tab==='log')renderLog();
+  else renderSetupLive();
+}
+function renderBanner(){
+  var b=$('#banner'),msg='',act='';
+  if(S.notStaff){msg=S.setup?'The database has not been created yet. The site owner can create it now.':'You are logged in, but this login is not on the staff list. Ask the site owner to add your email to the ExpoStaff collection.';if(S.setup)act='<button type="button" class="btn sm" data-act="prepare">Create database</button>'}
+  else if(S.err&&S.ready)msg='Connection problem. Changes may not save until it is back; the desk keeps retrying.';
+  else if(S.D&&S.D.examples>0){msg='Sample data is loaded. Replace it in Setup before the expo opens.';act='<button type="button" class="link" data-act="tab" data-tab="setup">Open Setup</button>'}
+  if(!msg){b.hidden=true;setHTML(b,'');return}
+  b.hidden=false;setHTML(b,'<span>'+esc(msg)+'</span>'+act);
+}
+function markHTML(l,on){return '<span class="mk'+(on?' on':'')+'">'+(on?'✓ ':'')+l+'</span>'}
+function rowHTML(r){
+  return '<button type="button" class="res" data-act="open" data-id="'+esc(r.id)+'">'+
+    '<span class="chip" style="--kc:'+catColor(r.cat)+'">'+esc(r.bib)+'</span>'+
+    '<span class="who"><b>'+esc(r.name)+'</b><small>'+esc(r.cat||'No category')+' · Size '+esc(r.size||'not set')+(r.phoneDigits?' · ···'+esc(r.phoneDigits.slice(-4)):'')+'</small></span>'+
+    '<span class="marks">'+markHTML('Check-in',r.checkedIn)+markHTML('Bib',r.bibIssued)+markHTML('T-shirt',r.shirtIssued)+'</span></button>'
+}
+function renderResults(){
+  var el=$('#results');
+  if(S.sel){setHTML(el,'');return}
+  if(!S.runners.length){
+    setHTML(el,S.live?'<div class="empty"><b>No runners yet</b><span>Import your registration list to start handing out bibs and T-shirts.</span><button type="button" class="btn primary" data-act="tab" data-tab="setup">Go to Setup</button></div>':'');
+    return;
+  }
+  var q=S.q.trim();
+  if(!q){setHTML(el,'<div class="empty"><b>Ready for the next runner</b><span>Type a bib number, part of a name, or the last 4 digits of the phone.</span></div>');return}
+  var res=search(q);
+  if(!res.list.length){
+    setHTML(el,'<div class="empty"><b>No match</b><span>Nobody matches “'+esc(q)+'”. Check the spelling or try the bib number.</span>'+(writable()?'<button type="button" class="btn" data-act="walkin">Add as a new runner</button>':'')+'</div>');
+    return;
+  }
+  setHTML(el,res.list.map(rowHTML).join('')+(res.more?'<p class="note" style="padding:4px 2px">'+n(res.more)+' more match. Keep typing to narrow it down.</p>':''));
+}
+function undoBtn(item){
+  if(!canDo('undo',item))return '';
+  var key='p:'+item,on=S.armed===key;
+  return '<button type="button" class="btn sm'+(on?' armed':'')+'" data-act="undo-item" data-item="'+item+'"'+(writable()?'':' disabled')+'>'+(on?'Tap again to undo':'Undo')+'</button>'
+}
+function pkLine(p,title){
+  if(!p)return '';
+  return '<div class="pkdone">'+(p.selfie?'<img class="selfie sm" alt="Selfie" src="'+p.selfie+'">':'')+'<div><b>'+title+': '+(p.by==='friend'?'collected by a friend':'collected by the runner')+'</b><small>'+(p.by==='friend'?esc(p.friendName)+(p.friendPhone?' · '+esc(p.friendPhone):'')+' · ':'')+esc(p.desk||'')+' · '+esc(when(p.at))+' · verified by selfie</small></div></div>';
+}
+function pickedBy(r){
+  var p=S.pickups[r.id];if(!p)return '';
+  return (r.checkedIn?pkLine(p.pickup,'Check-in'):'')+(r.shirtIssued?pkLine(p.shirtPickup,'T-shirt'):'');
+}
+async function loadPickup(id){
+  try{var res=await api('getPickup',{id:id});S.pickups[id]=res||null}catch(e){return}
+  if(S.sel===id)renderPanel();
+}
+function syncConfirm(){
+  var r=S.sel&&S.byId.get(S.sel),b=$('#panel [data-fk="confirm"]');if(!r||!b)return;
+  var pk=S.pickup,need=((S.pick.check&&!r.checkedIn)||(S.pick.shirt&&!r.shirtIssued&&!!r.size))&&(!pk.selfie||(pk.by==='friend'&&pk.friendName.trim().length<2));
+  var needSize=S.pick.shirt&&!r.shirtIssued&&!S.pick.size;
+  var rs=r.size?shirtState(r.size):null,blocked=S.pick.shirt&&!r.shirtIssued&&(!r.size||(rs&&rs.lot>0&&rs.rem<=0));
+  b.disabled=need||needSize||blocked||S.busy||!writable();
+}
+function shrinkPhoto(file){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onerror=function(){rej(new Error('read'))};
+    fr.onload=function(){
+      var im=new Image();
+      im.onerror=function(){rej(new Error('image'))};
+      im.onload=function(){
+        var m=480,w=im.width,h=im.height,k=Math.min(1,m/Math.max(w,h));
+        var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        res(c.toDataURL('image/jpeg',0.6));
+      };
+      im.src=fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function renderPanel(){
+  var el=$('#panel'),r=S.sel&&S.byId.get(S.sel);
+  if(!r){setHTML(el,'');return}
+  var canW=writable(),done=r.checkedIn&&r.bibIssued&&r.shirtIssued;
+  var kc=catColor(r.cat);
+  var card='<div class="bibcard" style="--kc:'+kc+'"><i class="pin a"></i><i class="pin b"></i><i class="pin c"></i><i class="pin d"></i>'+
+    '<div class="band"><span>'+esc(S.cfg.name||'Race expo')+'</span><span>'+esc(r.cat||'')+'</span></div>'+
+    '<div class="num'+(r.bib.length>5?' long':'')+'">'+esc(r.bib)+'</div>'+
+    '<div class="nm">'+esc(r.name)+'</div>'+
+    '<div class="tear"><span>Registered size <b>'+esc(r.size||'not set')+'</b></span><span>'+(r.phoneDigits?'Phone <b>···'+esc(r.phoneDigits.slice(-4))+'</b>':'No phone')+'</span></div></div>';
+
+  var itemCheck=r.checkedIn
+    ?'<div class="item done"><div><b>Checked in</b><small>'+esc(when(r.checkedInAt))+(r.checkedInDesk?' · '+esc(r.checkedInDesk):'')+'</small></div>'+undoBtn('check')+'</div>'
+    :!canDo('give','check')?notHere('Check-in','check')
+    :'<button type="button" class="tog" data-act="pick" data-item="check" aria-pressed="'+S.pick.check+'"'+(canW?'':' disabled')+'><span class="box">'+(S.pick.check?'✓':'')+'</span><span><b>Check-in</b><small>Runner has arrived at the expo</small></span></button>';
+  var itemBib=r.bibIssued
+    ?'<div class="item done"><div><b>Race bib</b><small>Handed over '+esc(when(r.bibAt))+(r.bibDesk?' · '+esc(r.bibDesk):'')+'</small></div>'+undoBtn('bib')+'</div>'
+    :!canDo('give','bib')?notHere('Race bib','bib')
+    :'<button type="button" class="tog" data-act="pick" data-item="bib" aria-pressed="'+S.pick.bib+'"'+(canW?'':' disabled')+'><span class="box">'+(S.pick.bib?'✓':'')+'</span><span><b>Race bib</b><small>No. '+esc(r.bib)+'</small></span></button>';
+
+  var itemShirt,shirtBlocked=false;
+  if(r.shirtIssued){
+    itemShirt='<div class="item done"><div><b>T-shirt, size '+esc(r.shirtSize||'?')+'</b><small>Handed over '+esc(when(r.shirtAt))+(r.shirtDesk?' · '+esc(r.shirtDesk):'')+'</small></div>'+undoBtn('shirt')+'</div>';
+  }else if(!canDo('give','shirt')){
+    itemShirt=notHere('T-shirt, size '+esc(r.size||'not set'),'shirt');
+  }else{
+    var hasSize=!!r.size,regSt=hasSize?shirtState(r.size):null,outSt=!!(regSt&&regSt.lot>0&&regSt.rem<=0);
+    shirtBlocked=S.pick.shirt&&(!hasSize||outSt);
+    itemShirt='<button type="button" class="tog" data-act="pick" data-item="shirt" aria-pressed="'+S.pick.shirt+'"'+((canW&&hasSize)?'':' disabled')+'><span class="box">'+(S.pick.shirt?'✓':'')+'</span><span><b>T-shirt</b><small>Size '+esc(r.size||'not set')+' · from registration, cannot be changed</small></span></button>';
+    if(S.pick.shirt&&hasSize){
+      itemShirt+='<div class="lockedsize" role="group" aria-label="T-shirt size, fixed"><b>'+esc(r.size)+'</b><small>'+(outSt?'Out of stock':regSt.lot>0?regSt.rem+' left in this size':'stock not tracked')+'</small></div>';
+      if(outSt)itemShirt+='<p class="note warn">Size '+esc(r.size)+' is out of stock. Do not hand over another size. Untick T-shirt and ask the admin.</p>';
+    }
+    if(!hasSize)itemShirt+='<p class="note warn">There is no T-shirt size on this runner\'s registration, so no T-shirt can be handed over here. Ask the admin to fix it in findmybib and sync.</p>';
+  }
+
+  var pk=S.pickup,needPk=false,whoBlock='';
+  var needsWho=(S.pick.check&&!r.checkedIn)||(S.pick.shirt&&!r.shirtIssued&&!!r.size);
+  if(needsWho){
+    needPk=!pk.selfie||(pk.by==='friend'&&pk.friendName.trim().length<2);
+    whoBlock='<div class="who"><span class="lbl">Who is collecting?</span>'+
+      '<div class="seg"><button type="button" data-act="pk-by" data-by="self" aria-pressed="'+(pk.by==='self')+'"'+(canW?'':' disabled')+'>The runner</button>'+
+      '<button type="button" data-act="pk-by" data-by="friend" aria-pressed="'+(pk.by==='friend')+'"'+(canW?'':' disabled')+'>A friend</button></div>'+
+      (pk.by==='friend'?'<input type="text" id="pkName" data-pk="friendName" autocomplete="off" placeholder="Friend\'s full name" value="'+esc(pk.friendName)+'"><input type="tel" id="pkPhone" data-pk="friendPhone" inputmode="tel" autocomplete="off" placeholder="Friend\'s phone (optional)" value="'+esc(pk.friendPhone)+'">':'')+
+      '<span class="lbl">Verify with</span>'+
+      '<div class="seg"><button type="button" aria-pressed="true">Selfie</button><button type="button" disabled title="Needs an SMS service">SMS OTP (not set up)</button></div>'+
+      '<div class="pkrow">'+(pk.selfie?'<img class="selfie" alt="Selfie of the person collecting" src="'+pk.selfie+'">':'')+
+      '<button type="button" class="btn'+(pk.selfie?'':' primary')+'" data-act="pk-selfie"'+(canW?'':' disabled')+'>'+(pk.selfie?'Retake selfie':'Take selfie')+'</button></div>'+
+      '<p class="note">Selfie of the person collecting'+((S.pick.check&&!r.checkedIn)&&(S.pick.shirt&&!r.shirtIssued)?' the bib and T-shirt':(S.pick.shirt&&!r.shirtIssued)?' the T-shirt (compare with the check-in selfie above)':' the bib')+'. Check the face with the person in front of you.</p></div>';
+  }
+  var wantCheck=S.pick.check&&!r.checkedIn;var parts=[];
+  if(S.pick.bib&&!r.bibIssued)parts.push('bib');
+  if(S.pick.shirt&&!r.shirtIssued)parts.push('T-shirt'+(S.pick.size?' ('+S.pick.size+')':''));
+  var segs=[];if(wantCheck)segs.push('check in');if(parts.length)segs.push('hand over '+parts.join(' + '));
+  var label=segs.length?segs.join(' + ').replace(/^./,function(c){return c.toUpperCase()}):'';
+  var needSize=S.pick.shirt&&!r.shirtIssued&&!S.pick.size;
+  var action=done
+    ?'<button type="button" class="btn primary big" data-act="close" data-fk="next">Next runner</button>'
+    :'<button type="button" class="btn primary big" data-act="confirm" data-fk="confirm"'+((!(parts.length||wantCheck)||needSize||needPk||shirtBlocked||S.busy||!canW)?' disabled':'')+'>'+(S.busy?'Saving…':label?esc(label):(canDo('give','check')||canDo('give','bib')||canDo('give','shirt'))?'Nothing selected':'Nothing is handed over at this desk')+'</button>'+(needSize?'<p class="note">Choose a size to continue.</p>':'')+(needPk&&!needSize?'<p class="note">'+(pk.by==='friend'&&pk.friendName.trim().length<2?'Enter the friend\'s name and take a selfie to continue.':'Take a selfie to continue.')+'</p>':'');
+
+  setHTML(el,'<button type="button" class="link back" data-act="close">← Back to results</button><div class="issue">'+card+'<div class="hand">'+itemCheck+pickedBy(r)+whoBlock+itemBib+itemShirt+action+'</div></div>');
+}
+function prog(label,a,b,lt){
+  var pct=b>0?Math.min(100,Math.round(a/b*100)):0;
+  return '<div class="prog"><div class="pl"><span>'+label+'</span><b>'+n(a)+' <i>/ '+n(b)+'</i></b></div><div class="bar" role="img" aria-label="'+pct+' percent"><i style="width:'+pct+'%"></i></div><small>'+n(Math.max(0,b-a))+' '+(lt||'left in lot')+'</small></div>'
+}
+function renderRail(){
+  if(!S.D){setHTML($('#rail'),'');return}
+  var D=S.D,t=totals();
+  var tiles=SIZES.map(function(sz){
+    var st=shirtState(sz);
+    return '<div class="tile '+st.state+'"><div class="s"><span>'+sz+'</span>'+(st.state==='low'||st.state==='out'||st.state==='over'?'<span class="pill '+st.state+'">'+STATE_LABEL[st.state]+'</span>':'')+'</div><div class="n">'+(st.state==='none'?'—':n(st.rem))+'</div></div>'
+  }).join('');
+  setHTML($('#rail'),
+    '<div class="card"><h2 class="h">Progress</h2>'+prog('Checked in',D.checkOut,D.total,'still to arrive')+prog('Race bibs',D.bibOut,t.bibLot||D.total)+prog('T-shirts',D.shirtOut,t.shirtLot||D.total)+'</div>'+
+    '<div class="card"><h2 class="h">T-shirts left by size</h2><div class="tiles">'+tiles+'</div>'+(t.shirtLot===0?'<p class="note" style="margin-top:10px">Enter your lot in the Stock tab to track what is left.</p>':'')+'</div>');
+}
+function renderStock(){
+  var el=$('#stockBody');
+  if(!S.D){setHTML(el,'');return}
+  var D=S.D,t=totals(),bibLot=t.bibLot||D.total,shirtLot=t.shirtLot||D.total;
+  var head='<div class="stats">'+
+    '<div class="card stat"><span class="t">Checked in</span><span class="n">'+n(D.checkOut)+'</span><small>of '+n(D.total)+' registered</small></div>'+
+    '<div class="card stat"><span class="t">Bibs left</span><span class="n">'+n(bibLot-D.bibOut)+'</span><small>'+n(D.bibOut)+' of '+n(bibLot)+' handed over</small></div>'+
+    '<div class="card stat"><span class="t">T-shirts left</span><span class="n">'+n(shirtLot-D.shirtOut)+'</span><small>'+n(D.shirtOut)+' of '+n(shirtLot)+' handed over</small></div>'+
+    '<div class="card stat"><span class="t">Runners still to collect</span><span class="n">'+n(D.pending)+'</span><small>of '+n(D.total)+' registered</small></div></div>';
+  var tl=0,tg=0,tr=0,td=0;
+  var rows=SIZES.map(function(sz){
+    var st=shirtState(sz);tl+=st.lot;tg+=st.given;tr+=st.rem;td+=st.due;
+    var pct=st.lot>0?Math.min(100,Math.round(st.given/st.lot*100)):0;
+    var spare=st.lot>0?(st.spare<0?'<td class="neg">Short '+n(-st.spare)+'</td>':'<td>'+n(st.spare)+'</td>'):'<td>—</td>';
+    return '<tr><td><b>'+sz+'</b></td><td>'+(st.lot>0?n(st.lot):'—')+'</td><td>'+n(st.given)+'</td><td'+(st.rem<0?' class="neg"':'')+'><b>'+(st.lot>0||st.given>0?n(st.rem):'—')+'</b></td><td>'+n(st.due)+'</td>'+spare+
+      '<td style="min-width:110px"><div class="bar"><i style="width:'+pct+'%"></i></div></td><td style="text-align:left"><span class="pill '+st.state+'">'+STATE_LABEL[st.state]+'</span></td></tr>'
+  }).join('');
+  var shirtTbl='<div class="card"><h2 class="h">T-shirts by size</h2><div class="tablewrap"><table><thead><tr><th>Size</th><th>Lot</th><th>Given</th><th>Left</th><th>Still due</th><th>Spare after due</th><th>Used</th><th style="text-align:left">Status</th></tr></thead><tbody>'+rows+
+    '</tbody><tfoot><tr><td>Total</td><td>'+n(tl)+'</td><td>'+n(tg)+'</td><td>'+n(tr)+'</td><td>'+n(td)+'</td><td></td><td></td><td></td></tr></tfoot></table></div>'+
+    '<p class="note" style="margin-top:10px">Still due counts registered runners who have not collected a T-shirt in that size. Spare after due is what remains once they all collect.</p></div>';
+  var cats=Array.from(D.cat.keys()).sort(function(a,b){var x=catNum(a),y=catNum(b);if(isNaN(x))x=1e9;if(isNaN(y))y=1e9;return x-y||(a<b?-1:1)});
+  var crow=cats.map(function(c){
+    var v=D.cat.get(c),pct=v.reg?Math.round(v.bib/v.reg*100):0;
+    return '<tr><td><span class="sw" style="--kc:'+catColor(c)+'"></span><b>'+esc(c||'No category')+'</b></td><td>'+n(v.reg)+'</td><td>'+n(v.chk)+'</td><td>'+n(v.bib)+'</td><td>'+n(v.shirt)+'</td><td style="min-width:120px"><div class="bar"><i style="width:'+pct+'%"></i></div></td><td>'+pct+'%</td></tr>'
+  }).join('');
+  var catTbl='<div class="card"><h2 class="h">By category</h2>'+(cats.length?'<div class="tablewrap"><table><thead><tr><th>Category</th><th>Registered</th><th>Checked in</th><th>Bibs out</th><th>T-shirts out</th><th>Bibs collected</th><th></th></tr></thead><tbody>'+crow+'</tbody></table></div>':'<p class="note">Categories appear once runners are imported.</p>')+'</div>';
+  setHTML(el,head+shirtTbl+catTbl);
+}
+function events(){
+  var ev=[];
+  S.runners.forEach(function(r){
+    if(r.checkedIn&&r.checkedInAt)ev.push({at:r.checkedInAt,r:r,item:'check',desk:r.checkedInDesk});
+    if(r.bibIssued&&r.bibAt)ev.push({at:r.bibAt,r:r,item:'bib',desk:r.bibDesk});
+    if(r.shirtIssued&&r.shirtAt)ev.push({at:r.shirtAt,r:r,item:'shirt',desk:r.shirtDesk});
+  });
+  ev.sort(function(a,b){return a.at<b.at?1:a.at>b.at?-1:0});
+  return ev
+}
+function renderLog(){
+  var el=$('#tab-log'),ev=events();
+  if(!ev.length){setHTML(el,'<div class="empty"><b>Nothing handed over yet</b><span>Each bib and T-shirt appears here with the time and desk as soon as it is issued.</span></div>');return}
+  var shown=ev.slice(0,100);
+  setHTML(el,'<div class="card"><h2 class="h">Latest hand-overs · '+n(ev.length)+' total</h2><ul class="log">'+shown.map(function(e){
+    var key='l:'+e.r.id+':'+e.item,on=S.armed===key,label=e.item==='check'?'Check-in':e.item==='bib'?'Race bib':'T-shirt, size '+esc(e.r.shirtSize||'?');
+    return '<li><time datetime="'+esc(e.at)+'">'+esc(when(e.at))+'</time><span class="chip sm" style="--kc:'+catColor(e.r.cat)+'">'+esc(e.r.bib)+'</span><span class="lw"><b>'+esc(e.r.name)+'</b><small>'+label+(e.desk?' · '+esc(e.desk):'')+'</small></span>'+
+      (canDo('undo',e.item)?'<button type="button" class="btn sm'+(on?' armed':'')+'" data-act="undo-log" data-id="'+esc(e.r.id)+'" data-item="'+e.item+'"'+(writable()?'':' disabled')+'>'+(on?'Tap again to undo':'Undo')+'</button>':'')+'</li>'
+  }).join('')+'</ul>'+(ev.length>shown.length?'<p class="note" style="margin-top:10px">Showing the latest '+shown.length+'. Export from Setup for the full list.</p>':'')+'</div>');
+}
+
+/* ---------- setup ---------- */
+function buildSetup(){
+  $('#cfgSizes').innerHTML=SIZES.map(function(s){return '<label>'+s+'<input type="number" min="0" inputmode="numeric" data-size="'+s+'" aria-label="Lot for size '+s+'"></label>'}).join('');
+  $('#addSize').innerHTML='<option value="">Not set</option>'+SIZES.map(function(s){return '<option>'+s+'</option>'}).join('');
+  $('#catList').innerHTML=['5K','10K','21K','42K'].map(function(c){return '<option value="'+c+'">'}).join('');
+}
+function fillSetup(force){
+  if(S.cfgDirty&&!force)return;
+  var setv=function(el,v){if(document.activeElement!==el)el.value=v};
+  var ri=$('#raceInfo');if(ri)ri.textContent=S.ev?'Showing '+(S.cfg.name||S.ev)+' (collection '+S.ev+'). Runners are synced from that collection.':'No race found yet.';setv($('#cfgBib'),S.cfg.bibLot||'');setv($('#cfgName'),S.cfg.name||'');var cn=$('#cfgNameNote');if(cn)cn.textContent='Collection: '+S.ev+'. Clear the box and save to go back to the CMS name.';
+  SIZES.forEach(function(s){setv($('#cfgSizes [data-size="'+s+'"]'),S.cfg.shirtLot[s]||'')});
+}
+function renderSetupLive(){
+  var admin=S.canAdmin&&S.live,canW=writable();
+  ['cfgName','cfgBib','saveCfg'].forEach(function(id){$('#'+id).disabled=!admin});
+  Array.prototype.forEach.call(document.querySelectorAll('#cfgSizes input'),function(i){i.disabled=!admin});
+  $('#csv').disabled=!admin;$('#csvFile').disabled=!admin;
+  $('#doImport').disabled=!admin||S.importing||!S.imp||(S.imp.newCount+S.imp.updCount===0);
+  Array.prototype.forEach.call(document.querySelectorAll('#addForm input,#addForm select,#addBtn'),function(i){i.disabled=!canW||!canDo('addRunner')});
+  $('#addForm').parentNode.hidden=!canDo('addRunner');
+  $('#cfgMsg').textContent=admin?'':'Only editors can change the lot.';
+  var ex=S.D?S.D.examples:0;
+  $('#sampleCard').hidden=!admin;
+  $('#rmSample').disabled=!admin||S.importing||ex===0;$('#fmbCheck').disabled=!admin||S.importing||!S.ev;$('#refreshRaces').disabled=!(S.canWrite&&!S.notStaff);$('#fmbSync').disabled=!admin||S.importing||!S.fmbReady;$('#loadSample').disabled=!admin||S.importing||!!(S.D&&S.D.total>0);
+  var cats=S.D?Array.from(S.D.cat.keys()).filter(Boolean):[];
+  var dl=['5K','10K','21K','42K'].concat(cats.filter(function(c){return ['5K','10K','21K','42K'].indexOf(c)<0}));
+  var html=dl.map(function(c){return '<option value="'+esc(c)+'">'}).join('');
+  if($('#catList')._h!==html){$('#catList').innerHTML=html;$('#catList')._h=html}
+}
+
+/* CSV */
+function parseTable(text){
+  text=text.replace(/^﻿/,'');
+  var first=text.split(/\r?\n/,1)[0]||'';
+  var d=first.indexOf('\t')>=0?'\t':(first.split(';').length>first.split(',').length?';':',');
+  var rows=[],row=[],f='',q=false;
+  for(var i=0;i<text.length;i++){
+    var c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;
+    else if(c===d){row.push(f);f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f);f='';rows.push(row);row=[]}
+    else f+=c;
+  }
+  row.push(f);rows.push(row);
+  return rows.map(function(r){return r.map(function(x){return x.trim()})}).filter(function(r){return r.some(function(x){return x})})
+}
+function previewImport(){
+  var text=$('#csv').value,info=$('#impInfo');
+  if(!text.trim()){S.imp=null;info.className='msg';info.textContent='Nothing to import yet.';renderSetupLive();return}
+  var rows=parseTable(text);if(!rows.length){S.imp=null;renderSetupLive();return}
+  var head=rows[0].map(function(h){return h.toLowerCase()});
+  var find=function(re){for(var i=0;i<head.length;i++)if(re.test(head[i]))return i;return -1};
+  var idx={bib:find(/bib|chest|^no\.?$|^number$/),name:find(/name|runner|participant/),cat:find(/categor|distance|event|race/),size:find(/size|shirt/),phone:find(/phone|mobile|contact|whatsapp/)};
+  var start=1;
+  if(!(idx.bib>=0&&idx.name>=0)){idx={bib:0,name:1,cat:2,size:3,phone:4};start=0}
+  var seen={},recs=[],skipped=0,badSize=0,dup=0;
+  for(var i=start;i<rows.length;i++){
+    var r=rows[i],get=function(k){return idx[k]>=0&&r[idx[k]]!=null?r[idx[k]]:''};
+    var bib=get('bib'),name=get('name');
+    if(!bib||!name){skipped++;continue}
+    var id=docId(bib);if(seen[id]){dup++;continue}seen[id]=1;
+    var rawSize=get('size'),size=normSize(rawSize);if(rawSize&&!size)badSize++;
+    recs.push({id:id,bib:bib,name:name,cat:get('cat'),size:size,phone:get('phone')});
+  }
+  var upd=recs.filter(function(x){return S.byId.has(S.ev+'~'+x.id)}).length;
+  S.imp={recs:recs,newCount:recs.length-upd,updCount:upd,skipped:skipped,dup:dup,badSize:badSize};
+  var bits=[n(recs.length)+' runners ready ('+n(recs.length-upd)+' new, '+n(upd)+' already registered and will be left unchanged)'];
+  if(skipped)bits.push(n(skipped)+' rows missing a bib or name');
+  if(dup)bits.push(n(dup)+' repeated bibs ignored');
+  if(badSize)bits.push(n(badSize)+' unrecognised sizes left blank');
+  info.className='msg'+(recs.length?'':' bad');info.textContent=recs.length?bits.join(' · '):'No usable rows found. Check the column order: bib, name, category, size, phone.';
+  renderSetupLive();
+}
+async function withRetry(fn){
+  for(var a=0;;a++){
+    try{return await fn()}catch(e){
+      if(a>=4||!e||(e.code!=='resource_exhausted'&&e.code!=='unavailable'))throw e;
+      await sleep(400*Math.pow(2,a)+Math.random()*300);
+    }
+  }
+}
+async function runPool(items,worker,onProgress){
+  var i=0,done=0,fail=0;
+  async function lane(){
+    while(i<items.length){
+      var it=items[i++];
+      try{await withRetry(function(){return worker(it)})}catch(e){fail++}
+      done++;onProgress(done,fail);
+    }
+  }
+  await Promise.all([lane(),lane(),lane(),lane(),lane(),lane()]);
+  return {done:done,fail:fail}
+}
+function progress(done,total){var p=$('#impProg');p.hidden=false;p.firstElementChild.style.width=Math.round(done/total*100)+'%'}
+async function doImport(){
+  if(!S.imp||S.importing||!S.canAdmin)return;
+  var recs=S.imp.recs,info=$('#impInfo'),done=0,fail='';
+  S.importing=true;renderSetupLive();info.className='msg';info.textContent='Importing…';progress(0,recs.length);
+  try{
+    for(var i=0;i<recs.length;i+=200){
+      var chunk=recs.slice(i,i+200);
+      await api('importRunners',{rows:chunk.map(function(x){return {bib:x.bib,name:x.name,cat:x.cat,size:x.size,phone:x.phone}})},60000);
+      done+=chunk.length;progress(done,recs.length);info.textContent='Importing '+n(done)+' of '+n(recs.length)+'…';
+    }
+  }catch(e){fail=(e&&e.message)||'failed'}
+  S.importing=false;
+  if(fail){info.className='msg bad';info.textContent=n(done)+' imported, then it stopped: '+fail+'. Import the same list again to finish; runners already in are left unchanged.'}
+  else{info.className='msg good';info.textContent=n(recs.length)+' rows processed. Runners already registered were left unchanged.';$('#csv').value='';S.imp=null}
+  $('#impProg').hidden=true;
+  try{await fullLoad()}catch(e){S.err=e}
+  renderAll();
+}
+async function saveCfg(){
+  if(!S.canAdmin)return;
+  var lot={};SIZES.forEach(function(s){lot[s]=Math.max(0,parseInt($('#cfgSizes [data-size="'+s+'"]').value,10)||0)});
+  var data={name:$('#cfgName').value.trim(),bibLot:Math.max(0,parseInt($('#cfgBib').value,10)||0),shirtLot:lot};
+  var msg=$('#cfgMsg');msg.className='msg';msg.textContent='Saving…';
+  try{var c=await api('saveConfig',data);S.cfg=normCfg(c||data);S.cfgDirty=false;msg.className='msg good';msg.textContent='Saved.';try{await loadEvents()}catch(x){}renderAll()}
+  catch(e){msg.className='msg bad';msg.textContent=(e&&e.message)==='bad_name'?'The race name needs 2 to 40 characters.':'Could not save: '+((e&&e.message)||'try again')}
+}
+async function addRunner(ev){
+  ev.preventDefault();
+  var msg=$('#addMsg'),bib=$('#addBib').value.trim(),name=$('#addName').value.trim();
+  if(!bib||!name){msg.className='msg bad';msg.textContent='Bib and name are required.';return}
+  var ex=S.byId.get(S.ev+'~'+docId(bib));
+  if(ex){msg.className='msg bad';msg.textContent='Bib '+ex.bib+' already belongs to '+ex.name+'.';return}
+  msg.className='msg';msg.textContent='Adding…';
+  try{
+    var res=await api('addRunner',{bib:bib,name:name,cat:$('#addCat').value.trim(),size:$('#addSize').value,phone:$('#addPhone').value.trim()});
+    applyResult(res);
+    msg.className='msg good';msg.textContent='Added '+name+' with bib '+bib+'.';
+    $('#addForm').reset();$('#addBib').focus();renderAll();
+  }catch(e){msg.className='msg bad';msg.textContent=(e&&e.message==='duplicate')?'Bib '+bib+' already exists.':'Could not add: '+((e&&e.message)||'try again')}
+}
+async function removeSample(){
+  if(!S.canAdmin||S.importing)return;
+  var msg=$('#rmMsg');S.importing=true;renderSetupLive();msg.className='msg';msg.textContent='Removing…';
+  try{await api('removeSample',{},60000);await fullLoad();msg.className='msg good';msg.textContent='Sample data removed.'}
+  catch(e){msg.className='msg bad';msg.textContent='Could not remove: '+((e&&e.message)||'try again')}
+  S.importing=false;renderAll();
+}
+async function loadSample(){
+  if(!S.canAdmin||S.importing)return;
+  var nm=['Aarav Mehta','Priya Nair','Rohit Sharma','Ananya Rao','Vikram Singh','Sneha Reddy','Karthik Iyer','Divya Menon','Arjun Patel','Meera Joshi','Suresh Kumar','Lakshmi Devi','Rahul Verma','Pooja Gupta','Nikhil Das','Kavya Shetty','Imran Khan','Neha Kulkarni','Sanjay Naidu','Ritu Agarwal'];
+  var cats=['5K','10K','21K','42K'],sz=['S','M','M','L','XL','XXL','XS'];
+  var rows=nm.map(function(x,i){return {bib:String(101+i),name:x,cat:cats[i%4],size:sz[i%sz.length],phone:'98480'+String(10000+i*137)}});
+  var msg=$('#rmMsg');S.importing=true;renderSetupLive();msg.className='msg';msg.textContent='Loading…';
+  try{await api('importRunners',{rows:rows,example:true},60000);await fullLoad();msg.className='msg good';msg.textContent='Sample runners loaded.'}
+  catch(e){msg.className='msg bad';msg.textContent='Could not load: '+((e&&e.message)||'try again')}
+  S.importing=false;renderAll();
+}
+async function fmbPreview(){
+  var m=$('#fmbMsg'),b=$('#fmbInfo');m.className='msg';m.textContent='Checking…';b.hidden=true;
+  try{
+    var r=await api('previewFindMyBib',{},60000),f=r.fields||{},names=['bib','name','phone','email','cat','size'];
+    var lines=names.map(function(k){return k+': '+(f[k]?'found as '+f[k]:'NOT FOUND')});
+    var smp=(r.sample||[]).map(function(x){return x.bib+' '+x.name+' '+(x.cat||'-')+' '+(x.size||'-')}).join('; ');
+    b.hidden=false;b.textContent=n(r.total)+' rows in findmybib, '+n(r.withBib)+' of the first '+n(r.scanned)+' have a bib and name.\n'+lines.join('\n')+'\nColumns present: '+(r.columns||[]).join(', ')+(smp?'\nSample: '+smp:'');
+    m.className='msg good';m.textContent=(f.size?'':'T-shirt size column not found, so stock by size will not work. ')+'Press Sync to copy them in.';
+    S.fmbReady=true;renderSetupLive();
+  }catch(e){m.className='msg bad';m.textContent='Could not read findmybib: '+((e&&e.message)||'try again')}
+}
+async function fmbSync(){
+  if(!S.canAdmin||S.importing)return;
+  var m=$('#fmbMsg'),skip=0,add=0,upd=0,skp=0;
+  S.importing=true;renderSetupLive();m.className='msg';m.textContent='Syncing…';
+  try{
+    for(var k=0;k<500;k++){
+      var r=await api('syncFromFindMyBib',{skip:skip},60000);
+      add+=r.added||0;upd+=r.updated||0;skp+=r.skipped||0;skip=r.next;
+      m.textContent='Syncing… '+n(skip)+' rows read';
+      if(r.done)break;
+    }
+    m.className='msg good';m.textContent='Done: '+n(add)+' added, '+n(upd)+' updated, '+n(skp)+' skipped (no bib yet). Handed-over status was not touched.';
+  }catch(e){m.className='msg bad';m.textContent='Stopped after '+n(skip)+' rows: '+((e&&e.message)||'failed')+'. Press Sync again; it is safe to repeat.'}
+  S.importing=false;
+  try{await fullLoad()}catch(e){S.err=e}
+  renderAll();
+}
+function fillRaceSel(){
+  var sel=$('#raceSel');
+  sel.innerHTML=S.events.length?S.events.map(function(e){return '<option value="'+esc(e.id)+'">'+esc(e.name)+'</option>'}).join(''):'<option value="">No race yet</option>';
+  sel.value=S.ev;
+  try{if(S.ev)localStorage.setItem('expo-race',S.ev)}catch(x){}
+}
+async function loadEvents(){
+  S.events=await api('listEvents',{});
+  var keep='';try{keep=localStorage.getItem('expo-race')||''}catch(x){}
+  var ids=S.events.map(function(e){return e.id});
+  if(ids.indexOf(S.ev)<0)S.ev=ids.indexOf(keep)>=0?keep:(ids[0]||'');
+  if(S.me&&S.me.race)S.ev=S.me.race;
+  fillRaceSel();
+}
+async function switchRace(id){
+  if(id===S.ev)return;
+  S.ev=id;fillRaceSel();
+  S.byId=new Map();S.sel=null;S.lastOp=null;S.cfg=normCfg({});S.since='';S.cfgDirty=false;S.fmbReady=false;S.live=false;rebuild();
+  $('#fmbInfo').hidden=true;$('#fmbMsg').textContent='';renderAll();
+  try{if(S.ev)await fullLoad();else{S.live=true}}catch(e){S.err=e}
+  fillSetup(true);renderAll();
+}
+async function refreshRaces(){
+  var m=$('#raceMsg');m.className='msg';m.textContent='Looking…';
+  try{
+    var before=S.ev;await loadEvents();
+    if(S.ev!==before){var want=S.ev;S.ev=before;await switchRace(want)}
+    fillSetup(true);m.className='msg good';m.textContent=S.events.length+' race'+(S.events.length===1?'':'s')+' found.';renderAll();
+  }catch(e){m.className='msg bad';m.textContent='Could not refresh: '+((e&&e.message)||'try again')}
+}
+async function prepare(){
+  var msg=$('#prepMsg');msg.className='msg';msg.textContent='Working…';
+  try{
+    var r=await api('ensureSetup',{},60000),t=(r&&r.summary)||'Done.';
+    msg.className='msg good';msg.textContent=t;toast(t,false);
+    if(S.notStaff){S.notStaff=false;S.setup=false;start()}
+  }catch(e){var t2='Could not create the database: '+((e&&e.message)||'only the site owner can do this');msg.className='msg bad';msg.textContent=t2;toast(t2,true)}
+}
+
+/* export */
+function csvCell(v,guard){
+  var s=String(v==null?'':v);
+  if(guard&&/^[=+\-@]/.test(s))s="'"+s;
+  return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s
+}
+function saveFile(name,rows,msgEl){
+  var text=rows.map(function(r){return r.join(',')}).join('\r\n');
+  var box=$('#expText');box.hidden=false;box.value=text;
+  try{
+    var blob=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url)},4000);
+    msgEl.className='msg good';msgEl.textContent='Download started for '+name+'. If nothing downloads, copy the text below into a file with that name.';
+  }catch(e){msgEl.className='msg';msgEl.textContent='Copy the text below into a file named '+name+'.'}
+}
+function exportRoster(){
+  var rows=[['bib','name','category','phone','registered_size','checked_in','checkin_time','checkin_desk','bib_issued','bib_time','bib_desk','tshirt_issued','tshirt_size_given','tshirt_time','tshirt_desk']];
+  S.runners.forEach(function(r){rows.push([csvCell(r.bib),csvCell(r.name,1),csvCell(r.cat,1),csvCell(r.phone),csvCell(r.size),r.checkedIn?'yes':'no',csvCell(r.checkedInAt),csvCell(r.checkedInDesk,1),r.bibIssued?'yes':'no',csvCell(r.bibAt),csvCell(r.bibDesk,1),r.shirtIssued?'yes':'no',csvCell(r.shirtSize),csvCell(r.shirtAt),csvCell(r.shirtDesk,1)])});
+  saveFile('runners-and-status.csv',rows,$('#expMsg'));
+}
+function exportStock(){
+  var rows=[['size','lot','given','left','still_due','spare_after_due']];
+  SIZES.forEach(function(s){var t=shirtState(s);rows.push([s,t.lot,t.given,t.rem,t.due,t.spare])});
+  var t=totals();rows.push([]);rows.push(['bibs_lot',t.bibLot||S.D.total]);rows.push(['bibs_given',S.D.bibOut]);rows.push(['bibs_left',(t.bibLot||S.D.total)-S.D.bibOut]);
+  saveFile('stock-summary.csv',rows.map(function(r){return r.map(csvCell)}),$('#expMsg'));
+}
+
+/* ---------- hand-over ---------- */
+var toastT=0;
+function toast(msg,err,undo){
+  var t=$('#toast');t.className='toast'+(err?' err':'');
+  t.innerHTML='<span>'+esc(msg)+'</span>'+(undo?'<button type="button" data-act="undo-toast">Undo</button>':'');
+  t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true;if(S.lastOp)S.lastOp.stale=true},err?6000:9000);
+}
+function clearSelection(focus){
+  S.sel=null;S.q='';$('#q').value='';S.pick=defaultPick(null);S.pickup=newPickup();
+  renderAll();if(focus)$('#q').focus();
+}
+function openRunner(id){
+  var r=S.byId.get(id);if(!r)return;
+  S.sel=id;S.pickup=newPickup();if((r.checkedIn||r.shirtIssued)&&S.pickups[id]===undefined)loadPickup(id);S.pick=defaultPick(r);
+  renderAll();
+  var b=$('#panel [data-fk="confirm"],#panel [data-fk="next"]');if(b&&!b.disabled)b.focus();
+}
+async function confirmIssue(){
+  var r=S.sel&&S.byId.get(S.sel);if(!r||S.busy||!writable())return;
+  var wantCheck=S.pick.check&&!r.checkedIn,wantBib=S.pick.bib&&!r.bibIssued,wantShirt=S.pick.shirt&&!r.shirtIssued;
+  if(!wantCheck&&!wantBib&&!wantShirt)return;
+  var needWho=wantCheck||(wantShirt&&!!r.size);
+  if(needWho&&!S.pickup.selfie){toast('Take a selfie of the person collecting first.',true);return}
+  if(needWho&&S.pickup.by==='friend'&&S.pickup.friendName.trim().length<2){toast('Enter the friend\'s name first.',true);return}
+  if(wantShirt&&!r.size){toast('No T-shirt size on the registration. Ask the admin.',true);return}
+  if(wantShirt){var st=shirtState(r.size);if(st.lot>0&&st.rem<=0){toast('Size '+r.size+' is out of stock. Do not hand over another size; ask the admin.',true);return}}
+  S.busy=true;renderPanel();
+  try{
+    var res=await api('issue',{id:r.id,check:wantCheck,bib:wantBib,shirtSize:wantShirt?r.size:'',desk:S.desk,pickup:needWho?{by:S.pickup.by,friendName:S.pickup.friendName.trim(),friendPhone:S.pickup.friendPhone,method:'selfie',selfie:S.pickup.selfie}:undefined},60000);
+    delete S.pickups[r.id];
+    applyResult(res);
+    var items=res.done||[],clash=res.clash||[];
+    if(clash.length)toast('The '+clash.join(' and ')+' for bib '+r.bib+' was just recorded at another desk.',true);
+    if(!items.length)return;
+    S.lastOp={id:r.id,bib:r.bib,items:items,stale:false};
+    var what=items.map(function(i){return i==='check'?'checked in':i==='bib'?'bib given':'T-shirt '+r.size+' given'}).join(', ');
+    if(!clash.length)toast('Bib '+r.bib+' · '+r.name+': '+what+'.',false,true);
+    S.busy=false;clearSelection(true);return;
+  }catch(e){
+    var m=String((e&&e.message)||'');
+    toast(m==='out_of_stock'?'That size just ran out. Do not hand over another size; ask the admin.':m==='size_locked'?'The T-shirt size is fixed by the registration and cannot be changed.':m==='no_registered_size'?'No T-shirt size on the registration. Ask the admin.':m==='selfie_needed'||m==='verify_needed'?'Take a selfie of the person collecting.':m==='friend_needed'?'Enter the friend\'s name.':m==='wrong_desk'?'This desk cannot do that. Bibs are handed over at Desk 1, T-shirts at Desk 2. Send the runner to the right desk.':m==='no_desk'?'Choose a desk first. Log out and log in again.':m==='not_staff'?'This login is not on the staff list.':'Could not save: '+(m||'check the connection and try again')+'.',true);
+  }finally{S.busy=false;renderAll()}
+}
+async function revert(id,items){
+  try{var res=await api('revert',{id:id,items:items});delete S.pickups[id];applyResult(res);toast('Undone. Stock counts are back.',false)}
+  catch(e){var um=String((e&&e.message)||'');toast(um==='wrong_desk'?'This desk cannot undo that. Use Desk 3 - Misc for corrections.':'Could not undo: '+(um||'try again'),true)}
+  renderAll();
+}
+function arm(key){
+  if(S.armed===key){S.armed=null;return true}
+  S.armed=key;renderAll();
+  setTimeout(function(){if(S.armed===key){S.armed=null;renderAll()}},4000);
+  return false
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-act]');if(!b||b.disabled)return;
+  var a=b.dataset.act;
+  if(a==='tab'){S.tab=b.dataset.tab;if(S.tab==='setup')fillSetup();renderAll();if(S.tab==='desk')$('#q').focus()}
+  else if(a==='open')openRunner(b.dataset.id);
+  else if(a==='close')clearSelection(true);
+  else if(a==='pick'){var k=b.dataset.item;S.pick[k]=!S.pick[k];renderPanel()}
+  else if(a==='pk-by'){S.pickup.by=b.dataset.by==='friend'?'friend':'self';renderPanel();if(S.pickup.by==='friend'){var nm=$('#pkName');if(nm)nm.focus()}}
+  else if(a==='pk-selfie'){var pf=$('#pkFile');pf.value='';pf.click()}
+  else if(a==='confirm')confirmIssue();
+  else if(a==='undo-item'){if(arm('p:'+b.dataset.item)&&S.sel)revert(S.sel,[b.dataset.item])}
+  else if(a==='undo-log'){if(arm('l:'+b.dataset.id+':'+b.dataset.item))revert(b.dataset.id,[b.dataset.item])}
+  else if(a==='undo-toast'){if(S.lastOp&&!S.lastOp.stale){var o=S.lastOp;S.lastOp=null;revert(o.id,o.items)}$('#toast').hidden=true}
+  else if(a==='walkin'){S.tab='setup';$('#addName').value=/\d/.test(S.q)?'':S.q.trim();$('#addBib').value=/^\d+$/.test(S.q.trim())?S.q.trim():'';renderAll();$('#addBib').focus()}
+  else if(a==='save-cfg')saveCfg();
+  else if(a==='import')doImport();
+  else if(a==='load-sample')loadSample();
+  else if(a==='fmb-preview')fmbPreview();
+  else if(a==='refresh-races')refreshRaces();
+  else if(a==='fmb-sync')fmbSync();
+  else if(a==='prepare')prepare();
+  else if(a==='rm-sample'){if(arm('rm-sample'))removeSample()}
+  else if(a==='export-roster')exportRoster();
+  else if(a==='export-stock')exportStock();
+  else if(a==='logout')logout();
+  else if(a==='change-desk'){S.canWrite=false;showPick(true)}
+});
+$('#q').addEventListener('input',function(e){S.q=e.target.value;S.sel=null;S.pick=defaultPick(null);S.pickup=newPickup();renderAll()});
+$('#q').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){var res=search(S.q);if(res.list.length&&(res.list.length===1||res.exact)){e.preventDefault();openRunner(res.list[0].id)}}
+  else if(e.key==='Escape'){clearSelection(true)}
+});
+$('#deskName').addEventListener('input',function(e){S.desk=e.target.value.trim();try{localStorage.setItem('expo-desk-name',S.desk)}catch(x){}});
+$('#csv').addEventListener('input',previewImport);
+document.addEventListener('input',function(e){var t=e.target;if(!t||!t.getAttribute||!t.getAttribute('data-pk'))return;var k=t.getAttribute('data-pk');S.pickup[k]=k==='friendPhone'?t.value.replace(/[^0-9+ ]/g,'').slice(0,15):t.value.slice(0,60);syncConfirm()});
+$('#pkFile').addEventListener('change',async function(e){
+  var f=e.target.files&&e.target.files[0];if(!f)return;
+  try{S.pickup.selfie=await shrinkPhoto(f);renderPanel()}catch(err){toast('Could not read the photo. Try again.',true)}
+});
+$('#csvFile').addEventListener('change',function(e){
+  var f=e.target.files&&e.target.files[0];if(!f)return;
+  var rd=new FileReader();rd.onload=function(){$('#csv').value=String(rd.result||'');previewImport()};rd.readAsText(f);
+});
+$('#addForm').addEventListener('submit',addRunner);
+$('#cfgCard').addEventListener('input',function(){S.cfgDirty=true;$('#cfgMsg').textContent=''});
+
+/* ---------- boot ---------- */
+buildSetup();
+$('#raceSel').addEventListener('change',function(){switchRace(this.value)});
+try{S.desk=localStorage.getItem('expo-desk-name')||'';$('#deskName').value=S.desk}catch(x){}
+renderAll();
+var pollT=0,lastFull=0;
+async function fullLoad(){
+  var all=[],skip=0,cfg=null,ev0=S.ev;
+  for(var k=0;k<200;k++){
+    var res=await api('loadPage',{skip:skip},60000);
+    all=all.concat(res.runners||[]);if(res.config)cfg=res.config;
+    if(res.done)break;skip+=(res.runners||[]).length;
+  }
+  if(ev0!==S.ev)return;
+  S.cfg=normCfg(cfg||{});replaceAll(all);lastFull=Date.now();S.live=true;S.err=null;fillSetup();renderAll();
+}
+async function poll(){
+  clearTimeout(pollT);
+  if(!S.importing&&!S.busy&&!document.hidden&&S.canWrite&&!S.notStaff&&S.ev){
+    try{
+      if(Date.now()-lastFull>90000){await loadEvents();await fullLoad()}
+      else{
+        for(var k=0;k<10;k++){
+          var ev0=S.ev,prev=S.since,res=await api('loadSince',{since:S.since},20000);if(ev0!==S.ev)break;
+          S.cfg=normCfg(res.config||{});mergeItems(res.runners||[]);
+          if(!res.more)break;
+          if(S.since===prev){await fullLoad();break}
+        }
+        fillSetup();S.live=true;S.err=null;schedule();
+      }
+    }catch(e){S.err=e;schedule()}
+  }
+  pollT=setTimeout(poll,4000);
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden)poll()});
+/* ---------- login ---------- */
+function showGate(stage){
+  $('#app').hidden=true;$('#gate').hidden=false;
+  $('#loginForm').hidden=stage!=='login';$('#pickForm').hidden=stage!=='pick';
+  if(stage==='login')setTimeout(function(){$('#lgUser').focus()},50);
+}
+function clearSession(){
+  S.token='';S.me=null;S.canWrite=false;S.canAdmin=false;S.live=false;S.err=null;
+  S.byId=new Map();S.sel=null;S.lastOp=null;S.since='';S.cfg=normCfg({});rebuild();
+  try{sessionStorage.removeItem('expo-token')}catch(x){}
+}
+function forceLogin(why){clearSession();showGate('login');$('#lgMsg').className='msg bad';$('#lgMsg').textContent=why==='desk_busy'?'This login is now in use at another desk, so it was logged out here. Each desk needs its own login.':'Please log in again.'}
+async function doLogin(ev){
+  ev.preventDefault();
+  var m=$('#lgMsg'),btn=$('#lgBtn');m.className='msg';m.textContent='Checking…';btn.disabled=true;
+  try{
+    var r=await api('login',{username:$('#lgUser').value.trim(),password:$('#lgPass').value},20000);
+    $('#lgPass').value='';S.token=r.token;S.me=r;
+    try{sessionStorage.setItem('expo-token',S.token)}catch(x){}
+    m.textContent='';
+    await showPick();
+  }catch(e){
+    var c=e&&e.message;
+    m.className='msg bad';
+    m.textContent=c==='bad_login'?'Wrong username or password.':c==='locked'?'Too many tries. Wait 10 minutes, then try again.':c==='no_race'?'No race is assigned to this login. Ask the admin to fill the race column for it.':c==='bad_race'?'The race assigned to this login was not found. Ask the admin to check its spelling.':c==='desk_busy'?'This login is already in use at another desk. Each desk needs its own login. Log out there first, or use the login for this desk.':c==='setup_needed'?'The database has not been created yet. Use First-time setup below.':c==='timeout'?'No answer from the server. See the note below.':'Could not log in: '+(c||'try again');
+    if(c==='setup_needed')$('#firstSetup').open=true;
+  }
+  btn.disabled=false;
+}
+function raceFixed(){return !!(S.me&&S.me.race)||S.events.length<=1}
+function deskFixed(){return !!(S.me&&S.me.deskChosen&&S.me.desks.length<=1)}
+async function showPick(force){
+  var me=S.me;
+  await loadEvents();
+  // Race and desk are set by the admin. When both are known the person goes straight to the work screen.
+  if(!force&&raceFixed()&&me.deskChosen&&S.ev){await enterApp();return}
+  var rs=$('#pkRace');
+  rs.innerHTML=S.events.length?S.events.map(function(e){return '<option value="'+esc(e.id)+'">'+esc(e.name)+'</option>'}).join(''):'<option value="">No race found</option>';
+  rs.value=S.ev;
+  var ds=$('#pkDesk');
+  ds.innerHTML=me.desks.length?me.desks.map(function(d){return '<option>'+esc(d)+'</option>'}).join(''):'<option value="">No desk number</option>';
+  if(me.desk)ds.value=me.desk;
+  rs.parentNode.hidden=raceFixed();ds.parentNode.hidden=deskFixed();
+  $('#pickHi').textContent='Hello '+me.name+'. '+(raceFixed()?'Choose your desk.':deskFixed()?'Choose the race.':'Choose the race and your desk.');
+  $('#pkMsg').textContent='';
+  showGate('pick');
+}
+async function doPick(ev){
+  ev.preventDefault();
+  var m=$('#pkMsg');m.className='msg';m.textContent='Starting…';
+  try{
+    var r=await api('chooseDesk',{desk:deskFixed()?S.me.desk:$('#pkDesk').value});
+    S.me=Object.assign(S.me,r);S.ev=S.me.race||(raceFixed()?S.ev:$('#pkRace').value);
+    await enterApp();
+  }catch(e){m.className='msg bad';m.textContent=(e&&e.message)==='desk_busy'?'This login is already in use at another desk. Log out there first, or use the login for this desk.':'Could not start: '+((e&&e.message)||'try again')}
+}
+async function enterApp(){
+  var me=S.me;
+  S.canWrite=true;S.canAdmin=me.role==='admin';S.notStaff=false;S.ready=true;S.err=null;
+  S.desk=me.desk||'';var di=$('#deskName');di.value=S.desk||(me.role==='admin'?'Admin':'');di.readOnly=true;
+  fillRaceSel();
+  $('#raceSel').parentNode.hidden=raceFixed();
+  var cd=document.querySelector('[data-act="change-desk"]');if(cd)cd.hidden=raceFixed()&&me.desks.length<=1;
+  $('#gate').hidden=true;$('#app').hidden=false;
+  S.tab='desk';
+  renderAll();
+  try{if(S.ev)await fullLoad();else{S.live=true;renderAll()}}catch(e){S.err=e;renderAll()}
+  poll();
+}
+async function logout(){
+  try{await api('logout',{},8000)}catch(x){}
+  clearSession();showGate('login');$('#lgMsg').textContent='';
+}
+async function firstSetup(ev){
+  ev.preventDefault();
+  var m=$('#fsMsg');m.className='msg';m.textContent='Working…';
+  try{
+    var r=await api('ensureSetup',{key:$('#fsKey').value,username:$('#fsUser').value.trim(),password:$('#fsPass').value},60000);
+    m.className='msg good';m.textContent=r.summary+'. Now log in above.';
+    $('#lgUser').value=$('#fsUser').value.trim();$('#fsKey').value='';$('#fsPass').value='';
+  }catch(e){var c=e&&e.message;m.className='msg bad';m.textContent=c==='already_set_up'?'Already set up. Add logins in the CMS (ExpoStaff).':'Could not set up: '+(c||'try again')}
+}
+function setDiag(kind,msg){
+  var el=$('#lgDiag');S.diag=kind;
+  if(kind==='ok'){el.hidden=true;return}
+  el.hidden=false;
+  el.textContent=kind==='nopage'
+    ?'The page is not answering. Check: (1) you opened the published site, not the editor; (2) the embed element ID is exactly expoFrame; (3) expo-page-code.js is pasted in this page\'s own code panel and shows no red errors; (4) the site has been published after saving.'
+    :'The page code answers, but the backend failed ('+msg+'). Check that backend/expo.web.js is saved exactly as provided (file name expo.web.js) and publish again.';
+}
+function diagnose(){
+  api('ping',{},6000).then(function(){return api('health',{},20000)}).then(function(){setDiag('ok')},function(e){var c=e&&e.message;if(c==='timeout')setDiag('nopage');else setDiag('backend',c||'error')});
+}
+async function start(){
+  diagnose();
+  $('#loginForm').addEventListener('submit',doLogin);
+  $('#pickForm').addEventListener('submit',doPick);
+  $('#setupForm').addEventListener('submit',firstSetup);
+  try{S.token=sessionStorage.getItem('expo-token')||''}catch(x){}
+  if(S.token){
+    try{
+      var me=await api('whoami',{},10000);S.me=me;
+      await loadEvents();
+      if(me.deskChosen&&S.ev){await enterApp();return}
+      await showPick();return;
+    }catch(e){
+      if(e&&e.message==='not_logged_in')clearSession();
+    }
+  }
+  showGate('login');
+}
+start();
+})();
+</script>
+
+</body>
+</html>

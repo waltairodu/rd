@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Runner registration</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:22px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.fld{border:1px solid #c9d3d2;border-radius:8px;padding:11px 12px;font-size:15px;background:#fff}
+.opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #c9d3d2;border-radius:12px;padding:14px 16px;background:#fff}
+.sz{border:1.5px solid #c9d3d2;border-radius:8px;padding:10px 0;text-align:center;font-weight:600;background:#fff}
+.step{width:28px;height:28px;border-radius:99px;background:#12262b;color:#fff;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 28px}
+</style>
+</helmet>
+<div style="min-height:980px">
+  <header style="background:#12262b;color:#fff;padding:16px 40px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
+    <div style="display:flex;align-items:baseline;gap:12px"><span class="hd" style="font-size:26px">Vizag Half Marathon</span><span style="font-size:13px;color:#c9d6d8">Registration · [Race date]</span></div>
+    <div style="display:flex;gap:16px;font-size:14px"><span style="color:#c9d6d8">Already registered?</span><a href="Register.dc.html" style="color:#f0a77f">Find my bib</a></div>
+  </header>
+  <div style="max-width:1200px;margin:0 auto;padding:28px 40px;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+    <div style="flex:1.6 1 520px;display:flex;flex-direction:column;gap:18px">
+      <div style="font-size:12px;color:#8d3a0c;background:#fde7d8;border-radius:8px;padding:8px 12px">Mockup with sample data. Prices and cut-offs below are placeholders.</div>
+      <div class="card" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;align-items:center"><span class="step">1</span><b style="font-size:19px">Choose your race</b></div>
+        <div class="opt" style="border-color:#0b5d6b;background:#eef7f8"><div><b style="font-size:17px">21K Half Marathon</b><div style="font-size:13px;color:#3d5156">Cut-off 3 h 30 · starts 05:15</div></div><div style="text-align:right"><b style="font-size:17px">₹[Price]</b><div style="font-size:12px;color:#15613b;font-weight:600">Early bird ends in 3 days</div></div></div>
+        <div class="opt"><div><b style="font-size:17px">10K Run</b><div style="font-size:13px;color:#3d5156">Cut-off 2 h 00 · starts 05:45</div></div><div style="text-align:right"><b style="font-size:17px">₹[Price]</b><div style="font-size:12px;color:#7a4e0a;font-weight:600">Only 42 places left</div></div></div>
+        <div class="opt" style="background:#f3f5f4"><div><b style="font-size:17px">5K Fun Run</b><div style="font-size:13px;color:#3d5156">Sold out · join the waitlist</div></div><span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:13px">Join waitlist</span></div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;align-items:center"><span class="step">2</span><b style="font-size:19px">Your details</b></div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+          <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Full name (as on bib)</span><div class="fld">Name</div></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Date of birth</span><div class="fld">DD / MM / YYYY</div></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Mobile (for bib OTP)</span><div class="fld">+91</div></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Email</span><div class="fld">name@email.com</div></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Emergency contact</span><div class="fld">Name and phone</div></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Blood group (optional)</span><div class="fld">Select</div></div>
+        </div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;align-items:center"><span class="step">3</span><b style="font-size:19px">T-shirt size</b><span style="font-size:13px;color:#3d5156">Final once you pay. It cannot be changed at the expo.</span></div>
+        <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px">
+          <div class="sz">XS</div><div class="sz">S</div><div class="sz" style="border-color:#0b5d6b;background:#eef7f8;color:#0b5d6b">M</div><div class="sz">L</div><div class="sz">XL</div><div class="sz">XXL</div>
+        </div>
+        <div style="font-size:13px;color:#3d5156">Size chart · chest measurements in cm [add chart]</div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 320px;display:flex;flex-direction:column;gap:16px;position:sticky;top:16px">
+      <div class="card" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;align-items:center"><span class="step">4</span><b style="font-size:19px">Review and pay</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:15px"><span>21K Half Marathon</span><b>₹[Price]</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:15px"><span>T-shirt M</span><b>Included</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:15px"><span>Convenience fee</span><b>₹[Fee]</b></div>
+        <div style="display:flex;gap:8px"><div class="fld" style="flex:1;color:#7a8f93">Coupon code</div><span class="pill" style="background:#e4eae9;padding:10px 14px;font-size:13px">Apply</span></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid #dde3e2;padding-top:12px"><b style="font-size:17px">Total</b><b class="hd" style="font-size:28px">₹[Total]</b></div>
+        <label style="display:flex;gap:8px;font-size:13px;color:#3d5156;align-items:flex-start"><input type="checkbox"> I accept the waiver and race rules</label>
+        <div style="background:#0b5d6b;color:#fff;border-radius:10px;padding:14px;text-align:center;font-weight:700;font-size:16px">Pay and register</div>
+        <div style="font-size:12px;color:#3d5156;text-align:center">UPI, cards and netbanking · payment gateway [to choose]</div>
+      </div>
+      <div class="card" style="font-size:14px;display:flex;flex-direction:column;gap:8px">
+        <b>After you pay</b>
+        <div>✓ Confirmation by email and WhatsApp</div>
+        <div>✓ Bib number appears in Find my bib</div>
+        <div>✓ Pick up at the expo with an ID or a friend's selfie check</div>
+        <a href="RegAdmin.dc.html" style="margin-top:4px">Director view: Registration admin →</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

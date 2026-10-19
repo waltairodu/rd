@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Registration admin</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#3d5156;padding:8px 10px;border-bottom:1px solid #dde3e2}
+td{padding:10px;border-bottom:1px solid #eef2f1}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Module 4 · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Registration admin</h1>
+      </div>
+      <div style="display:flex;gap:10px"><a href="Register.dc.html" class="pill" style="background:#e4eae9;color:#12262b;padding:8px 14px;font-size:14px;text-decoration:none">View public page</a><span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">Export to findmybib</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">Registered</span><div class="hd" style="font-size:38px">2,140</div><div style="font-size:13px;color:#15613b">▲ 64 today</div></div>
+      <div class="card"><span class="lbl">Revenue</span><div class="hd" style="font-size:38px">₹18.4 L</div><div style="font-size:13px;color:#3d5156">After gateway fees</div></div>
+      <div class="card"><span class="lbl">Waitlist</span><div class="hd" style="font-size:38px">87</div><div style="font-size:13px;color:#3d5156">All in 5K</div></div>
+      <div class="card"><span class="lbl">Refund requests</span><div class="hd" style="font-size:38px">6</div><div style="font-size:13px;color:#b3261e">3 older than 5 days</div></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:stretch">
+      <div class="card" style="flex:1.2 1 420px">
+        <b style="font-size:18px">Registrations per week</b>
+        <div style="display:flex;align-items:flex-end;gap:10px;height:170px;margin-top:14px;border-bottom:1px solid #dde3e2">
+          <div style="flex:1;background:#0b5d6b;height:22%;border-radius:4px 4px 0 0"></div>
+          <div style="flex:1;background:#0b5d6b;height:34%;border-radius:4px 4px 0 0"></div>
+          <div style="flex:1;background:#0b5d6b;height:58%;border-radius:4px 4px 0 0"></div>
+          <div style="flex:1;background:#0b5d6b;height:100%;border-radius:4px 4px 0 0"></div>
+          <div style="flex:1;background:#0b5d6b;height:76%;border-radius:4px 4px 0 0"></div>
+          <div style="flex:1;background:#0b5d6b;height:63%;border-radius:4px 4px 0 0"></div>
+          <div style="flex:1;background:#c9d3d2;height:40%;border-radius:4px 4px 0 0"></div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:12px;color:#3d5156;margin-top:6px"><span style="flex:1">W-7</span><span style="flex:1">W-6</span><span style="flex:1">W-5</span><span style="flex:1">W-4</span><span style="flex:1">W-3</span><span style="flex:1">W-2</span><span style="flex:1">This wk</span></div>
+        <div style="font-size:13px;color:#3d5156;margin-top:8px">Early-bird ending drives the W-4 peak. Grey bar is the forecast for this week.</div>
+      </div>
+      <div class="card" style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px">
+        <b style="font-size:18px">Price tiers and caps</b>
+        <table>
+          <tr><th>Tier</th><th>Until</th><th>21K</th><th>10K</th></tr>
+          <tr><td>Early bird</td><td>T-45</td><td>₹[ ]</td><td>₹[ ]</td></tr>
+          <tr><td>Regular</td><td>T-14</td><td>₹[ ]</td><td>₹[ ]</td></tr>
+          <tr><td>Late</td><td>T-3</td><td>₹[ ]</td><td>₹[ ]</td></tr>
+        </table>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
+          <div style="display:flex;justify-content:space-between"><span>21K</span><b>712 / 1,200</b></div><div class="bar"><i style="width:59%"></i></div>
+          <div style="display:flex;justify-content:space-between"><span>10K</span><b>958 / 1,200</b></div><div class="bar"><i style="width:80%;background:#c2851a"></i></div>
+          <div style="display:flex;justify-content:space-between"><span>5K</span><b>470 / 600</b></div><div class="bar"><i style="width:78%"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px">
+      <div class="card" style="flex:1.5 1 480px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Latest registrations</b><span style="font-size:13px;color:#3d5156">Search by name, bib, phone</span></div>
+        <table style="margin-top:6px">
+          <tr><th>Bib</th><th>Name</th><th>Category</th><th>T-shirt</th><th>Paid</th><th></th></tr>
+          <tr><td><b>[Bib]</b></td><td>Sample runner A</td><td>21K</td><td>M</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Paid</span></td><td><a href="RegAdmin.dc.html">Open</a></td></tr>
+          <tr><td><b>[Bib]</b></td><td>Sample runner B</td><td>10K</td><td>L</td><td><span class="pill" style="background:#d8efe2;color:#15613b">Paid</span></td><td><a href="RegAdmin.dc.html">Open</a></td></tr>
+          <tr><td><b>[Bib]</b></td><td>Sample runner C</td><td>21K</td><td>S</td><td><span class="pill" style="background:#fbe8c8;color:#7a4e0a">Pending</span></td><td><a href="RegAdmin.dc.html">Open</a></td></tr>
+          <tr><td><b>[Bib]</b></td><td>Sample runner D</td><td>5K</td><td>XL</td><td><span class="pill" style="background:#f6d6d3;color:#8c1d15">Refund asked</span></td><td><a href="RegAdmin.dc.html">Open</a></td></tr>
+        </table>
+        <div style="font-size:13px;color:#3d5156;margin-top:8px">Open lets you transfer a bib to another runner, change category (before cut-off), or refund. The T-shirt size is locked after payment.</div>
+      </div>
+      <div class="card" style="flex:1 1 300px;display:flex;flex-direction:column;gap:10px">
+        <b style="font-size:18px">Coupons</b>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span><b>[CODE1]</b> · club discount</span><span>34 used</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span><b>[CODE2]</b> · volunteers</span><span>12 used</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span><b>[CODE3]</b> · sponsor guests</span><span>8 used</span></div>
+        <span class="pill" style="background:#0b5d6b;color:#fff;align-self:flex-start;padding:7px 12px">+ New coupon</span>
+        <div style="border-top:1px solid #dde3e2;padding-top:10px;font-size:13px;color:#3d5156">Each paid runner appears in findmybib and in the expo desk list automatically.</div>
+      </div>
+    </div>
+    <div class="card" style="border-left:5px solid #c2851a;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:17px">Ideas from similar tools · new</b><a href="Features.dc.html" style="font-size:13px">Pick them in the shortlist →</a></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Early-bird tiers by date or count</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Age, family and member pricing</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Coupons with limits and auto-apply links</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Referral links with auto rebate</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Abandoned-registration nudges</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Waitlist, deferral, transfer, partial refunds</span></div></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

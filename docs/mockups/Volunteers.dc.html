@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Volunteers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;color:#12262b;background:#f3f5f4}
+a{color:#0b5d6b}a:hover{color:#08434d}
+.hd{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.01em}
+.nv{display:block;padding:9px 12px;border-radius:8px;color:#c9d6d8;text-decoration:none;font-size:15px}
+.nv:hover{background:rgba(255,255,255,.08);color:#fff}
+.card{background:#fff;border:1px solid #dde3e2;border-radius:14px;padding:20px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;color:#3d5156;text-transform:uppercase}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.bar{height:8px;border-radius:99px;background:#e4eae9;overflow:hidden}
+.bar i{display:block;height:100%;background:#0b5d6b;border-radius:99px}
+.cell{border-radius:8px;padding:8px 6px;text-align:center;font-size:13px;font-weight:700}
+.ok{background:#d8efe2;color:#15613b}.low{background:#fbe8c8;color:#7a4e0a}.gap{background:#f6d6d3;color:#8c1d15}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:980px">
+  <aside style="flex:0 0 232px;background:#12262b;color:#fff;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="padding:0 12px 14px"><div style="font-size:11px;letter-spacing:.14em;color:#f0a77f;font-weight:700">VTRA</div><div class="hd" style="font-size:26px;line-height:1.05">Race Director</div></div>
+    <div class="lbl" style="color:#f0a77f;padding:0 12px 4px">Race</div>
+    <a class="nv" href="Command.dc.html">Command centre</a>
+    <a class="nv" href="Vision.dc.html">Vision and plan</a>
+    <a class="nv" href="Budget.dc.html">Budget and sponsors</a>
+    <a class="nv" href="Website.dc.html">Race website</a>
+    <a class="nv" href="RegAdmin.dc.html">Registration</a>
+    <a class="nv" href="Marketing.dc.html">Marketing</a>
+    <a class="nv" href="Volunteers.dc.html" style="background:#0b5d6b;color:#fff;font-weight:600">Volunteers</a>
+    <a class="nv" href="Expo.dc.html">Expo production</a>
+    <a class="nv" href="RaceDay.dc.html">Race-day control</a>
+    <a class="nv" href="PostRace.dc.html">After the race</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Community</div>
+    <a class="nv" href="Clubs.dc.html">Clubs</a>
+    <a class="nv" href="Ambassadors.dc.html">Ambassadors</a>
+    <a class="nv" href="Pacers.dc.html">Pacers</a>
+    <a class="nv" href="Academy.dc.html">Race-day academy</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">Coach</div>
+    <a class="nv" href="Training.dc.html">Runner plans</a>
+    <a class="nv" href="Coaching.dc.html">Coach console</a>
+    <div class="lbl" style="color:#f0a77f;padding:12px 12px 4px">More features</div>
+    <a class="nv" href="Features.dc.html">Feature shortlist</a>
+    <a class="nv" href="Main.dc.html" style="margin-top:auto;font-size:13px">← Suite map</a>
+  </aside>
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end">
+      <div>
+        <span class="lbl">Module 6 · sample data</span>
+        <h1 class="hd" style="margin:2px 0 0;font-size:44px;line-height:1">Volunteers</h1>
+      </div>
+      <div style="display:flex;gap:10px"><span class="pill" style="background:#e4eae9;padding:8px 14px;font-size:14px">Copy sign-up link</span><span class="pill" style="background:#0b5d6b;color:#fff;padding:8px 14px;font-size:14px">Send reminder to unconfirmed</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+      <div class="card"><span class="lbl">Signed up</span><div class="hd" style="font-size:38px">214 <span style="font-size:20px;color:#3d5156">/ 300</span></div><div class="bar"><i style="width:71%"></i></div></div>
+      <div class="card"><span class="lbl">Confirmed</span><div class="hd" style="font-size:38px">168</div><div style="font-size:13px;color:#3d5156">46 still to confirm</div></div>
+      <div class="card"><span class="lbl">Roles with a gap</span><div class="hd" style="font-size:38px;color:#b3261e">3</div><div style="font-size:13px;color:#3d5156">Aid 4, Medical, Finish</div></div>
+      <div class="card"><span class="lbl">Briefing attended</span><div class="hd" style="font-size:38px">92</div><div style="font-size:13px;color:#3d5156">Next briefing Fri 18:00</div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Roster by role and shift</b><span style="font-size:13px;color:#3d5156">Filled / needed. Click a cell to assign.</span></div>
+      <div style="display:grid;grid-template-columns:200px repeat(4,minmax(0,1fr)) 150px;gap:8px;margin-top:12px;align-items:center;font-size:14px">
+        <span></span><span class="lbl" style="text-align:center">Expo day</span><span class="lbl" style="text-align:center">03:30 setup</span><span class="lbl" style="text-align:center">05:00 start</span><span class="lbl" style="text-align:center">08:00 finish</span><span class="lbl">Lead</span>
+        <b>Expo desks</b><div class="cell ok">12 / 12</div><div class="cell ok">·</div><div class="cell ok">·</div><div class="cell ok">·</div><span>[Lead name]</span>
+        <b>Start line and baggage</b><div class="cell ok">·</div><div class="cell ok">10 / 10</div><div class="cell ok">14 / 15</div><div class="cell ok">·</div><span>[Lead name]</span>
+        <b>Aid stations 1 to 3</b><div class="cell ok">·</div><div class="cell ok">18 / 18</div><div class="cell low">26 / 30</div><div class="cell ok">12 / 12</div><span>[Lead name]</span>
+        <b>Aid station 4</b><div class="cell ok">·</div><div class="cell low">5 / 8</div><div class="cell gap">3 / 10</div><div class="cell gap">2 / 6</div><span style="color:#b3261e;font-weight:700">No lead yet</span>
+        <b>Course marshals</b><div class="cell ok">·</div><div class="cell ok">40 / 40</div><div class="cell low">52 / 60</div><div class="cell low">8 / 10</div><span>[Lead name]</span>
+        <b>Medical support</b><div class="cell ok">·</div><div class="cell ok">4 / 4</div><div class="cell gap">6 / 10</div><div class="cell low">5 / 6</div><span>[Lead name]</span>
+        <b>Finish and medals</b><div class="cell ok">·</div><div class="cell ok">6 / 6</div><div class="cell ok">·</div><div class="cell gap">14 / 25</div><span>[Lead name]</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:18px">
+      <div class="card" style="flex:1 1 380px;display:flex;flex-direction:column;gap:10px">
+        <b style="font-size:18px">Volunteer sign-up form (public link)</b>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:14px">
+          <div style="border:1px solid #c9d3d2;border-radius:8px;padding:10px;color:#7a8f93">Name</div><div style="border:1px solid #c9d3d2;border-radius:8px;padding:10px;color:#7a8f93">Mobile</div>
+          <div style="border:1px solid #c9d3d2;border-radius:8px;padding:10px;color:#7a8f93">Preferred role</div><div style="border:1px solid #c9d3d2;border-radius:8px;padding:10px;color:#7a8f93">Shifts available</div>
+        </div>
+        <div style="font-size:13px;color:#3d5156">Volunteers get a WhatsApp confirmation, a briefing invite, a shirt size and a QR pass.</div>
+      </div>
+      <div class="card" style="flex:1 1 380px;display:flex;flex-direction:column;gap:10px">
+        <b style="font-size:18px">On the day</b>
+        <div style="font-size:14px">• Check in by scanning the QR pass at the volunteer desk</div>
+        <div style="font-size:14px">• Leads see who has not arrived 30 minutes before their shift</div>
+        <div style="font-size:14px">• Thank-you certificate and hours logged after the race</div>
+      </div>
+    </div>
+    <div class="card" style="border-left:5px solid #c2851a;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b style="font-size:17px">Ideas from similar tools · new</b><a href="Features.dc.html" style="font-size:13px">Pick them in the shortlist →</a></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">Jobs, shifts and course locations with attached maps</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">No-password sign-up, groups and families</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">E-signed waivers and applicant vetting</span><span class="pill" style="background:#eef7f8;color:#08434d;font-weight:600;font-size:13px;padding:5px 11px">SMS and email reminders, self-reported hours</span></div></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
