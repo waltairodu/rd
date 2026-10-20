@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Race Director</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#edf0f0; --surface:#ffffff; --surface-2:#f4f6f6; --line:#d2dadb;
+  --ink:#11242b; --ink-2:#4b5f66;
+  --primary:#0b5d6b; --on-primary:#ffffff;
+  --good:#17803d; --warn:#a85a00; --bad:#b42318; --good-bg:#dcf1e4; --warn-bg:#fbe8c8; --bad-bg:#f8d9d5; --info-bg:#e3eef0;
+  --f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --f-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1619; --surface:#142125; --surface-2:#1a2b30; --line:#2a3d43;
+    --ink:#e6eef0; --ink-2:#9db0b6; --primary:#5cc7d6; --on-primary:#06191d;
+    --good:#4cc77a; --warn:#f0a640; --bad:#ff8a80; --good-bg:#16351f; --warn-bg:#3a2a0d; --bad-bg:#3d1a17; --info-bg:#1b3138;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+h2,h3,p{margin:0}
+small,.muted{font-size:13px;color:var(--ink-2)}
+[hidden]{display:none!important}
+.app{max-width:1180px;margin-inline:auto;padding:0 16px 56px}
+.top{position:sticky;top:0;z-index:10;background:var(--bg);padding:12px 0 0;border-bottom:1px solid var(--line);margin-bottom:18px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.between{justify-content:space-between}
+.eyebrow{font:600 13px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+h1{margin:3px 0 0;font:700 clamp(24px,5vw,34px)/1.05 var(--f-display)}
+h2{font:700 24px/1.1 var(--f-display);letter-spacing:.01em}
+h3{font:700 18px/1.2 var(--f-display);letter-spacing:.02em}
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-top:10px}
+.tab{border:0;background:none;padding:10px 14px;font:700 17px var(--f-display);letter-spacing:.04em;color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap}
+.tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--primary)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.kpi .n{font:700 38px/1 var(--f-display)}
+.kpi .l{font:600 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--primary)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600;min-height:38px}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn.bad{color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:4px 10px;min-height:30px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.pill{display:inline-block;font:700 12px var(--f-body);padding:3px 9px;border-radius:99px;background:var(--info-bg);color:var(--ink)}
+.pill.good{background:var(--good-bg);color:var(--good)}.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.bad{background:var(--bad-bg);color:var(--bad)}
+input,select,textarea{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:8px 10px;min-height:38px;max-width:100%}
+label.f{display:flex;flex-direction:column;gap:4px;font:600 13px var(--f-body);color:var(--ink-2)}
+label.f input,label.f select,label.f textarea{font-weight:400;color:var(--ink)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font:700 12px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--surface-2);vertical-align:top}
+.scroll{overflow-x:auto}
+.alert{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--info-bg);margin-top:8px}
+.alert.warn{background:var(--warn-bg)}.alert.bad{background:var(--bad-bg)}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;max-width:90vw}
+.toast.err{background:var(--bad);color:#fff}
+.login{max-width:380px;margin:12vh auto 0}
+.login form{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.sec{margin-top:6px;font:700 13px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--surface-2)}
+.chk input{margin-top:3px;min-height:0;width:18px;height:18px}
+.chk.done span{text-decoration:line-through;color:var(--ink-2)}
+.stack{display:flex;flex-direction:column;gap:14px}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div id="toast" class="toast" hidden></div>
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+var ERR={not_logged_in:'Your session ended. Please log in again.',bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for the Director. Ask for a director, lead or viewer role.',setup_needed:'Setup is not finished. Run the one-time setup first.',
+  read_only:'Your login can only look, not change.',director_only:'Only a director login can do that.',no_event:'That race was not found.',name_needed:'Please enter a name.',bad_date:'Please use a real date.',bad_distance:'Distance must be between 1 and 100 km.',bad_status:'That status is not allowed.',
+  role_needed:'Please enter a role name.',bad_time:'Times must look like 05:30 and end after they start.',bad_need:'Please enter a number of people.',need_below_taken:'More people are already on this shift than that.',no_shift:'That shift was not found.',shift_has_checkins:'Some people already checked in to this shift.',
+  shift_full:'That shift is full.',shifts_overlap:'Those shifts overlap in time.',no_volunteer:'Volunteer not found.',already_assigned:'Already on that shift.',volunteer_declined:'This volunteer was declined.',bad_phone:'Please enter a 10-digit mobile number.',already_signed_up:'That mobile number is already registered.',
+  not_found:'No volunteer with that code.',not_approved:'This volunteer is not approved yet.',no_confirmed_shift:'No confirmed shift for this volunteer.',nothing_to_check:'Nothing to check in or out.',already_in:'Already checked in.',not_checked_in:'Not checked in yet.',already_out:'Already checked out.',already_checked_in:'They already checked in, so this cannot change.',no_assignment:'Shift assignment not found.',
+  text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',timeout:'No answer from the server. Try again.'};
+var msg=function(e){return ERR[e]||('Something went wrong ('+e+')')};
+
+var S={token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://vtra.run/volunteer',setupErr:'',ci:''};
+try{var b=localStorage.getItem('rd.base');if(b)S.base=b}catch(e){}
+var pending={},seq=0;
+window.addEventListener('message',function(e){
+  var m=e.data;if(!m||m.kind!=='result'||!pending[m.id])return;
+  var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);
+  if(m.ok)p.res(m.result);else{if(m.error==='not_logged_in'&&S.token){S.token='';S.me=null;S.loginErr=msg('not_logged_in');render()}p.rej(new Error(m.error||'failed'))}
+});
+function api(method,arg,ms){
+  return new Promise(function(res,rej){
+    var id=++seq;var t=setTimeout(function(){delete pending[id];rej(new Error('timeout'))},ms||30000);
+    pending[id]={res:res,rej:rej,t:t};
+    window.parent.postMessage({kind:'call',id:id,method:method,arg:Object.assign({token:S.token,ev:S.ev},arg||{})},'*');
+  });
+}
+var tt;
+function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
+function can(){return !!(S.me&&S.me.canWrite)}
+function man(){return !!(S.me&&S.me.canManage)}
+function pill(t,k){return '<span class="pill '+(k||'')+'">'+esc(t)+'</span>'}
+function fdate(d){if(!d)return '';var x=new Date(d+'T00:00:00');return isNaN(x)?d:x.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
+function ftime(iso){if(!iso)return '';var x=new Date(iso);return isNaN(x)?'':x.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}
+function pct(a,b){return b>0?Math.min(100,Math.round(a*100/b)):0}
+function bar(a,b){return '<div class="bar"><i style="width:'+pct(a,b)+'%"></i></div>'}
+// two-step buttons: the first click arms, the second does it
+function arm(key,label,act,extra){return '<button class="btn sm bad" data-act="'+act+'" data-arm="'+esc(key)+'" '+(extra||'')+'>'+(S.armed===key?'Sure?':esc(label))+'</button>'}
+
+/* ---------- loading ---------- */
+async function run(fn){
+  if(S.busy)return;S.busy=true;
+  try{return await fn()}catch(e){toast(msg(e.message),true)}finally{S.busy=false}
+}
+async function loadEvents(){
+  var r=await api('listEvents');S.events=r.events.filter(function(e){return e.status!=='archived'});
+  if(!S.events.some(function(e){return e.id===S.ev}))S.ev=S.events.length?S.events[0].id:'';
+  try{var last=localStorage.getItem('rd.ev');if(last&&S.events.some(function(e){return e.id===last}))S.ev=last}catch(e){}
+}
+async function loadTab(){
+  if(!S.ev){render();return}
+  var t=S.tab;
+  try{
+    if(t==='overview')S.ov=await api('overview');
+    else if(t==='volunteers'){var a=await Promise.all([api('listShifts'),api('listVolunteers')]);S.shifts=a[0].shifts;S.vols=a[1].volunteers}
+    else if(t==='raceday'){var b=await Promise.all([api('listRun'),api('listLog')]);S.run=b[0].items;S.log=b[1].items}
+    else if(t==='pacers')S.pace=await api('listPacers');
+    else if(t==='safety')S.checks=(await api('listChecklist')).items;
+  }catch(e){toast(msg(e.message),true)}
+  render();
+}
+async function afterLogin(){
+  await loadEvents();
+  if(!S.events.length&&man())S.tab='setup';
+  else if(S.tab==='setup'&&S.events.length)S.tab='overview';
+  render();await loadTab();
+}
+
+/* ---------- views ---------- */
+function loginView(){
+  return '<div class="login card"><div class="eyebrow">VTRA</div><h1>Race Director</h1><p class="muted" style="margin-top:6px">Log in with the username and password you were given.</p>'
+   +'<form id="loginForm"><label class="f">Username<input id="lgUser" autocomplete="username" required></label><label class="f">Password<input id="lgPass" type="password" autocomplete="current-password" required></label>'
+   +'<button class="btn pri" type="submit">Log in</button><div id="lgErr" class="muted" style="color:var(--bad)" role="alert">'+esc(S.loginErr)+'</div></form>'
+   +'<details style="margin-top:16px"><summary class="muted">First-time setup (owner only)</summary><form id="setupForm" style="display:flex;flex-direction:column;gap:10px;margin-top:10px">'
+   +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
+   +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
+}
+var TABS=[['overview','Overview'],['volunteers','Volunteers'],['raceday','Race day'],['pacers','Pacers'],['safety','Safety']];
+function head(){
+  var ev=S.events.find(function(e){return e.id===S.ev});
+  var tabs=TABS.concat(man()?[['setup','Setup']]:[]);
+  return '<div class="top"><div class="row between"><div><div class="eyebrow">VTRA Race Director</div><h1>'+esc(ev?ev.name:'No race yet')+'</h1>'
+   +(ev?'<small>'+esc(fdate(ev.date))+(ev.venue?' · '+esc(ev.venue):'')+(ev.daysToGo!==null?' · '+(ev.daysToGo>0?ev.daysToGo+' days to go':ev.daysToGo===0?'race day':'finished'):'')+'</small>':'')+'</div>'
+   +'<div class="row">'+(S.events.length>1?'<select id="evPick" aria-label="Race">'+S.events.map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===S.ev?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>':'')
+   +'<span class="muted">'+esc(S.me.name)+' · '+esc(S.me.role)+'</span><button class="btn sm" data-act="logout">Log out</button></div></div>'
+   +'<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" data-act="tab" data-tab="'+t[0]+'" aria-selected="'+(S.tab===t[0])+'">'+t[1]+'</button>'}).join('')+'</div></div>';
+}
+function noEvent(){return '<div class="card"><h3>No race yet</h3><p class="muted" style="margin-top:6px">'+(man()?'Open the Setup tab and create your first race.':'Ask a director to create the race first.')+'</p></div>'}
+
+function overviewView(){
+  var o=S.ov;if(!o)return '<p class="muted">Loading…</p>';
+  var v=o.volunteers,x=o.expo,al=o.alerts;
+  var goTab={volunteers:'Volunteers',raceday:'Race day',pacers:'Pacers',safety:'Safety'};
+  return '<div class="grid g4">'
+   +'<div class="card kpi"><div class="l">Runners checked in</div><div class="n">'+(x?x.checkedIn:'–')+(x?' <small>/ '+x.total+'</small>':'')+'</div>'+(x?bar(x.checkedIn,x.total):'<small>Link the Expo race in Setup</small>')+'</div>'
+   +'<div class="card kpi"><div class="l">Bibs and T-shirts given</div><div class="n">'+(x?x.bibs+' · '+x.shirts:'–')+'</div><small>'+(x?'bibs · T-shirts':'from the Expo desk')+'</small></div>'
+   +'<div class="card kpi"><div class="l">Volunteer spots filled</div><div class="n">'+v.taken+' <small>/ '+v.need+'</small></div>'+bar(v.taken,v.need)+'<small>'+v.confirmed+' confirmed · '+v.applied+' waiting · '+v.onSite+' on site</small></div>'
+   +'<div class="card kpi"><div class="l">Pacers</div><div class="n">'+o.pacers.have+' <small>/ '+o.pacers.need+'</small></div>'+bar(o.pacers.have,o.pacers.need)+'</div>'
+   +'<div class="card kpi"><div class="l">Safety checklist</div><div class="n">'+o.checklist.done+' <small>/ '+o.checklist.total+'</small></div>'+bar(o.checklist.done,o.checklist.total)+'</div>'
+   +'<div class="card kpi"><div class="l">Run of show</div><div class="n">'+o.run.done+' <small>/ '+o.run.total+'</small></div>'+bar(o.run.done,o.run.total)+'</div>'
+   +'<div class="card kpi"><div class="l">Open incidents</div><div class="n" style="'+(o.log.open?'color:var(--bad)':'')+'">'+o.log.open+'</div><small>'+o.log.total+' logged</small></div></div>'
+   +'<div class="card" style="margin-top:14px"><h3>Needs attention</h3>'+(al.length?al.map(function(a){return '<div class="alert '+(a.level==='bad'?'bad':a.level==='warn'?'warn':'')+'"><span>'+esc(a.text)+'</span><button class="btn sm" data-act="tab" data-tab="'+esc(a.go)+'">'+esc(goTab[a.go]||'Open')+'</button></div>'}).join(''):'<p class="muted" style="margin-top:6px">Nothing needs you right now.</p>')+'</div>';
+}
+
+function shiftForm(){
+  var s=S.editShift;if(!s||!can())return '';
+  return '<form id="shiftForm" class="card" style="margin-top:10px"><h3>'+(s.id?'Edit shift':'New shift')+'</h3><div class="form" style="margin-top:8px">'
+   +'<label class="f">Role<input name="role" value="'+esc(s.role)+'" required></label><label class="f">Location<input name="location" value="'+esc(s.location)+'"></label>'
+   +'<label class="f">Date<input name="date" type="date" value="'+esc(s.date)+'" required></label><label class="f">Start<input name="start" type="time" value="'+esc(s.start)+'" required></label>'
+   +'<label class="f">End<input name="end" type="time" value="'+esc(s.end)+'" required></label><label class="f">People needed<input name="need" type="number" min="1" max="500" value="'+esc(s.need)+'" required></label>'
+   +'<label class="f">Notes for volunteers<input name="notes" value="'+esc(s.notes)+'"></label></div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save shift</button><button class="btn" type="button" data-act="shiftCancel">Cancel</button></div></form>';
+}
+function volView(){
+  var shifts=S.shifts,q=S.volQ.toLowerCase();
+  var list=S.vols.filter(function(v){return (S.volF==='all'||v.status===S.volF)&&(!q||v.name.toLowerCase().indexOf(q)>=0||v.phone.indexOf(q)>=0||v.code.toLowerCase()===q||v.club.toLowerCase().indexOf(q)>=0)});
+  var link=S.base+(S.base.indexOf('?')<0?'?':'&')+'ev='+encodeURIComponent(S.ev);
+  var counts={all:S.vols.length,applied:0,approved:0,declined:0};S.vols.forEach(function(v){counts[v.status]++});
+  return '<div class="stack">'
+   +'<div class="card"><div class="row between"><h3>Volunteer sign-up link</h3><button class="btn sm" data-act="copyLink">Copy link</button></div><p class="muted" style="margin:6px 0">Share this link on WhatsApp and Instagram. Volunteers pick their shifts and agree to the waiver; you approve them below.</p>'
+   +'<div class="row"><input id="baseUrl" value="'+esc(S.base)+'" aria-label="Sign-up page address" style="flex:1;min-width:220px"><code id="linkOut" style="word-break:break-all">'+esc(link)+'</code></div></div>'
+   +'<div class="card"><div class="row between"><h3>Shifts</h3>'+(can()?'<button class="btn pri sm" data-act="shiftNew">+ Add shift</button>':'')+'</div>'
+   +'<div class="scroll"><table><tr><th>Role</th><th>Where</th><th>When</th><th>Filled</th><th>On site</th><th></th></tr>'
+   +(shifts.length?shifts.map(function(s){return '<tr><td><b>'+esc(s.role)+'</b>'+(s.notes?'<br><small>'+esc(s.notes)+'</small>':'')+'</td><td>'+esc(s.location)+'</td><td>'+esc(fdate(s.date))+'<br><small>'+esc(s.start)+' to '+esc(s.end)+'</small></td><td>'+s.taken+' / '+s.need+' '+(s.left===0?pill('Full','good'):'')+'</td><td>'+s.onSite+'</td><td>'+(can()?'<button class="btn sm" data-act="shiftEdit" data-id="'+esc(s.id)+'">Edit</button> ':'')+(man()?arm('rs'+s.id,'Delete','shiftDel','data-id="'+esc(s.id)+'"'):'')+'</td></tr>'}).join(''):'<tr><td colspan="6" class="muted">No shifts yet. Add the roles you need, for example aid stations, marshals and the expo desk.</td></tr>')
+   +'</table></div>'+shiftForm()+'</div>'
+   +(can()?'<div class="card"><h3>Check-in on race day</h3><p class="muted" style="margin:4px 0 8px">Type the volunteer\'s code (from their confirmation) and press In when they arrive, Out when they leave. Hours are worked out for you.</p><div class="row"><input id="ciCode" placeholder="Code, e.g. K7M2XQ" maxlength="10" value="'+esc(S.ci)+'" style="text-transform:uppercase;width:180px"><button class="btn pri" data-act="ciIn">Check in</button><button class="btn" data-act="ciOut">Check out</button></div></div>':'')
+   +'<div class="card"><div class="row between"><h3>Volunteers</h3><div class="row"><input id="volQ" placeholder="Search name, phone, club or code" value="'+esc(S.volQ)+'" style="width:240px"><select id="volF" aria-label="Filter">'+[['all','All'],['applied','Waiting'],['approved','Approved'],['declined','Declined']].map(function(o){return '<option value="'+o[0]+'"'+(S.volF===o[0]?' selected':'')+'>'+o[1]+' ('+counts[o[0]]+')</option>'}).join('')+'</select><button class="btn sm" data-act="csv">Download CSV</button></div></div>'
+   +'<div class="scroll"><table><tr><th>Name</th><th>Contact</th><th>Status</th><th>Shifts</th><th></th></tr>'
+   +(list.length?list.map(volRow).join(''):'<tr><td colspan="5" class="muted">No volunteers match.</td></tr>')+'</table></div>'
+   +(can()?'<form id="addVol" class="form" style="margin-top:12px"><label class="f">Add by hand: name<input name="name" required></label><label class="f">Mobile<input name="phone" inputmode="tel" required></label><label class="f">Club<input name="club"></label><button class="btn" type="submit">Add as approved</button></form>':'')+'</div></div>';
+}
+function volRow(v){
+  var kind=v.status==='approved'?'good':v.status==='declined'?'bad':'warn';
+  var wa='https://wa.me/91'+esc(v.phone)+'?text='+encodeURIComponent('Hi '+v.name.split(' ')[0]+', this is VTRA. Your volunteer code is '+v.code+'. Please keep it handy for check-in.');
+  return '<tr><td><b>'+esc(v.name)+'</b><br><small>'+esc(v.club)+(v.notes?' · '+esc(v.notes):'')+'</small></td>'
+   +'<td>'+esc(v.phone)+'<br><small><a href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a> · code '+esc(v.code)+'</small></td>'
+   +'<td>'+pill(v.status==='applied'?'Waiting':v.status,kind)+(v.hours?'<br><small>'+v.hours+' h</small>':'')+'</td>'
+   +'<td>'+(v.shifts.length?v.shifts.map(function(s){return '<div>'+esc(s.role)+' <small>'+esc(fdate(s.date))+' '+esc(s.start)+'</small> '+(s.checkedOutAt?pill('Done','good'):s.checkedInAt?pill('On site','good'):'')+(can()&&!s.checkedInAt?' <button class="btn sm" data-act="unassign" data-id="'+esc(s.assignId)+'" aria-label="Remove from shift">×</button>':'')+'</div>'}).join(''):'<small>none</small>')
+   +(can()&&v.status!=='declined'?'<select data-act="assign" data-vid="'+esc(v.id)+'" aria-label="Add a shift" style="margin-top:4px;min-height:30px"><option value="">+ shift</option>'+S.shifts.filter(function(s){return s.left>0&&!v.shifts.some(function(x){return x.shiftId===s.id})}).map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.role+' '+fdate(s.date)+' '+s.start)+'</option>'}).join('')+'</select>':'')+'</td>'
+   +'<td>'+(can()?(v.status!=='approved'?'<button class="btn sm pri" data-act="vstat" data-id="'+esc(v.id)+'" data-st="approved">Approve</button> ':'')+(v.status!=='declined'?'<button class="btn sm" data-act="vstat" data-id="'+esc(v.id)+'" data-st="declined">Decline</button>':'<button class="btn sm" data-act="vstat" data-id="'+esc(v.id)+'" data-st="applied">Reopen</button>'):'')+'</td></tr>';
+}
+
+var KIND_LABEL={incident:'Incident',medical:'Medical',aid:'Aid station',weather:'Weather',note:'Note'};
+function racedayView(){
+  var nextS={todo:'doing',doing:'done',done:'todo'};
+  var runRows=S.run.map(function(r){return '<tr><td><b>'+esc(r.time)+'</b></td><td>'+esc(r.what)+'</td><td>'+esc(r.owner)+'</td><td>'+(can()?'<button class="btn sm '+(r.status==='done'?'pri':'')+'" data-act="runStep" data-id="'+esc(r.id)+'" aria-label="Change status">'+(r.status==='done'?'Done':r.status==='doing'?'Doing':'To do')+'</button>':pill(r.status))+(man()?' '+arm('rr'+r.id,'×','runDel','data-id="'+esc(r.id)+'"'):'')+'</td></tr>'}).join('');
+  var logs=S.log.filter(function(l){return S.logFilter==='all'||l.status==='open'});
+  return '<div class="grid g2" style="align-items:start"><div class="card"><h3>Run of show</h3><div class="scroll"><table><tr><th>Time</th><th>What</th><th>Who</th><th>Status</th></tr>'+(runRows||'<tr><td colspan="4" class="muted">Nothing planned yet.</td></tr>')+'</table></div>'
+   +(can()?'<form id="runForm" class="form" style="margin-top:10px"><label class="f">Time<input name="time" type="time" required></label><label class="f">What happens<input name="what" required></label><label class="f">Who<input name="owner"></label><button class="btn" type="submit">Add</button></form>':'')+'</div>'
+   +'<div class="card"><div class="row between"><h3>Incident log</h3><select id="logF" aria-label="Show"><option value="open"'+(S.logFilter==='open'?' selected':'')+'>Open only</option><option value="all"'+(S.logFilter==='all'?' selected':'')+'>All</option></select></div>'
+   +(can()?'<form id="logForm" class="form" style="margin:10px 0"><label class="f">Type<select name="kind">'+Object.keys(KIND_LABEL).map(function(k){return '<option value="'+k+'">'+KIND_LABEL[k]+'</option>'}).join('')+'</select></label><label class="f">How serious<select name="severity"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label><label class="f">Where<input name="place" placeholder="KM 12, finish…"></label><label class="f" style="grid-column:1/-1">What happened<input name="text" required></label><button class="btn pri" type="submit">Log it</button></form>':'')
+   +(logs.length?logs.map(function(l){return '<div class="chk" style="display:block"><div class="row between"><span>'+pill(KIND_LABEL[l.kind]||l.kind)+' '+(l.severity==='high'?pill('High','bad'):l.severity==='medium'?pill('Medium','warn'):'')+' <small>'+esc(ftime(l.at))+(l.place?' · '+esc(l.place):'')+(l.by?' · '+esc(l.by):'')+'</small></span>'+(l.status==='open'?pill('Open','warn'):pill('Closed','good'))+'</div><div style="margin-top:4px">'+esc(l.text)+'</div>'
+     +(l.status==='closed'&&l.resolution?'<small>Resolved: '+esc(l.resolution)+'</small>':'')
+     +(l.status==='open'&&can()?'<form class="row closeForm" data-id="'+esc(l.id)+'" style="margin-top:6px"><input name="resolution" placeholder="How was it resolved?" required style="flex:1;min-width:160px"><button class="btn sm" type="submit">Close</button></form>':'')+'</div>'}).join(''):'<p class="muted">'+(S.logFilter==='open'?'No open incidents.':'Nothing logged yet.')+'</p>')+'</div></div>';
+}
+
+function paceView(){
+  var p=S.pace;if(!p)return '<p class="muted">Loading…</p>';
+  var pc=S.editPacer;
+  var rows=p.groups.map(function(g){return '<tr><td><b>'+esc(g.label)+'</b></td><td>'+esc(g.finish)+'</td><td>'+esc(g.pace)+' /km</td><td>'+g.splits.map(function(s){return esc(s.km)+'k '+esc(s.time)}).join(' · ')+'</td><td>'+g.have+' / '+g.need+' '+(g.short?pill('Need '+g.short,'warn'):pill('Covered','good'))+'</td><td>'+g.ready+'</td></tr>'}).join('');
+  var gEd=can()?'<details style="margin-top:12px"><summary class="btn sm">Edit pace groups</summary><form id="groupForm" style="margin-top:10px"><div class="form"><label class="f">Race distance (km)<input name="distanceKm" type="number" step="0.0001" min="1" max="100" value="'+esc(p.distanceKm)+'"></label></div><div id="groupRows" style="margin-top:8px;display:flex;flex-direction:column;gap:8px">'+p.groups.map(groupRow).join('')+'</div><div class="row" style="margin-top:8px"><button class="btn sm" type="button" data-act="groupAdd">+ Group</button><button class="btn pri" type="submit">Save groups</button></div></form></details>':'';
+  var roster=p.pacers.map(function(x){return '<tr><td><b>'+esc(x.name)+'</b><br><small>'+esc(x.phone)+'</small></td><td>'+esc(x.group||'–')+'</td><td>'+pill(x.status,x.status==='approved'?'good':x.status==='declined'?'bad':'warn')+'</td><td>'+pill(x.trial==='passed'?'Trial passed':x.trial==='retest'?'Re-test':'Trial waiting',x.trial==='passed'?'good':'warn')+' '+pill(x.briefing?'Briefed':'Not briefed',x.briefing?'good':'')+' '+pill(x.kit?'Kit given':'No kit',x.kit?'good':'')+'</td><td>'+(can()?'<button class="btn sm" data-act="pacerEdit" data-id="'+esc(x.id)+'">Edit</button> ':'')+(man()?arm('rp'+x.id,'Remove','pacerDel','data-id="'+esc(x.id)+'"'):'')+'</td></tr>'}).join('');
+  var form=can()?'<form id="pacerForm" class="card" style="margin-top:10px"><h3>'+(pc&&pc.id?'Edit pacer':'Add pacer')+'</h3><div class="form" style="margin-top:8px"><label class="f">Name<input name="name" value="'+esc(pc?pc.name:'')+'" required></label><label class="f">Mobile<input name="phone" value="'+esc(pc?pc.phone:'')+'"></label>'
+   +'<label class="f">Pace group<select name="group"><option value="">–</option>'+p.groups.map(function(g){return '<option value="'+esc(g.label)+'"'+(pc&&pc.group===g.label?' selected':'')+'>'+esc(g.label)+'</option>'}).join('')+'</select></label>'
+   +'<label class="f">Status<select name="status">'+['applied','approved','reserve','declined'].map(function(s){return '<option'+(pc&&pc.status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></label>'
+   +'<label class="f">Trial run<select name="trial">'+[['waiting','Waiting'],['passed','Passed'],['retest','Re-test']].map(function(s){return '<option value="'+s[0]+'"'+(pc&&pc.trial===s[0]?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></label>'
+   +'<label class="f"><span>Briefed</span><input name="briefing" type="checkbox"'+(pc&&pc.briefing?' checked':'')+'></label><label class="f"><span>Kit given</span><input name="kit" type="checkbox"'+(pc&&pc.kit?' checked':'')+'></label><label class="f">Notes<input name="notes" value="'+esc(pc?pc.notes:'')+'"></label></div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save pacer</button>'+(pc?'<button class="btn" type="button" data-act="pacerCancel">Cancel</button>':'')+'</div></form>':'';
+  return '<div class="stack"><div class="card"><h3>Pace plan · '+esc(p.distanceKm)+' km</h3><p class="muted" style="margin:4px 0 8px">Even-pace targets worked out from each finish time.</p><div class="scroll"><table><tr><th>Group</th><th>Finish</th><th>Pace</th><th>Checkpoints</th><th>Pacers</th><th>Ready</th></tr>'+rows+'</table></div>'+gEd+'</div>'
+   +'<div class="card"><h3>Pacers</h3><div class="scroll"><table><tr><th>Pacer</th><th>Group</th><th>Status</th><th>Progress</th><th></th></tr>'+(roster||'<tr><td colspan="5" class="muted">No pacers yet.</td></tr>')+'</table></div>'+form+'</div></div>';
+}
+function groupRow(g){return '<div class="form gr"><label class="f">Name<input name="label" value="'+esc(g.label)+'" required></label><label class="f">Finish time<input name="finish" value="'+esc(g.finish)+'" placeholder="1:45" required></label><label class="f">Pacers needed<input name="need" type="number" min="0" max="20" value="'+esc(g.need)+'"></label><button class="btn sm bad" type="button" data-act="groupDel">Remove</button></div>'}
+
+function safetyView(){
+  var by={};S.checks.forEach(function(c){(by[c.section]=by[c.section]||[]).push(c)});
+  var done=S.checks.filter(function(c){return c.done}).length;
+  return '<div class="stack"><div class="card"><div class="row between"><h3>Safety and medical checklist</h3><b>'+done+' of '+S.checks.length+' done</b></div>'+bar(done,S.checks.length)
+   +Object.keys(by).map(function(sec){return '<div class="sec" style="margin-top:14px">'+esc(sec)+'</div>'+by[sec].map(function(c){return '<label class="chk'+(c.done?' done':'')+'"><input type="checkbox" data-act="tick" data-id="'+esc(c.id)+'"'+(c.done?' checked':'')+(can()?'':' disabled')+'><span style="flex:1">'+esc(c.item)+(c.done?' <small>· '+esc(c.doneBy)+' '+esc(ftime(c.doneAt))+'</small>':'')+'</span>'+(man()?arm('rc'+c.id,'×','checkDel','data-id="'+esc(c.id)+'"'):'')+'</label>'}).join('')}).join('')
+   +(can()?'<form id="checkForm" class="form" style="margin-top:14px"><label class="f">Section<input name="section" list="secs" required></label><datalist id="secs">'+Object.keys(by).map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist><label class="f" style="grid-column:span 2">New item<input name="item" required></label><button class="btn" type="submit">Add item</button></form>':'')+'</div></div>';
+}
+
+function setupView(){
+  var e=S.editEvent;
+  var list=S.events.map(function(x){return '<tr><td><b>'+esc(x.name)+'</b></td><td>'+esc(fdate(x.date))+'</td><td>'+esc(x.expoId||'–')+'</td><td>'+pill(x.status,x.status==='open'?'good':'')+'</td><td><button class="btn sm" data-act="evEdit" data-id="'+esc(x.id)+'">Edit</button></td></tr>'}).join('');
+  e=e||{id:'',name:'',date:'',venue:'',expoId:'',status:'open',distanceKm:21.0975};
+  return '<div class="stack"><div class="card"><h3>Races</h3><div class="scroll"><table><tr><th>Name</th><th>Date</th><th>Expo race</th><th>Status</th><th></th></tr>'+(list||'<tr><td colspan="5" class="muted">No race yet.</td></tr>')+'</table></div></div>'
+   +'<form id="eventForm" class="card"><h3>'+(e.id?'Edit race':'New race')+'</h3><p class="muted" style="margin:4px 0 8px">A new race starts with a standard safety checklist, run of show and pace groups that you can change.</p><div class="form">'
+   +'<label class="f">Race name<input name="name" value="'+esc(e.name)+'" required></label><label class="f">Date<input name="date" type="date" value="'+esc(e.date)+'"></label><label class="f">Venue<input name="venue" value="'+esc(e.venue)+'"></label>'
+   +'<label class="f">Expo race ID (for runner counts)<input name="expoId" value="'+esc(e.expoId)+'" placeholder="Import910"></label><label class="f">Distance (km)<input name="distanceKm" type="number" step="0.0001" min="1" max="100" value="'+esc(e.distanceKm)+'"></label>'
+   +'<label class="f">Status<select name="status">'+[['open','Open (volunteers can sign up)'],['closed','Closed'],['archived','Archived (hidden)']].map(function(s){return '<option value="'+s[0]+'"'+(e.status===s[0]?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></label></div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save race</button>'+(e.id?'<button class="btn" type="button" data-act="evNew">New race instead</button>':'')+'</div></form>'
+   +'<div class="card"><h3>Who can log in</h3><p class="muted" style="margin-top:6px">Logins live in the CMS collection <b>ExpoStaff</b>. Set the <b>role</b> column: <b>admin</b> or <b>director</b> (everything), <b>lead</b> (volunteers, race day, pacers, safety), <b>viewer</b> (look only, for sponsors and partners). A login with role <b>desk</b> works only on the Expo desk.</p></div></div>';
+}
+
+function render(){
+  var app=$('#app');
+  if(!S.token){app.innerHTML=loginView();return}
+  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='setup'&&man()?setupView():'';
+  app.innerHTML=head()+body;
+}
+
+/* ---------- actions ---------- */
+function formData(f){var o={};Array.prototype.forEach.call(f.elements,function(el){if(!el.name)return;o[el.name]=el.type==='checkbox'?el.checked:el.value});return o}
+function download(name,text){try{var b=new Blob([text],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
+function csvCell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+async function doTab(t){S.tab=t;S.armed=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||b.tagName==='INPUT')return;
+  var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
+  var ak=b.getAttribute('data-arm');
+  if(ak){if(S.armed!==ak){S.armed=ak;render();return}S.armed=null}
+  var go=function(fn){run(async function(){await fn();render()})};
+  var reload=function(){return loadTab()};
+  if(act==='tab')doTab(b.getAttribute('data-tab'));
+  else if(act==='logout'){api('logout').catch(function(){});S.token='';S.me=null;S.ev='';S.ov=null;render()}
+  else if(act==='copyLink'){var t=$('#linkOut').textContent;try{navigator.clipboard.writeText(t).then(function(){toast('Link copied')},function(){toast(t)})}catch(x){toast(t)}}
+  else if(act==='shiftNew'){S.editShift={id:'',role:'',location:'',date:(S.events.find(function(x){return x.id===S.ev})||{}).date||'',start:'05:00',end:'09:00',need:'4',notes:''};render()}
+  else if(act==='shiftEdit'){S.editShift=Object.assign({},S.shifts.find(function(s){return s.id===id}));render()}
+  else if(act==='shiftCancel'){S.editShift=null;render()}
+  else if(act==='shiftDel')run(async function(){await api('removeShift',{id:id});toast('Shift deleted');await reload()});
+  else if(act==='vstat')run(async function(){await api('setVolunteerStatus',{id:id,status:b.getAttribute('data-st')});await reload()});
+  else if(act==='unassign')run(async function(){await api('unassignShift',{assignId:id});await reload()});
+  else if(act==='ciIn'||act==='ciOut'){var code=($('#ciCode').value||'').trim();S.ci=code;if(!code){toast('Type the code first',true);return}
+    run(async function(){var r=await api('volunteerCheck',{code:code,action:act==='ciOut'?'out':'in'});S.ci='';toast(r.name+(r.action==='in'?' checked in as ':' checked out ')+(r.action==='in'?r.role:'('+r.hours+' h)'));await reload()})}
+  else if(act==='csv'){var rows=[['Name','Mobile','Email','Club','Status','Code','Hours','Shifts']].concat(S.vols.map(function(v){return [v.name,v.phone,v.email,v.club,v.status,v.code,v.hours,v.shifts.map(function(s){return s.role+' '+s.date+' '+s.start}).join('; ')]}));download('volunteers.csv',rows.map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
+  else if(act==='runStep'){var it=S.run.find(function(r){return r.id===id});var nx={todo:'doing',doing:'done',done:'todo'}[it.status];run(async function(){await api('saveRunItem',{id:id,time:it.time,what:it.what,owner:it.owner,status:nx});await reload()})}
+  else if(act==='runDel')run(async function(){await api('removeRunItem',{id:id});await reload()});
+  else if(act==='groupAdd'){var d=document.createElement('div');d.innerHTML=groupRow({label:'',finish:'',need:2});$('#groupRows').appendChild(d.firstChild)}
+  else if(act==='groupDel'){var r=b.closest('.gr');if(r)r.remove()}
+  else if(act==='pacerEdit'){S.editPacer=Object.assign({},S.pace.pacers.find(function(p){return p.id===id}));render();var f=$('#pacerForm');if(f&&f.scrollIntoView)f.scrollIntoView({block:'center'})}
+  else if(act==='pacerCancel'){S.editPacer=null;render()}
+  else if(act==='pacerDel')run(async function(){await api('removePacer',{id:id});await reload()});
+  else if(act==='checkDel')run(async function(){await api('removeCheck',{id:id});await reload()});
+  else if(act==='evEdit'){S.editEvent=Object.assign({},S.events.find(function(x){return x.id===id}));render()}
+  else if(act==='evNew'){S.editEvent=null;render()}
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='evPick'){S.ev=t.value;try{localStorage.setItem('rd.ev',S.ev)}catch(x){}S.ov=null;loadTab()}
+  else if(t.id==='volF'){S.volF=t.value;render()}
+  else if(t.id==='logF'){S.logFilter=t.value;render()}
+  else if(t.id==='baseUrl'){S.base=t.value.trim()||S.base;try{localStorage.setItem('rd.base',S.base)}catch(x){}render()}
+  else if(t.getAttribute('data-act')==='assign'&&t.value){var sid=t.value,vid=t.getAttribute('data-vid');run(async function(){await api('assignShift',{volunteerId:vid,shiftId:sid});await loadTab()})}
+  else if(t.getAttribute('data-act')==='tick'){var id=t.getAttribute('data-id'),on=t.checked;run(async function(){await api('toggleCheck',{id:id,done:on});S.checks=(await api('listChecklist')).items;render()}).then(function(){if(!S.busy)return});}
+});
+document.addEventListener('input',function(e){if(e.target.id==='volQ'){S.volQ=e.target.value;var pos=e.target.selectionStart;render();var el=$('#volQ');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(x){}}}});
+document.addEventListener('submit',function(e){
+  e.preventDefault();var f=e.target,id=f.id,d=formData(f);
+  if(id==='loginForm'){S.loginErr='';run(async function(){
+    try{var r=await api('login',{username:d.lgUser||$('#lgUser').value,password:$('#lgPass').value,token:''});S.token=r.token;S.me=r;await afterLogin()}
+    catch(x){S.loginErr=msg(x.message);var el=$('#lgErr');if(el)el.textContent=S.loginErr;toast(S.loginErr,true)}})}
+  else if(id==='setupForm'){run(async function(){try{var r=await api('ensureSetup',{key:$('#suKey').value,username:$('#suUser').value,password:$('#suPass').value,token:''});$('#suMsg').textContent=r.summary}catch(x){$('#suMsg').textContent=x.message}})}
+  else if(id==='shiftForm')run(async function(){await api('saveShift',Object.assign({id:S.editShift.id||undefined},d));S.editShift=null;toast('Shift saved');await loadTab()});
+  else if(id==='addVol')run(async function(){var r=await api('addVolunteer',d);toast('Added. Code '+r.code);await loadTab()});
+  else if(id==='runForm')run(async function(){await api('saveRunItem',d);await loadTab()});
+  else if(id==='logForm')run(async function(){await api('addLog',d);await loadTab()});
+  else if(f.classList.contains('closeForm'))run(async function(){await api('closeLog',{id:f.getAttribute('data-id'),resolution:d.resolution});await loadTab()});
+  else if(id==='groupForm')run(async function(){var groups=Array.prototype.map.call(f.querySelectorAll('.gr'),function(r){return {label:r.querySelector('[name=label]').value,finish:r.querySelector('[name=finish]').value,need:r.querySelector('[name=need]').value}});await api('savePaceGroups',{groups:groups,distanceKm:d.distanceKm});toast('Pace groups saved');await loadTab()});
+  else if(id==='pacerForm')run(async function(){await api('savePacer',Object.assign({id:S.editPacer&&S.editPacer.id||undefined},d));S.editPacer=null;toast('Pacer saved');await loadTab()});
+  else if(id==='checkForm')run(async function(){await api('addCheck',d);await loadTab()});
+  else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
+});
+render();
+})();
+</script>
+</body>
+</html>

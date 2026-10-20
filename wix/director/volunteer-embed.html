@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Volunteer sign-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#edf0f0;--surface:#fff;--surface-2:#f4f6f6;--line:#d2dadb;--ink:#11242b;--ink-2:#4b5f66;--primary:#0b5d6b;--on-primary:#fff;--good:#17803d;--good-bg:#dcf1e4;--warn:#a85a00;--warn-bg:#fbe8c8;--bad:#b42318;--bad-bg:#f8d9d5;
+  --f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;--f-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1619;--surface:#142125;--surface-2:#1a2b30;--line:#2a3d43;--ink:#e6eef0;--ink-2:#9db0b6;--primary:#5cc7d6;--on-primary:#06191d;--good:#4cc77a;--good-bg:#16351f;--warn:#f0a640;--warn-bg:#3a2a0d;--bad:#ff8a80;--bad-bg:#3d1a17;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 56px}
+.eyebrow{font:600 13px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+h1{margin:4px 0 0;font:700 clamp(30px,8vw,44px)/1.05 var(--f-display)}
+h2{margin:0;font:700 22px/1.1 var(--f-display)}
+.muted{color:var(--ink-2);font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.shift{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1.5px solid var(--line);border-radius:10px;margin-top:10px;background:var(--surface)}
+.shift.on{border-color:var(--primary);background:var(--surface-2)}
+.shift.full{opacity:.6}
+.shift input{width:22px;height:22px;margin-top:2px;flex:0 0 22px}
+.shift b{display:block}
+.pill{display:inline-block;font:700 12px var(--f-body);padding:3px 9px;border-radius:99px;background:var(--surface-2)}
+.pill.good{background:var(--good-bg);color:var(--good)}.pill.warn{background:var(--warn-bg);color:var(--warn)}
+label.f{display:flex;flex-direction:column;gap:4px;font:600 14px var(--f-body);color:var(--ink-2);margin-top:12px}
+label.f input{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;min-height:44px;font-weight:400;color:var(--ink)}
+.btn{width:100%;border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);font:700 18px var(--f-display);letter-spacing:.04em;min-height:50px;margin-top:16px;cursor:pointer}
+.btn:disabled{opacity:.5}
+.btn.alt{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.err{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--bad-bg);color:var(--bad);font-weight:600}
+.code{font:800 48px/1 var(--f-display);letter-spacing:.2em;text-align:center;padding:16px;background:var(--surface-2);border-radius:12px;margin:12px 0;user-select:all}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.waiver{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px}
+.waiver input{width:22px;height:22px;flex:0 0 22px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">Loading…</p></div>
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+var ERR={no_event:'This sign-up is not open. Please check the link.',name_needed:'Please enter your name.',bad_phone:'Please enter a 10-digit mobile number.',bad_email:'That email does not look right.',waiver_needed:'Please tick the box to agree to the volunteer terms.',pick_a_shift:'Please choose at least one shift.',no_shift:'One of the shifts is no longer available. Please reload.',
+  shifts_overlap:'Two of your shifts overlap in time. Please pick shifts that do not clash.',already_signed_up:'This mobile number is already registered. Use "Check my status" below with your code.',shift_full:'Sorry, a shift you chose just filled up. Please pick another.',busy_try_later:'Many people are signing up right now. Please try again in a few minutes.',not_found:'We could not find that code with that mobile number.',setup_needed:'Sign-ups are not ready yet. Please try later.',timeout:'No answer from the server. Please try again.'};
+var msg=function(e){return ERR[e]||'Something went wrong. Please try again.'};
+var S={ev:'',data:null,events:null,picked:{},done:null,err:'',busy:false,status:null,statusErr:''};
+var pending={},seq=0;
+window.addEventListener('message',function(e){
+  var m=e.data;if(!m)return;
+  if(m.kind==='init'){S.ev=m.ev||'';boot();return}
+  if(m.kind!=='result'||!pending[m.id])return;
+  var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);
+  if(m.ok)p.res(m.result);else p.rej(new Error(m.error||'failed'));
+});
+function api(method,arg){return new Promise(function(res,rej){var id=++seq;var t=setTimeout(function(){delete pending[id];rej(new Error('timeout'))},30000);pending[id]={res:res,rej:rej,t:t};window.parent.postMessage({kind:'call',id:id,method:method,arg:arg||{}},'*')})}
+var booted=false;
+async function boot(){
+  if(booted&&S.data)return;booted=true;
+  try{
+    if(!S.ev){var r=await api('openEvents');S.events=r.events;if(r.events.length===1)S.ev=r.events[0].id;else{render();return}}
+    S.data=await api('openShifts',{ev:S.ev});S.err='';
+  }catch(x){S.err=msg(x.message)}
+  render();
+}
+function fdate(d){var x=new Date(d+'T00:00:00');return isNaN(x)?d:x.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
+function clash(a,b){return a.date===b.date&&a.start<b.end&&b.start<a.end}
+function render(){
+  var app=$('#app'),d=S.data;
+  if(S.done){
+    app.innerHTML='<div class="eyebrow">Thank you</div><h1>You are on the list, '+esc(S.done.name.split(' ')[0])+'</h1><p class="muted" style="margin-top:6px">We will confirm your shifts soon. Keep this code. You show it when you arrive on race day.</p><div class="code" id="myCode">'+esc(S.done.code)+'</div>'
+      +'<div class="card"><h2>Your shifts</h2>'+S.done.shifts.map(function(s){return '<p style="margin:8px 0 0"><b>'+esc(s.role)+'</b> · '+esc(fdate(s.date))+' · '+esc(s.start)+' to '+esc(s.end)+(s.location?'<br><span class="muted">'+esc(s.location)+'</span>':'')+'</p>'}).join('')+'</div>'+statusBlock();return}
+  if(!S.ev&&S.events){
+    app.innerHTML='<div class="eyebrow">VTRA</div><h1>Volunteer with us</h1>'+(S.events.length?'<p class="muted">Which race would you like to help at?</p>'+S.events.map(function(e){return '<button class="btn alt" data-ev="'+esc(e.id)+'">'+esc(e.name)+(e.date?' · '+esc(fdate(e.date)):'')+'</button>'}).join(''):'<div class="card">No race is open for volunteers right now.</div>');return}
+  if(!d){app.innerHTML=S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'<p class="muted">Loading…</p>';return}
+  var picked=d.shifts.filter(function(s){return S.picked[s.id]});
+  app.innerHTML='<div class="eyebrow">VTRA volunteers</div><h1>Help at '+esc(d.event.name)+'</h1><p class="muted" style="margin-top:6px">'+esc(fdate(d.event.date))+(d.event.venue?' · '+esc(d.event.venue):'')+'</p>'
+   +'<form id="form" novalidate><div class="card"><h2>1 · Choose your shifts</h2><p class="muted">You can pick more than one, as long as the times do not clash.</p>'
+   +(d.shifts.length?d.shifts.map(function(s){var on=!!S.picked[s.id];var blocked=!on&&picked.some(function(p){return clash(p,s)});return '<label class="shift'+(on?' on':'')+(s.left===0?' full':'')+'"><input type="checkbox" data-shift="'+esc(s.id)+'"'+(on?' checked':'')+(s.left===0||blocked?' disabled':'')+'><span><b>'+esc(s.role)+'</b>'+esc(fdate(s.date))+' · '+esc(s.start)+' to '+esc(s.end)+(s.location?'<br><span class="muted">'+esc(s.location)+'</span>':'')+(s.notes?'<br><span class="muted">'+esc(s.notes)+'</span>':'')+'<br>'+(s.left===0?'<span class="pill">Full</span>':blocked?'<span class="pill warn">Clashes with your other shift</span>':'<span class="pill good">'+s.left+' '+(s.left===1?'spot':'spots')+' left</span>')+'</span></label>'}).join(''):'<p class="muted">No shifts are open yet. Please check back soon.</p>')+'</div>'
+   +'<div class="card"><h2>2 · About you</h2><label class="f">Full name<input name="name" autocomplete="name" required></label><label class="f">Mobile number<input name="phone" inputmode="tel" autocomplete="tel" required placeholder="10-digit number"></label><label class="f">Email (optional)<input name="email" type="email" autocomplete="email"></label><label class="f">Club or group (optional)<input name="club"></label>'
+   +'<div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>'
+   +'<label class="waiver"><input type="checkbox" name="waiver"><span>'+esc(d.waiver)+'</span></label>'
+   +(S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'')+'<button class="btn" type="submit"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Sign me up')+'</button></div></form>'+statusBlock();
+}
+function statusBlock(){
+  return '<div class="card"><h2>Check my status</h2><form id="statusForm"><label class="f">Your code<input name="code" maxlength="10" style="text-transform:uppercase"></label><label class="f">Mobile number<input name="phone" inputmode="tel"></label><button class="btn alt" type="submit">Check</button></form>'
+   +(S.statusErr?'<div class="err" role="alert">'+esc(S.statusErr)+'</div>':'')
+   +(S.status?'<div style="margin-top:12px"><b>'+esc(S.status.name)+'</b> · '+(S.status.status==='approved'?'<span class="pill good">Approved</span>':S.status.status==='declined'?'<span class="pill">Not selected this time</span>':'<span class="pill warn">Waiting for confirmation</span>')+S.status.shifts.map(function(s){return '<p style="margin:6px 0 0">'+esc(s.role)+' · '+esc(fdate(s.date))+' '+esc(s.start)+' · <span class="muted">'+(s.status==='confirmed'?'confirmed':s.status==='declined'?'not selected':'pending')+'</span></p>'}).join('')+'</div>':'')+'</div>';
+}
+document.addEventListener('click',function(e){var b=e.target.closest('[data-ev]');if(b){S.ev=b.getAttribute('data-ev');boot()}});
+document.addEventListener('change',function(e){var id=e.target.getAttribute&&e.target.getAttribute('data-shift');if(!id)return;
+  var f=$('#form');var keep={};if(f)Array.prototype.forEach.call(f.elements,function(el){if(el.name&&el.type!=='checkbox')keep[el.name]=el.value});var w=f&&f.elements.waiver&&f.elements.waiver.checked;
+  if(e.target.checked)S.picked[id]=true;else delete S.picked[id];S.err='';render();
+  var g=$('#form');if(g){Object.keys(keep).forEach(function(k){if(g.elements[k])g.elements[k].value=keep[k]});if(g.elements.waiver)g.elements.waiver.checked=!!w}});
+document.addEventListener('submit',async function(e){
+  e.preventDefault();var f=e.target;
+  if(f.id==='statusForm'){S.status=null;S.statusErr='';try{S.status=await api('volunteerStatus',{ev:S.ev,code:f.elements.code.value,phone:f.elements.phone.value})}catch(x){S.statusErr=msg(x.message)}
+    var c=f.elements.code.value,p=f.elements.phone.value;render();var g=$('#statusForm');if(g){g.elements.code.value=c;g.elements.phone.value=p}return}
+  if(f.id!=='form'||S.busy)return;
+  var ids=Object.keys(S.picked);
+  S.busy=true;S.err='';render();
+  try{
+    var r=await api('volunteerSignup',{ev:S.ev,name:f.elements.name.value,phone:f.elements.phone.value,email:f.elements.email.value,club:f.elements.club.value,website:f.elements.website.value,waiver:f.elements.waiver.checked===true,shifts:ids});
+    S.done={code:r.code,name:r.name||f.elements.name.value,shifts:r.shifts||[]};S.busy=false;render();
+  }catch(x){
+    S.err=msg(x.message);S.busy=false;
+    var keep={};Array.prototype.forEach.call(f.elements,function(el){if(el.name&&el.type!=='checkbox')keep[el.name]=el.value});var w=f.elements.waiver.checked;
+    if(x.message==='shift_full'||x.message==='no_shift'){try{S.data=await api('openShifts',{ev:S.ev});S.picked={}}catch(y){}}
+    render();var g=$('#form');if(g){Object.keys(keep).forEach(function(k){if(g.elements[k])g.elements[k].value=keep[k]});g.elements.waiver.checked=w}
+  }
+});
+window.parent.postMessage({kind:'hello'},'*');
+setTimeout(function(){if(!booted)boot()},1200);
+render();
+})();
+</script>
+</body>
+</html>

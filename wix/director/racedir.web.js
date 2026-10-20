@@ -348,6 +348,17 @@ async function rateGate(ev) {
   await wixData.save(RATE, { _id: key, n: String(n + 1) }, SA);
 }
 
+// Public: open races, so the sign-up page can pick one when the link has no race in it.
+export const openEvents = webMethod(Permissions.Anyone, async () => {
+  let list;
+  try {
+    list = await all(() => wixData.query(EVENTS).ascending('_id'));
+  } catch (e) {
+    throw new Error('setup_needed');
+  }
+  return { events: list.filter((x) => (x.status || 'open') === 'open').map((x) => ({ id: x._id, name: x.name, date: x.date || '' })) };
+});
+
 // Public: what a would-be volunteer sees. No names, no phone numbers.
 export const openShifts = webMethod(Permissions.Anyone, async (arg) => {
   let it;
