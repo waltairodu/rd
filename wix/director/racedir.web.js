@@ -25,6 +25,7 @@ const RUN = 'RDRunOfShow';
 const PACERS = 'RDPacers';
 const CHECK = 'RDChecklist';
 const RATE = 'RDRate';
+const QUALS = 'RDQuals';
 
 // Choose your own secret. It is asked on setup so that only you can create the collections and the first admin.
 const SETUP_KEY = 'change-this-key';
@@ -214,6 +215,7 @@ function eventOut(it) {
     status: it.status || 'open',
     distanceKm: Number(j.distanceKm) || 21.0975,
     groups: Array.isArray(j.groups) ? j.groups : DEFAULT_GROUPS,
+    quals: Array.isArray(j.quals) ? j.quals : [],
     daysToGo: Number.isFinite(t) ? Math.ceil((t - Date.now()) / 86400000) : null,
   };
 }
@@ -761,6 +763,135 @@ export const removeCheck = webMethod(Permissions.Anyone, async (arg) => {
   return { ok: true };
 });
 
+
+/* ---------- qualification checks ---------- */
+// A rule is per category and has one or more ways to qualify (alternatives). An alternative is a minimum
+// distance, a maximum time, or both: "half marathon under 3 hrs" = { minKm: 21.0975, maxSec: 10800 }.
+// A runner qualifies if ONE alternative is met by the race they claim. The system only gives a first opinion
+// (meets / below / no claim); the director decides.
+const catKey = (c) => lc(c).replace(/[^a-z0-9]/g, '');
+const sameCat = (a, b) => {
+  const x = catKey(a);
+  const y = catKey(b);
+  return !!x && !!y && (x === y || x.startsWith(y) || y.startsWith(x));
+};
+function cleanQuals(list) {
+  if (!Array.isArray(list) || list.length > 30) throw new Error('bad_quals');
+  const seen = new Set();
+  return list.map((r) => {
+    const cat = clean(r && r.cat, 60);
+    if (!cat || seen.has(catKey(cat))) throw new Error('bad_quals');
+    seen.add(catKey(cat));
+    const alts = (Array.isArray(r.alts) ? r.alts : []).slice(0, 6).map((a) => {
+      const minKm = a.minKm === '' || a.minKm === undefined || a.minKm === null ? 0 : Number(a.minKm);
+      const maxSec = a.maxTime === '' || a.maxTime === undefined || a.maxTime === null ? 0 : parseFinish(a.maxTime);
+      if (!(minKm >= 0 && minKm <= 500) || (a.maxTime && !maxSec) || (!minKm && !maxSec)) throw new Error('bad_quals');
+      return { minKm, maxSec };
+    });
+    return { cat, text: clean(r.text, 160), alts };
+  });
+}
+const ruleFor = (e, cat) => e.quals.find((r) => sameCat(r.cat, cat)) || null;
+function verdictOf(rule, claim) {
+  if (!rule) return 'norule';
+  if (!claim) return 'noclaim';
+  if (!rule.alts.length) return 'manual';
+  const km = Number(claim.claimKm) || 0;
+  const sec = int(claim.claimSec);
+  const hit = rule.alts.some((a) => (!a.minKm || km >= a.minKm) && (!a.maxSec || (sec > 0 && sec <= a.maxSec)));
+  return hit ? 'meets' : 'below';
+}
+const qualOut = (e, r, q) => {
+  const rule = ruleFor(e, r.cat);
+  return {
+    runnerId: r._id,
+    bib: r.bib || '',
+    name: r.name || '',
+    cat: r.cat || '',
+    rule: rule ? rule.text || 'Rule set' : '',
+    hasRule: !!rule,
+    claim: q ? { text: q.claim || '', km: Number(q.claimKm) || 0, time: q.claimSec ? hms(int(q.claimSec)) : '', link: q.link || '' } : null,
+    verdict: verdictOf(rule, q),
+    status: q ? q.status || 'pending' : 'pending',
+    note: q ? q.note || '' : '',
+    by: q ? q.by || '' : '',
+  };
+};
+async function qualData(e) {
+  if (!e.expoId) return { runners: [], quals: new Map() };
+  const [runners, qs] = await Promise.all([rows(RUNNERS, e.expoId).catch(() => []), rows(QUALS, e.id).catch(() => [])]);
+  return { runners, quals: new Map(qs.map((q) => [q.runnerId, q])) };
+}
+export const listQuals = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg);
+  const e = eventOut(await getEvent(arg.ev));
+  const d = await qualData(e);
+  const list = d.runners.filter((r) => ruleFor(e, r.cat)).map((r) => qualOut(e, r, d.quals.get(r._id)));
+  const rank = { noclaim: 0, below: 1, manual: 2, meets: 3 };
+  list.sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || rank[a.verdict] - rank[b.verdict] || a.name.localeCompare(b.name));
+  const n = (f) => list.filter(f).length;
+  return {
+    rules: e.quals,
+    hasExpo: !!e.expoId,
+    rows: list.slice(0, 2000),
+    counts: { total: list.length, pending: n((x) => x.status === 'pending'), approved: n((x) => x.status === 'approved'), waived: n((x) => x.status === 'waived'), rejected: n((x) => x.status === 'rejected'), noclaim: n((x) => x.verdict === 'noclaim' && x.status === 'pending') },
+  };
+});
+export const saveQualRules = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const old = await getEvent(arg.ev);
+  const quals = cleanQuals(arg.rules);
+  let j = {};
+  try {
+    j = old.json ? JSON.parse(old.json) : {};
+  } catch (e) {
+    j = {};
+  }
+  j.quals = quals;
+  await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
+  return { ok: true, count: quals.length };
+});
+async function qualTarget(arg) {
+  const e = eventOut(await getEvent(arg.ev));
+  const r = e.expoId ? await wixData.get(RUNNERS, String(arg.runnerId || ''), SA).catch(() => null) : null;
+  if (!r || r.event !== e.expoId) throw new Error('no_runner');
+  const rule = ruleFor(e, r.cat);
+  if (!rule) throw new Error('no_rule');
+  const q = (await all(() => wixData.query(QUALS).eq('event', e.id).eq('runnerId', r._id).ascending('_id')))[0] || null;
+  return { e, r, q };
+}
+// Record what the runner says they ran (from the registration form, an email or a WhatsApp message).
+// Saving a new claim puts the decision back to pending, so an old approval never covers a new claim.
+export const saveQualClaim = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'write');
+  const { e, r, q } = await qualTarget(arg);
+  const km = arg.km === '' || arg.km === undefined ? 0 : Number(arg.km);
+  const sec = arg.time ? parseFinish(arg.time) : 0;
+  if (!(km >= 0 && km <= 1000) || (arg.time && !sec)) throw new Error('bad_claim');
+  const text = clean(arg.text, 160);
+  if (!text && !km && !sec) throw new Error('text_needed');
+  const link = clean(arg.link, 300);
+  if (link && !/^https?:\/\//i.test(link)) throw new Error('bad_link');
+  const row = { event: e.id, runnerId: r._id, name: r.name || '', cat: r.cat || '', claim: text, claimKm: String(km), claimSec: String(sec), link, status: 'pending', note: '', by: a.name, at: nowIso() };
+  if (q) await wixData.update(QUALS, Object.assign({}, q, row), SA);
+  else await wixData.insert(QUALS, row, SA);
+  return { ok: true, row: qualOut(e, r, row) };
+});
+export const decideQual = webMethod(Permissions.Anyone, async (arg) => {
+  const status = String(arg.status || '');
+  if (!['approved', 'rejected', 'waived', 'pending'].includes(status)) throw new Error('bad_status');
+  // Waiving a rule is a director decision.
+  const a = await auth(arg, status === 'waived' ? 'manage' : 'write');
+  const { e, r, q } = await qualTarget(arg);
+  const note = clean(arg.note, 200);
+  if ((status === 'rejected' || status === 'waived') && note.length < 3) throw new Error('note_needed');
+  if (status === 'approved' && (!q || verdictOf(ruleFor(e, r.cat), q) === 'below') && note.length < 3) throw new Error('note_needed');
+  const row = Object.assign({ event: e.id, runnerId: r._id, name: r.name || '', cat: r.cat || '', claim: '', claimKm: '0', claimSec: '0', link: '' }, q || {}, { status, note, by: a.name, at: nowIso() });
+  if (q) await wixData.update(QUALS, row, SA);
+  else await wixData.insert(QUALS, row, SA);
+  return { ok: true, row: qualOut(e, r, row) };
+});
+
 /* ---------- command centre ---------- */
 const expoCache = new Map();
 async function expoCounts(expoId) {
@@ -797,6 +928,12 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
   const open = chk.filter((x) => x.done !== '1').length;
   if (open && near) alerts.push({ level: 'warn', text: open + ' safety checklist item' + (open > 1 ? 's' : '') + ' not done, race is within a week', go: 'safety' });
   const logOpen = log.filter((x) => x.status === 'open').length;
+  let qualPending = 0;
+  if (e.quals.length && e.expoId) {
+    const qd = await qualData(e);
+    qualPending = qd.runners.filter((r) => ruleFor(e, r.cat) && !['approved', 'waived'].includes((qd.quals.get(r._id) || {}).status)).length;
+    if (qualPending) alerts.push({ level: near ? 'warn' : 'info', text: qualPending + ' runner' + (qualPending > 1 ? 's' : '') + ' with qualification not cleared', go: 'quals' });
+  }
   return {
     event: e,
     expo,
@@ -805,6 +942,7 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
     run: { done: run.filter((x) => x.status === 'done').length, total: run.length },
     pacers: { need: groups.reduce((s, x) => s + int(x.g.need), 0), have: groups.reduce((s, x) => s + Math.min(x.have, int(x.g.need)), 0), approved: pacers.filter((p) => p.status === 'approved').length },
     checklist: { done: chk.length - open, total: chk.length },
+    quals: { pending: qualPending },
     alerts,
   };
 });
@@ -826,6 +964,7 @@ function collectionDefs() {
     def(RUN, ['event', 'time', 'what', 'owner', 'status']),
     def(PACERS, ['event', 'name', 'phone', 'group', 'status', 'trial', 'briefing', 'kit', 'notes']),
     def(CHECK, ['event', 'section', 'item', 'done', 'doneBy', 'doneAt', 'order']),
+    def(QUALS, ['event', 'runnerId', 'name', 'cat', 'claim', 'claimKm', 'claimSec', 'link', 'status', 'note', 'by', 'at']),
     def(RATE, ['n']),
   ];
 }

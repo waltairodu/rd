@@ -30,3 +30,5 @@ Race date; the VHM bib and size column names from findmybib; the registration to
 - Coached plan: free for now; price to be an input the race director can set (Training module, not built yet).
 - Volunteer roles: Role field suggests common roles from well-run races (aid station, marshal, start/finish, packet pickup, medal, medical, sweeper, parking, etc.); any role can still be typed.
 - Still open: findmybib bib/size column names, registration tool, WhatsApp provider, free plan length X.
+- Qualification checks: yes. Built as the Qualification tab (director sets rules, team records claims, person decides). Runner self-submission page is next.
+- Registration: vtra.run runs on Wix and the event page looks like Wix Events; to be confirmed. Wix Events import is Phase 1b.

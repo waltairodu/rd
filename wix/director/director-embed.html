@@ -94,10 +94,10 @@ var ERR={not_logged_in:'Your session ended. Please log in again.',bad_login:'Wro
   role_needed:'Please enter a role name.',bad_time:'Times must look like 05:30 and end after they start.',bad_need:'Please enter a number of people.',need_below_taken:'More people are already on this shift than that.',no_shift:'That shift was not found.',shift_has_checkins:'Some people already checked in to this shift.',
   shift_full:'That shift is full.',shifts_overlap:'Those shifts overlap in time.',no_volunteer:'Volunteer not found.',already_assigned:'Already on that shift.',volunteer_declined:'This volunteer was declined.',bad_phone:'Please enter a 10-digit mobile number.',already_signed_up:'That mobile number is already registered.',
   not_found:'No volunteer with that code.',not_approved:'This volunteer is not approved yet.',no_confirmed_shift:'No confirmed shift for this volunteer.',nothing_to_check:'Nothing to check in or out.',already_in:'Already checked in.',not_checked_in:'Not checked in yet.',already_out:'Already checked out.',already_checked_in:'They already checked in, so this cannot change.',no_assignment:'Shift assignment not found.',
-  text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',timeout:'No answer from the server. Try again.'};
+  text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',bad_quals:'Check the rules: each line needs a different category and at least one way to qualify (distance, time or both). Times look like 3:00.',no_runner:'That runner was not found.',no_rule:'This category has no qualification rule.',bad_claim:'Check the distance and the time (for example 21.1 and 2:45:10).',bad_link:'The proof link must start with http.',note_needed:'Please write a short reason.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',timeout:'No answer from the server. Try again.'};
 var msg=function(e){return ERR[e]||('Something went wrong ('+e+')')};
 
-var S={token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://vtra.run/volunteer',setupErr:'',ci:''};
+var S={token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://vtra.run/volunteer',setupErr:'',ci:''};
 try{var b=localStorage.getItem('rd.base');if(b)S.base=b}catch(e){}
 var pending={},seq=0;
 window.addEventListener('message',function(e){
@@ -143,6 +143,7 @@ async function loadTab(){
     else if(t==='raceday'){var b=await Promise.all([api('listRun'),api('listLog')]);S.run=b[0].items;S.log=b[1].items}
     else if(t==='pacers')S.pace=await api('listPacers');
     else if(t==='safety')S.checks=(await api('listChecklist')).items;
+    else if(t==='quals')S.qual=await api('listQuals');
   }catch(e){toast(msg(e.message),true)}
   render();
 }
@@ -162,7 +163,7 @@ function loginView(){
    +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
    +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
 }
-var TABS=[['overview','Overview'],['volunteers','Volunteers'],['raceday','Race day'],['pacers','Pacers'],['safety','Safety']];
+var TABS=[['overview','Overview'],['volunteers','Volunteers'],['raceday','Race day'],['pacers','Pacers'],['safety','Safety'],['quals','Qualification']];
 function head(){
   var ev=S.events.find(function(e){return e.id===S.ev});
   var tabs=TABS.concat(man()?[['setup','Setup']]:[]);
@@ -177,7 +178,7 @@ function noEvent(){return '<div class="card"><h3>No race yet</h3><p class="muted
 function overviewView(){
   var o=S.ov;if(!o)return '<p class="muted">Loading…</p>';
   var v=o.volunteers,x=o.expo,al=o.alerts;
-  var goTab={volunteers:'Volunteers',raceday:'Race day',pacers:'Pacers',safety:'Safety'};
+  var goTab={volunteers:'Volunteers',raceday:'Race day',pacers:'Pacers',safety:'Safety',quals:'Qualification'};
   return '<div class="grid g4">'
    +'<div class="card kpi"><div class="l">Runners checked in</div><div class="n">'+(x?x.checkedIn:'–')+(x?' <small>/ '+x.total+'</small>':'')+'</div>'+(x?bar(x.checkedIn,x.total):'<small>Link the Expo race in Setup</small>')+'</div>'
    +'<div class="card kpi"><div class="l">Bibs and T-shirts given</div><div class="n">'+(x?x.bibs+' · '+x.shirts:'–')+'</div><small>'+(x?'bibs · T-shirts':'from the Expo desk')+'</small></div>'
@@ -264,6 +265,26 @@ function safetyView(){
    +(can()?'<form id="checkForm" class="form" style="margin-top:14px"><label class="f">Section<input name="section" list="secs" required></label><datalist id="secs">'+Object.keys(by).map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist><label class="f" style="grid-column:span 2">New item<input name="item" required></label><button class="btn" type="submit">Add item</button></form>':'')+'</div></div>';
 }
 
+
+var VERD={meets:['Meets rule','good'],below:['Below rule','bad'],noclaim:['No claim yet','warn'],manual:['Check by hand','warn']};
+var QST={pending:['Pending',''],approved:['Approved','good'],rejected:['Rejected','bad'],waived:['Waived','warn']};
+function rulesToText(rs){return rs.map(function(r){return [r.cat,r.text,r.alts.map(function(a){return (a.minKm||'')+'@'+(a.maxSec?hmsUi(a.maxSec):'')}).join('; ')].join(' | ')}).join('\n')}
+function hmsUi(t){return Math.floor(t/3600)+':'+String(Math.floor(t%3600/60)).padStart(2,'0')}
+function textToRules(tx){return tx.split('\n').map(function(l){return l.trim()}).filter(Boolean).map(function(l){var p=l.split('|').map(function(x){return x.trim()});return {cat:p[0],text:p[1]||'',alts:(p[2]||'').split(';').map(function(x){return x.trim()}).filter(Boolean).map(function(a){var q=a.split('@');return {minKm:(q[0]||'').trim(),maxTime:(q[1]||'').trim()}})}})}
+function qualView(){
+  var q=S.qual;if(!q)return '<div class="card muted">Loading...</div>';
+  var rules=man()?'<details class="card"'+(q.rules.length?'':' open')+'><summary><b>Qualification rules</b> <span class="muted">(one line per category)</span></summary><form id="ruleForm" style="margin-top:10px"><p class="muted">Format: <code>Category | what you ask | km@time; km@time</code>. A runner qualifies if they meet any one of the ways. Example: <code>110 K | Marathon under 6 hrs, or any 50 km+ | 42.195@6:00; 50@</code></p><textarea name="rules" rows="6" style="width:100%;margin-top:8px">'+esc(rulesToText(q.rules))+'</textarea><div class="row" style="margin-top:8px"><button class="btn pri" type="submit">Save rules</button></div></form></details>':'';
+  if(!q.hasExpo)return '<div class="stack">'+rules+'<div class="card muted">Link this race to its Expo race (Setup tab) so the runner list can be read.</div></div>';
+  if(!q.rules.length)return '<div class="stack">'+rules+'<div class="card muted">No qualification rules yet.'+(man()?' Add them above.':' Ask the Race Director to add them.')+'</div></div>';
+  var c=q.counts,list=q.rows.filter(function(r){return S.qF==='all'||r.status==='pending'});
+  var head='<div class="card"><div class="row between"><h3>Qualification checks</h3><select id="qF" aria-label="Show"><option value="pending"'+(S.qF==='pending'?' selected':'')+'>Needs a decision ('+c.pending+')</option><option value="all"'+(S.qF==='all'?' selected':'')+'>All ('+c.total+')</option></select></div><p class="muted" style="margin:4px 0">'+c.approved+' approved · '+c.waived+' waived · '+c.rejected+' rejected · '+c.noclaim+' with no claim yet. The check is a first opinion from what you record; you decide.</p>';
+  var rows=list.map(function(r){var v=VERD[r.verdict]||['',''],st=QST[r.status]||['',''],cl=r.claim;
+    var claimTxt=cl?esc(cl.text||'')+(cl.km?' · '+esc(cl.km)+' km':'')+(cl.time?' · '+esc(cl.time):'')+(cl.link?' · <a href="'+esc(cl.link)+'" target="_blank" rel="noopener noreferrer">proof</a>':''):'<small>none</small>';
+    var acts=can()?'<input data-note="'+esc(r.runnerId)+'" placeholder="Reason (needed to reject, waive or approve below rule)" value="'+esc(r.note)+'" style="width:100%;margin-bottom:4px"><div class="row"><button class="btn sm pri" data-act="qOk" data-id="'+esc(r.runnerId)+'">Approve</button><button class="btn sm" data-act="qNo" data-id="'+esc(r.runnerId)+'">Reject</button>'+(man()?'<button class="btn sm" data-act="qWaive" data-id="'+esc(r.runnerId)+'">Waive</button>':'')+'</div>'
+     +'<details style="margin-top:6px"><summary class="btn sm">'+(cl?'Edit claim':'Record claim')+'</summary><form class="claimForm form" data-rid="'+esc(r.runnerId)+'" style="margin-top:6px"><label class="f">Race and year<input name="text" value="'+esc(cl?cl.text:'')+'"></label><label class="f">Distance (km)<input name="km" type="number" step="0.001" min="0" value="'+esc(cl&&cl.km?cl.km:'')+'"></label><label class="f">Time (h:mm)<input name="time" value="'+esc(cl?cl.time:'')+'" placeholder="2:45"></label><label class="f">Proof link<input name="link" value="'+esc(cl?cl.link:'')+'" placeholder="https://"></label><button class="btn pri" type="submit">Save claim</button></form></details>':'';
+    return '<tr><td>'+esc(r.bib)+'</td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.cat)+'</small></td><td><small>'+esc(r.rule)+'</small></td><td>'+claimTxt+'</td><td>'+pill(v[0],v[1])+'<br>'+pill(st[0],st[1])+(r.by&&r.status!=='pending'?'<br><small>'+esc(r.by)+'</small>':'')+'</td><td style="min-width:240px">'+acts+'</td></tr>'}).join('');
+  return '<div class="stack">'+rules+head+'<div class="scroll"><table><tr><th>Bib</th><th>Runner</th><th>Rule</th><th>Claim</th><th>Check</th><th></th></tr>'+(rows||'<tr><td colspan="6" class="muted">Nothing to decide.</td></tr>')+'</table></div></div></div>';
+}
 function setupView(){
   var e=S.editEvent;
   var list=S.events.map(function(x){return '<tr><td><b>'+esc(x.name)+'</b></td><td>'+esc(fdate(x.date))+'</td><td>'+esc(x.expoId||'–')+'</td><td>'+pill(x.status,x.status==='open'?'good':'')+'</td><td><button class="btn sm" data-act="evEdit" data-id="'+esc(x.id)+'">Edit</button></td></tr>'}).join('');
@@ -280,7 +301,7 @@ function setupView(){
 function render(){
   var app=$('#app');
   if(!S.token){app.innerHTML=loginView();return}
-  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='setup'&&man()?setupView():'';
   app.innerHTML=head()+body;
 }
 
@@ -297,6 +318,7 @@ document.addEventListener('click',function(e){
   var go=function(fn){run(async function(){await fn();render()})};
   var reload=function(){return loadTab()};
   if(act==='tab')doTab(b.getAttribute('data-tab'));
+  else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='logout'){api('logout').catch(function(){});S.token='';S.me=null;S.ev='';S.ov=null;render()}
   else if(act==='copyLink'){var t=$('#linkOut').textContent;try{navigator.clipboard.writeText(t).then(function(){toast('Link copied')},function(){toast(t)})}catch(x){toast(t)}}
   else if(act==='shiftNew'){S.editShift={id:'',role:'',location:'',date:(S.events.find(function(x){return x.id===S.ev})||{}).date||'',start:'05:00',end:'09:00',need:'4',notes:''};render()}
@@ -323,6 +345,7 @@ document.addEventListener('change',function(e){
   var t=e.target;
   if(t.id==='evPick'){S.ev=t.value;try{localStorage.setItem('rd.ev',S.ev)}catch(x){}S.ov=null;loadTab()}
   else if(t.id==='volF'){S.volF=t.value;render()}
+  else if(t.id==='qF'){S.qF=t.value;render()}
   else if(t.id==='logF'){S.logFilter=t.value;render()}
   else if(t.id==='baseUrl'){S.base=t.value.trim()||S.base;try{localStorage.setItem('rd.base',S.base)}catch(x){}render()}
   else if(t.getAttribute('data-act')==='assign'&&t.value){var sid=t.value,vid=t.getAttribute('data-vid');run(async function(){await api('assignShift',{volunteerId:vid,shiftId:sid});await loadTab()})}
@@ -342,6 +365,8 @@ document.addEventListener('submit',function(e){
   else if(f.classList.contains('closeForm'))run(async function(){await api('closeLog',{id:f.getAttribute('data-id'),resolution:d.resolution});await loadTab()});
   else if(id==='groupForm')run(async function(){var groups=Array.prototype.map.call(f.querySelectorAll('.gr'),function(r){return {label:r.querySelector('[name=label]').value,finish:r.querySelector('[name=finish]').value,need:r.querySelector('[name=need]').value}});await api('savePaceGroups',{groups:groups,distanceKm:d.distanceKm});toast('Pace groups saved');await loadTab()});
   else if(id==='pacerForm')run(async function(){await api('savePacer',Object.assign({id:S.editPacer&&S.editPacer.id||undefined},d));S.editPacer=null;toast('Pacer saved');await loadTab()});
+  else if(id==='ruleForm')run(async function(){var r=await api('saveQualRules',{rules:textToRules(d.rules)});toast('Rules saved ('+r.count+')');await loadTab()});
+  else if(f.classList.contains('claimForm'))run(async function(){await api('saveQualClaim',{runnerId:f.getAttribute('data-rid'),text:d.text,km:d.km,time:d.time,link:d.link});toast('Claim saved');await loadTab()});
   else if(id==='checkForm')run(async function(){await api('addCheck',d);await loadTab()});
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });

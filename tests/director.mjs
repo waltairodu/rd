@@ -279,6 +279,52 @@ const ovn = await D.overview({ token: T.v, ev: near.id });
 ok(ovn.expo === null && ovn.alerts.some((a) => a.level === 'warn' && /checklist/.test(a.text)), 'overview: race inside a week warns about open checklist');
 ok((await err(D.overview({ token: T.v, ev: 'nope' }))) === 'no_event', 'overview: unknown event');
 
+// ---- qualification checks
+const QR = (id, name, cat) => wd.insert('Runners', { _id: 'Import910~' + id, event: 'Import910', bib: id, name, cat, checkedInAt: '', bibAt: '', shirtAt: '' }, SA);
+await QR('q1', 'Asha', '25 K - Debut Trail'); await QR('q2', 'Ravi', '25K'); await QR('q3', 'Kiran', '110 K - Conquer The Trail'); await QR('q4', 'Meena', '10 K - Vanajangi Challenge');
+const RULES = [{ cat: '25 K', text: 'Half marathon under 3 hrs', alts: [{ minKm: 21.0975, maxTime: '3:00' }] },
+  { cat: '110 K', text: 'Full marathon under 6 hrs, or any 50 km+', alts: [{ minKm: 42.195, maxTime: '6:00' }, { minKm: 50 }] }];
+ok((await err(D.saveQualRules({ token: T.l, ev: E, rules: RULES }))) === 'director_only', 'quals: lead cannot set rules');
+ok((await err(D.saveQualRules({ token: T.b, ev: E, rules: [{ cat: '25 K', alts: [{}] }] }))) === 'bad_quals', 'quals: empty alternative refused');
+ok((await err(D.saveQualRules({ token: T.b, ev: E, rules: [{ cat: '25 K', alts: [{ maxTime: '9:99' }] }] }))) === 'bad_quals', 'quals: bad time refused');
+ok((await err(D.saveQualRules({ token: T.b, ev: E, rules: [{ cat: '25 K', alts: [{ minKm: 5 }] }, { cat: '25k', alts: [{ minKm: 5 }] }] }))) === 'bad_quals', 'quals: duplicate category refused');
+ok((await D.saveQualRules({ token: T.b, ev: E, rules: RULES })).count === 2, 'quals: rules saved');
+ok((await D.listEvents({ token: T.v })).events.find((x) => x.id === E).quals.length === 2, 'quals: rules come back with the event');
+ok((await D.saveEvent({ token: T.b, id: E, venue: 'RK Beach' })).event.quals.length === 2, 'quals: editing the event keeps rules');
+let ql = await D.listQuals({ token: T.v, ev: E });
+ok(ql.rows.length === 3 && ql.counts.pending === 3 && ql.counts.noclaim === 3, 'quals: only runners of ruled categories listed, all pending with no claim');
+ok(!ql.rows.some((r) => r.name === 'Meena'), 'quals: category without rule not listed');
+ok((await err(D.listQuals({ token: T.v, ev: E2 }))) === '' && (await D.listQuals({ token: T.v, ev: E2 })).hasExpo === false, 'quals: race with no expo link is empty, not an error');
+const rid = (n) => ql.rows.find((r) => r.name === n).runnerId;
+ok((await err(D.saveQualClaim({ token: T.v, ev: E, runnerId: rid('Asha'), text: 'x', km: 21 }))) === 'read_only', 'quals: viewer cannot record a claim');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: 'Import910~q4', text: 'x', km: 21 }))) === 'no_rule', 'quals: claim for category without rule refused');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: 'Import999~1', text: 'x', km: 21 }))) === 'no_runner', 'quals: runner of another race refused');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), km: 21, time: '2:5x' }))) === 'bad_claim', 'quals: bad time refused');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), km: 21, time: '2:50', link: 'javascript:alert(1)' }))) === 'bad_link', 'quals: non-http link refused');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), text: 'Vizag HM 2025', km: 21.1, time: '2:45:10' })).row.verdict === 'meets', 'quals: half in 2:45 meets 25 K rule');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Ravi'), text: 'Hyd HM', km: 21.1, time: '3:20' })).row.verdict === 'below', 'quals: half in 3:20 is below');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran'), text: '50 km trail', km: 50, time: '8:30' })).row.verdict === 'meets', 'quals: second alternative (50 km+) meets');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran'), text: 'FM', km: 42.2, time: '6:30' })).row.verdict === 'below', 'quals: marathon over 6 hrs is below');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran'), text: '50 km trail', km: 50, time: '8:30' })).row.verdict === 'meets', 'quals: claim can be replaced');
+ok((await count('RDQuals', (q) => q.runnerId === rid('Kiran'))) === 1, 'quals: one claim row per runner');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Asha'), status: 'banana' }))) === 'bad_status', 'quals: bad status');
+ok((await D.decideQual({ token: T.l, ev: E, runnerId: rid('Asha'), status: 'approved' })).row.status === 'approved', 'quals: approve a runner who meets the rule');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'approved' }))) === 'note_needed', 'quals: approving a runner below the rule needs a reason');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'rejected' }))) === 'note_needed', 'quals: rejecting needs a reason');
+ok((await D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'rejected', note: 'Under-distance, move to 10 K' })).row.status === 'rejected', 'quals: reject with reason');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'waived', note: 'ok by RD' }))) === 'director_only', 'quals: lead cannot waive');
+ok((await D.decideQual({ token: T.b, ev: E, runnerId: rid('Ravi'), status: 'waived', note: 'Known ultra runner' })).row.status === 'waived', 'quals: director can waive with a reason');
+ok((await err(D.decideQual({ token: T.v, ev: E, runnerId: rid('Asha'), status: 'rejected', note: 'no' }))) === 'read_only', 'quals: viewer cannot decide');
+ql = await D.listQuals({ token: T.v, ev: E });
+ok(ql.counts.approved === 1 && ql.counts.waived === 1 && ql.counts.pending === 1, 'quals: counts add up');
+ok(ql.rows[0].name === 'Kiran' && ql.rows[0].status === 'pending', 'quals: pending runners listed first');
+await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), text: 'New race', km: 10, time: '0:50' });
+ql = await D.listQuals({ token: T.v, ev: E });
+const ashaQ = ql.rows.find((r) => r.name === 'Asha');
+ok(ashaQ.status === 'pending' && ashaQ.verdict === 'below', 'quals: a new claim resets an old approval');
+ok((await D.overview({ token: T.v, ev: E })).alerts.some((a) => /qualification/.test(a.text) && a.go === 'quals'), 'quals: overview alert for uncleared runners');
+ok((await D.overview({ token: T.v, ev: E })).quals.pending === 2, 'quals: overview count (not approved or waived)');
+
 // ---- setup
 ok((await err(D.ensureSetup({ key: 'wrong' }))) === 'Wrong setup key', 'setup: wrong key refused');
 const su = await D.ensureSetup({ key: 'k-test' });

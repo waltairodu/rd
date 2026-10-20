@@ -252,5 +252,42 @@ ok(dirAllowed.filter((x) => !exported.includes(x)).length === 0, 'director page 
   ok(d.querySelector('#loginForm'), 'log out returns to login');
 }
 
+// ---- qualification
+{
+  await wd.insert('Runners', { _id: 'Import910~u1', event: 'Import910', bib: 'u1', name: 'Uma', cat: '25 K - Debut Trail', checkedInAt: '', bibAt: '', shirtAt: '' }, SA);
+  await wd.insert('Runners', { _id: 'Import910~u2', event: 'Import910', bib: 'u2', name: 'Vikram <b>', cat: '25K', checkedInAt: '', bibAt: '', shirtAt: '' }, SA);
+  const B = await login('boss');
+  const { w, d } = B;
+  await tab(w, d, 'quals');
+  ok(d.querySelector('#ruleForm'), 'quals: director sees the rules editor');
+  const rf = d.querySelector('#ruleForm');
+  set(w, rf.elements.rules, '25 K | Half marathon under 3 hrs | 21.0975@3:00\n110 K | FM under 6 hrs or 50 km+ | 42.195@6:00; 50@');
+  submit(w, rf); await sleep(400);
+  ok(/Uma/.test(txt(d.querySelector('#app'))) && /No claim yet/.test(txt(d.querySelector('#app'))), 'quals: runners of ruled categories listed with no claim');
+  ok(!/<b>/.test(d.querySelector('#app').innerHTML.replace(/<\/?b>/g, '')) || /&lt;b&gt;/.test(d.querySelector('#app').innerHTML), 'quals: runner name is escaped');
+  const cf = d.querySelector('.claimForm');
+  set(w, cf.elements.text, 'Vizag HM 2025'); set(w, cf.elements.km, '21.1'); set(w, cf.elements.time, '2:40'); submit(w, cf); await sleep(400);
+  ok(/Meets rule/.test(txt(d.querySelector('#app'))), 'quals: saved claim shows Meets rule');
+  const umaRow = [...d.querySelectorAll('tr')].find((r) => /Uma/.test(r.textContent));
+  click(w, umaRow.querySelector('[data-act="qOk"]')); await sleep(400);
+  ok(!/Uma/.test(txt(d.querySelector('#app'))), 'quals: approved runner leaves the needs-a-decision list');
+  const vikRow = [...d.querySelectorAll('tr')].find((r) => /Vikram/.test(r.textContent));
+  click(w, vikRow.querySelector('[data-act="qOk"]')); await sleep(300);
+  ok(/Please write a short reason/.test(txt(d.querySelector('#toast'))), 'quals: approving a runner with no claim needs a reason');
+  const all = d.querySelector('#qF'); all.value = 'all'; change(w, all); await sleep(100);
+  ok(/Approved/.test(txt(d.querySelector('#app'))), 'quals: all view shows approved runner');
+  const no = [...d.querySelectorAll('tr')].find((r) => /Vikram/.test(r.textContent)).querySelector('[data-act="qNo"]'); click(w, no); await sleep(300);
+  ok(/Please write a short reason/.test(txt(d.querySelector('#toast'))), 'quals: reject without a reason is refused with a message');
+  await tab(w, d, 'overview');
+  ok(/qualification not cleared/.test(txt(d.querySelector('#app'))), 'quals: overview alert shown');
+  click(w, d.querySelector('[data-act="logout"]'));
+  const V = await login('view1');
+  await tab(V.w, V.d, 'quals');
+  ok(!V.d.querySelector('#ruleForm') && !V.d.querySelector('[data-act="qOk"]') && !V.d.querySelector('.claimForm'), 'quals: viewer sees no editing controls');
+  const Ld = await login('lead1');
+  await tab(Ld.w, Ld.d, 'quals');
+  ok(Ld.d.querySelector('.claimForm') && !Ld.d.querySelector('[data-act="qWaive"]') && !Ld.d.querySelector('#ruleForm'), 'quals: lead can record and decide but not waive or edit rules');
+}
+
 console.log(`Director UI: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
