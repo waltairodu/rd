@@ -16,6 +16,6 @@ get:async(c,id)=>cl(tbl(c).get(id))||null,
 insert:async(c,o)=>{const x=cl(o);x._id=x._id||('i'+(++n));if(tbl(c).has(x._id))throw new Error('dup');tbl(c).set(x._id,stamp(x));return cl(x)},
 update:async(c,o)=>{if(!tbl(c).has(o._id))throw new Error('nf');tbl(c).set(o._id,stamp(cl(o)));return cl(o)},
 save:async(c,o)=>{const x=cl(o);x._id=x._id||('i'+(++n));tbl(c).set(x._id,stamp(x));return cl(x)},
-bulkInsert:async(c,a)=>{a.forEach(o=>tbl(c).set(o._id,stamp(cl(o))));return{inserted:a.length}},
+bulkInsert:async(c,a)=>{a.forEach(o=>{const x=cl(o);x._id=x._id||('i'+(++n));tbl(c).set(x._id,stamp(x))});return{inserted:a.length}},
 bulkUpdate:async(c,a)=>{a.forEach(o=>tbl(c).set(o._id,stamp(cl(o))));return{updated:a.length}},
 bulkRemove:async(c,ids)=>{ids.forEach(i=>tbl(c).delete(i));return{removed:ids.length}}};
