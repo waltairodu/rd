@@ -955,7 +955,7 @@ function collectionDefs() {
   return [
     def(STAFF, ['username', 'password', 'role', 'desks', 'race', 'name', 'failCount', 'lockUntil']),
     def(SESS, ['token', 'username', 'desk', 'expires']),
-    def(RUNNERS, ['event', 'bib', 'name', 'cat', 'size', 'phone', 'email', 'example', 'checkedInAt', 'checkedInDesk', 'bibAt', 'bibDesk', 'shirtSize', 'shirtAt', 'shirtDesk']),
+    def(RUNNERS, ['event', 'bib', 'name', 'bibName', 'cat', 'size', 'phone', 'email', 'example', 'checkedInAt', 'checkedInDesk', 'bibAt', 'bibDesk', 'shirtSize', 'shirtAt', 'shirtDesk']),
     def(EVENTS, ['name', 'date', 'venue', 'expoId', 'status', 'json']),
     def(SHIFTS, ['event', 'role', 'location', 'date', 'start', 'end', 'need', 'notes']),
     def(VOLS, ['event', 'name', 'phone', 'email', 'club', 'status', 'code', 'waiverAt', 'waiverVersion', 'createdAt', 'notes']),

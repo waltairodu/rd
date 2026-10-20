@@ -52,3 +52,5 @@ TESTED (simulated Wix, not the live site)
   93 backend scenario checks (desk rules, race lock, race rename; the old name 'VHM' kept as fallback)
   (desk part: 72)  desk scenario checks (every desk x check-in, bib, T-shirt, undo, add runner, admin tools, tampered requests, selfie, size lock, stock lot)
   45 screen checks (what each desk sees and can click). Tests were also run with the desk check removed, to prove they fail without it.
+
+NOTE (20 Oct): add a text column 'bibName' to the Runners collection in the CMS (Setup creates it for new sites only).

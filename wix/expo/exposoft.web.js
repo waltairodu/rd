@@ -32,6 +32,7 @@ const PAGE = 500;
 const RACE_NAMES = { Import910: 'VHM' };
 const SOURCE_FIELDS = {
   bib: ['bibNo', 'bibNumber', 'bib'],
+  bibName: ['bibName', 'nameOnBib', 'printedName'],
   name: ['participantName', 'name', 'fullName'],
   phone: ['phoneNumber', 'phone', 'mobile', 'mobileNumber', 'contactNumber'],
   email: ['email', 'emailId', 'emailAddress'],
@@ -212,6 +213,7 @@ function toRunner(it) {
     id: it._id,
     bib: it.bib || it._id,
     name: it.name || '',
+    bibName: it.bibName || '',
     cat: it.cat || '',
     size: it.size || '',
     phone: it.phone || '',
@@ -476,6 +478,7 @@ function blankRunner(c, example, ev) {
     event: ev,
     bib: c.bib,
     name: c.name,
+    bibName: c.bibName || '',
     cat: c.cat,
     size: SIZES.includes(c.size) ? c.size : '',
     phone: c.phone,
@@ -505,6 +508,7 @@ function cleanRows(rows) {
       id,
       bib,
       name,
+      bibName: String(r.bibName || '').trim().slice(0, 40),
       cat: String(r.cat || '').trim().slice(0, 20),
       size: String(r.size || ''),
       phone: String(r.phone || '').trim().slice(0, 20),
@@ -535,6 +539,7 @@ async function upsert(clean, example, ev, updateExisting) {
         Object.assign({}, old, {
           bib: c.bib,
           name: c.name,
+          bibName: c.bibName || old.bibName || '',
           cat: c.cat || old.cat,
           size: SIZES.includes(c.size) ? c.size : old.size,
           phone: c.phone || old.phone,
@@ -612,6 +617,7 @@ function sourceRow(item) {
     row: {
       bib: String(out.bib).trim(),
       name: String(out.name).trim(),
+      bibName: String(out.bibName).trim(),
       cat: String(out.cat).trim(),
       size: normSize(out.size),
       phone: String(out.phone).replace(/\D/g, '').slice(-10),
@@ -757,7 +763,7 @@ const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN
 function collectionDefs() {
   return [
     { _id: RUNNERS, displayName: 'Runners', permissions: LOCKED,
-      fields: ['event', 'bib', 'name', 'cat', 'size', 'phone', 'email', 'example', 'checkedInAt', 'checkedInDesk', 'bibAt', 'bibDesk', 'shirtSize', 'shirtAt', 'shirtDesk'].map((k) => textField(k, k)) },
+      fields: ['event', 'bib', 'name', 'bibName', 'cat', 'size', 'phone', 'email', 'example', 'checkedInAt', 'checkedInDesk', 'bibAt', 'bibDesk', 'shirtSize', 'shirtAt', 'shirtDesk'].map((k) => textField(k, k)) },
     { _id: CONFIG, displayName: 'ExpoConfig', permissions: LOCKED, fields: [textField('name', 'name'), textField('json', 'json')] },
     { _id: STAFF, displayName: 'ExpoStaff', permissions: LOCKED,
       fields: ['username', 'password', 'role', 'desks', 'name', 'failCount', 'lockUntil'].map((k) => textField(k, k)) },

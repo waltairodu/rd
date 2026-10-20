@@ -423,7 +423,7 @@ function api(method,arg,ms){
 /* ---------- data in ---------- */
 function normRunner(x){
   var bib=String(x.bib!=null?x.bib:x.id),name=String(x.name||'');
-  return {id:x.id,bib:bib,name:name,cat:String(x.cat||''),size:String(x.size||''),phone:String(x.phone||''),email:String(x.email||''),emailL:String(x.email||'').toLowerCase(),example:!!x.example,
+  return {id:x.id,bib:bib,name:name,bibName:String(x.bibName||''),cat:String(x.cat||''),size:String(x.size||''),phone:String(x.phone||''),email:String(x.email||''),emailL:String(x.email||'').toLowerCase(),example:!!x.example,
     checkedIn:!!x.checkedIn,checkedInAt:x.checkedInAt||null,checkedInDesk:x.checkedInDesk||'',
     bibIssued:!!x.bibIssued,bibAt:x.bibAt||null,bibDesk:x.bibDesk||'',
     shirtIssued:!!x.shirtIssued,shirtSize:x.shirtSize||'',shirtAt:x.shirtAt||null,shirtDesk:x.shirtDesk||'',
@@ -594,7 +594,7 @@ function renderPanel(){
   var card='<div class="bibcard" style="--kc:'+kc+'"><i class="pin a"></i><i class="pin b"></i><i class="pin c"></i><i class="pin d"></i>'+
     '<div class="band"><span>'+esc(S.cfg.name||'Race expo')+'</span><span>'+esc(r.cat||'')+'</span></div>'+
     '<div class="num'+(r.bib.length>5?' long':'')+'">'+esc(r.bib)+'</div>'+
-    '<div class="nm">'+esc(r.name)+'</div>'+
+    '<div class="nm">'+esc(r.bibName||r.name)+'</div>'+(r.bibName&&r.bibName.toLowerCase()!==r.name.toLowerCase()?'<div class="muted" style="text-align:center;font-size:12px">Registered as '+esc(r.name)+'</div>':'')+
     '<div class="tear"><span>Registered size <b>'+esc(r.size||'not set')+'</b></span><span>'+(r.phoneDigits?'Phone <b>···'+esc(r.phoneDigits.slice(-4))+'</b>':'No phone')+'</span></div></div>';
 
   var itemCheck=r.checkedIn
