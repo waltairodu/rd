@@ -32,3 +32,4 @@ Race date; the VHM bib and size column names from findmybib; the registration to
 - Still open: findmybib bib/size column names, registration tool, WhatsApp provider, free plan length X.
 - Qualification checks: yes. Built as the Qualification tab (director sets rules, team records claims, person decides). Runner self-submission page is next.
 - Registration: vtra.run runs on Wix and the event page looks like Wix Events; to be confirmed. Wix Events import is Phase 1b.
+- Training: free plan runs 8 weeks (decided 20 Oct). Registration confirmed as Wix Events. findmybib export columns per Yogi: name, bib name, email id, phone number, Tshirt size (no category or separate bib-number column named; 'bib name' still unclear).

@@ -166,6 +166,11 @@ ok((await B.whoami({token:rw.token})).race==='Import909','whoami keeps race');
 ok((await B.whoami({token:ta})).race==='','admin without race column is not locked');
 // ---- source collection never written
 ok(!DB['Import910']&&!DB['Import909'],'nothing ever written to Import collections');
+// ---- findmybib column names written in different styles
+await wd.insert('Import910',{'Name':'Test Runner','Bib Number':'9001','Email Id':'T@x.com','Phone Number':'9876543210','Tshirt Size':'L','Category':'25 K'},SA);
+const pv=await B.previewFindMyBib({token:ta,ev:'Import910'});
+ok(pv.withBib===1&&pv.sample[0].name==='Test Runner'&&pv.sample[0].bib==='9001'&&pv.sample[0].size==='L'&&pv.sample[0].cat==='25 K','findmybib: Name / Bib Number / Tshirt Size style columns are found');
+ok(pv.fields.phone==='Phone Number'&&pv.fields.email==='Email Id','findmybib: Phone Number and Email Id found');
 // ---- stock count sanity
 const given=[...DB.Runners.values()].filter(x=>x.shirtSize==='M'&&x.shirtAt).length;
 ok(given>0,'stock: M T-shirts counted '+given);

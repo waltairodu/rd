@@ -31,10 +31,10 @@ const PAGE = 500;
 // category or size was not found, add your real field names to those two lists.
 const RACE_NAMES = { Import910: 'VHM' };
 const SOURCE_FIELDS = {
-  bib: ['bibNo'],
-  name: ['participantName'],
-  phone: ['phoneNumber'],
-  email: ['email'],
+  bib: ['bibNo', 'bibNumber', 'bib'],
+  name: ['participantName', 'name', 'fullName'],
+  phone: ['phoneNumber', 'phone', 'mobile', 'mobileNumber', 'contactNumber'],
+  email: ['email', 'emailId', 'emailAddress'],
   cat: ['category', 'raceCategory', 'distance', 'raceDistance', 'event', 'race'],
   size: ['tshirtSize', 'tShirtSize', 'shirtSize', 'tshirt', 'size'],
 };
@@ -584,7 +584,7 @@ export const removeSample = webMethod(Permissions.Anyone, async (arg) => {
 function mapSource(item) {
   const lk = {};
   Object.keys(item).forEach((k) => {
-    lk[k.toLowerCase()] = k;
+    lk[k.toLowerCase().replace(/[^a-z0-9]/g, '')] = k;
   });
   const out = {};
   const used = {};
@@ -592,7 +592,7 @@ function mapSource(item) {
     out[f] = '';
     used[f] = null;
     for (const key of SOURCE_FIELDS[f]) {
-      const real = lk[key.toLowerCase()];
+      const real = lk[key.toLowerCase().replace(/[^a-z0-9]/g, '')];
       if (real === undefined) continue;
       const v = item[real];
       if (v !== undefined && v !== null && String(v).trim() !== '') {
