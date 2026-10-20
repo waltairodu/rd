@@ -23,3 +23,10 @@
 ## Inputs needed from the Race Director
 
 Race date; the VHM bib and size column names from findmybib; the registration tool in use today; WhatsApp provider; free-plan length, coached-plan price, coach count; volunteer role names; own setup key.
+
+## Decisions (20 Oct 2026)
+- Setup key: set by the account owner in racedir.web.js; the code refuses to run with the default key.
+- Race date and all event details: entered by whoever creates the race in the Director Setup tab.
+- Coached plan: free for now; price to be an input the race director can set (Training module, not built yet).
+- Volunteer roles: Role field suggests common roles from well-run races (aid station, marshal, start/finish, packet pickup, medal, medical, sweeper, parking, etc.); any role can still be typed.
+- Still open: findmybib bib/size column names, registration tool, WhatsApp provider, free plan length X.

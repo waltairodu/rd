@@ -88,6 +88,7 @@ td{padding:9px 8px;border-bottom:1px solid var(--surface-2);vertical-align:top}
 var $=function(s,r){return (r||document).querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+var ROLES=['Aid station / hydration','Course marshal','Start line crew','Finish line crew','Medal and finisher goodies','Finisher food and recovery','Bib and packet pickup (expo)','T-shirt / swag handout','Registration and check-in help','Information booth','Baggage check','Timing and results support','Medical support (first aid)','Sweeper / back-of-pack','Bike or cart escort','Traffic and road crossing','Parking and shuttle','Pacer support','Kids run helper','Cheer zone','Photography and social media','Set-up and tear-down','Sponsor and partner booth','Water and sanitation (toilets, bins)'];
 var ERR={not_logged_in:'Your session ended. Please log in again.',bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for the Director. Ask for a director, lead or viewer role.',setup_needed:'Setup is not finished. Run the one-time setup first.',
   read_only:'Your login can only look, not change.',director_only:'Only a director login can do that.',no_event:'That race was not found.',name_needed:'Please enter a name.',bad_date:'Please use a real date.',bad_distance:'Distance must be between 1 and 100 km.',bad_status:'That status is not allowed.',
   role_needed:'Please enter a role name.',bad_time:'Times must look like 05:30 and end after they start.',bad_need:'Please enter a number of people.',need_below_taken:'More people are already on this shift than that.',no_shift:'That shift was not found.',shift_has_checkins:'Some people already checked in to this shift.',
@@ -191,7 +192,7 @@ function overviewView(){
 function shiftForm(){
   var s=S.editShift;if(!s||!can())return '';
   return '<form id="shiftForm" class="card" style="margin-top:10px"><h3>'+(s.id?'Edit shift':'New shift')+'</h3><div class="form" style="margin-top:8px">'
-   +'<label class="f">Role<input name="role" value="'+esc(s.role)+'" required></label><label class="f">Location<input name="location" value="'+esc(s.location)+'"></label>'
+   +'<label class="f">Role<input name="role" list="roleList" value="'+esc(s.role)+'" required autocomplete="off"></label><datalist id="roleList">'+ROLES.map(function(r){return '<option value="'+esc(r)+'">'}).join('')+'</datalist><label class="f">Location<input name="location" value="'+esc(s.location)+'"></label>'
    +'<label class="f">Date<input name="date" type="date" value="'+esc(s.date)+'" required></label><label class="f">Start<input name="start" type="time" value="'+esc(s.start)+'" required></label>'
    +'<label class="f">End<input name="end" type="time" value="'+esc(s.end)+'" required></label><label class="f">People needed<input name="need" type="number" min="1" max="500" value="'+esc(s.need)+'" required></label>'
    +'<label class="f">Notes for volunteers<input name="notes" value="'+esc(s.notes)+'"></label></div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save shift</button><button class="btn" type="button" data-act="shiftCancel">Cancel</button></div></form>';
