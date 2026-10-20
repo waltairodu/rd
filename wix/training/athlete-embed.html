@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VTRA Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#edf0f0;--surface:#fff;--surface-2:#f4f6f6;--line:#d2dadb;--ink:#11242b;--ink-2:#4b5f66;--primary:#0b5d6b;--on-primary:#fff;--good:#17803d;--good-bg:#dcf1e4;--warn:#a85a00;--warn-bg:#fbe8c8;--bad:#b42318;--bad-bg:#f8d9d5;
+  --f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;--f-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1619;--surface:#142125;--surface-2:#1a2b30;--line:#2a3d43;--ink:#e6eef0;--ink-2:#9db0b6;--primary:#5cc7d6;--on-primary:#06191d;--good:#4cc77a;--good-bg:#16351f;--warn:#f0a640;--warn-bg:#3a2a0d;--bad:#ff8a80;--bad-bg:#3d1a17;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 56px}
+.eyebrow{font:600 13px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+h1{margin:4px 0 0;font:700 clamp(30px,8vw,44px)/1.05 var(--f-display)}
+h2{margin:0;font:700 22px/1.1 var(--f-display)}
+.muted{color:var(--ink-2);font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.shift{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1.5px solid var(--line);border-radius:10px;margin-top:10px;background:var(--surface)}
+.shift.on{border-color:var(--primary);background:var(--surface-2)}
+.shift.full{opacity:.6}
+.shift input{width:22px;height:22px;margin-top:2px;flex:0 0 22px}
+.shift b{display:block}
+.pill{display:inline-block;font:700 12px var(--f-body);padding:3px 9px;border-radius:99px;background:var(--surface-2)}
+.pill.good{background:var(--good-bg);color:var(--good)}.pill.warn{background:var(--warn-bg);color:var(--warn)}
+label.f{display:flex;flex-direction:column;gap:4px;font:600 14px var(--f-body);color:var(--ink-2);margin-top:12px}
+label.f input{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;min-height:44px;font-weight:400;color:var(--ink)}
+.btn{width:100%;border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);font:700 18px var(--f-display);letter-spacing:.04em;min-height:50px;margin-top:16px;cursor:pointer}
+.btn:disabled{opacity:.5}
+.btn.alt{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.err{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--bad-bg);color:var(--bad);font-weight:600}
+.code{font:800 48px/1 var(--f-display);letter-spacing:.2em;text-align:center;padding:16px;background:var(--surface-2);border-radius:12px;margin:12px 0;user-select:all}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.waiver{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px}
+.waiver input{width:22px;height:22px;flex:0 0 22px;margin-top:2px}
+</style><style>
+.nav{display:flex;gap:6px;margin-top:14px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}
+.nav button{flex:1;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:700 16px var(--f-display);letter-spacing:.04em;cursor:pointer}
+.nav button[aria-current="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.big{font:800 40px/1 var(--f-display)}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--primary)}
+.ses{padding:12px 0;border-top:1px solid var(--line)}.ses:first-child{border-top:0}
+.ses.done b{color:var(--good)}.ses.skipped{opacity:.6}
+.type{display:inline-block;font:700 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--surface-2);color:var(--ink-2)}
+.btn.sm{width:auto;min-height:40px;font-size:15px;padding:0 14px;margin-top:8px}
+.btn.bad{background:var(--bad-bg);color:var(--bad)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+select,textarea{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;min-height:44px;font:inherit;color:var(--ink);width:100%}
+label.f select,label.f textarea{font-weight:400}
+.msg{max-width:85%;padding:8px 12px;border-radius:12px;margin-top:8px;background:var(--surface-2)}.msg.me{margin-left:auto;background:var(--primary);color:var(--on-primary)}
+.fb{margin-top:6px;padding:8px 10px;border-left:3px solid var(--primary);background:var(--surface-2);border-radius:0 8px 8px 0;font-size:14px}
+.wk{font:700 13px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-top:16px}
+.toast{position:fixed;left:16px;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:12px;border-radius:10px;text-align:center;z-index:9}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">Loading…</p></div>
+<div class="toast" id="toast" hidden role="status"></div>
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+var ERR={name_needed:'Please enter your name.',bad_phone:'Please enter a 10-digit mobile number.',bad_pin:'Your PIN must be exactly 6 digits.',already_signed_up:'This number is already registered. Please log in.',bad_login:'Wrong mobile number or PIN.',locked:'Too many wrong tries. Wait 10 minutes.',busy_try_later:'Many people are signing up right now. Please try again in a few minutes.',not_logged_in:'Please log in again.',bad_start:'Pick a start date from last week up to a year ahead.',already_enrolled:'You already have a plan.',no_plan:'That plan is not available.',future_session:'You can tick a workout off only on or after its day.',bad_numbers:'Check the distance and time.',bad_session:'Check the date and the workout type.',no_coach:'Coaching is not active on your plan.',text_needed:'Please write a message.',timeout:'No answer from the server. Try again.',setup_needed:'The training service is not set up yet.'};
+var msg=function(e){return ERR[e]||'Something went wrong. Please try again.'};
+var S={tok:'',home:null,plans:null,settings:null,mode:'login',tab:'today',sessions:null,msgs:null,logId:'',err:'',busy:false,addRun:false,planOpen:'',form:{}};
+try{S.tok=localStorage.getItem('tr.tok')||''}catch(e){}
+var pending={},seq=0;
+window.addEventListener('message',function(e){var m=e.data;if(!m)return;if(m.kind==='init'){boot();return}if(m.kind!=='result'||!pending[m.id])return;var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);if(m.ok)p.res(m.result);else p.rej(new Error(m.error||'failed'))});
+function api(method,arg){arg=arg||{};if(S.tok&&arg.token===undefined)arg.token=S.tok;return new Promise(function(res,rej){var id=++seq;var t=setTimeout(function(){delete pending[id];rej(new Error('timeout'))},30000);pending[id]={res:res,rej:rej,t:t};window.parent.postMessage({kind:'call',id:id,method:method,arg:arg},'*')})}
+var tt;function toast(t){var el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},2500)}
+async function run(fn){if(S.busy)return;S.busy=true;try{await fn()}catch(e){S.err=msg(e.message);if(e.message==='not_logged_in'){S.tok='';try{localStorage.removeItem('tr.tok')}catch(x){}S.home=null}toast(S.err);render()}finally{S.busy=false}}
+var booted=false;
+async function boot(){if(booted)return;booted=true;try{var p=await api('openPlans',{token:''});S.plans=p.plans;S.settings=p.settings}catch(x){S.err=msg(x.message)}
+  if(S.tok){try{await loadHome()}catch(x){S.tok='';S.home=null}}render()}
+async function loadHome(){S.home=await api('myHome');S.settings=S.home.settings}
+function fdate(d){var x=new Date(d+'T00:00:00');return isNaN(x)?d:x.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
+function nextMonday(){var d=new Date();var k=(8-d.getDay())%7||7;d.setDate(d.getDate()+k);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+var TYPEL={easy:'Easy',long:'Long run',tempo:'Tempo',interval:'Intervals',rest:'Rest',cross:'Cross-train',strength:'Strength',race:'Race',other:'Other'};
+function sessionRow(s,full){
+  var d=s.status==='done',sk=s.status==='skipped';
+  var detail=d?'<div class="muted">Done: '+(s.aKm!=null?esc(s.aKm)+' km':'')+(s.aMin!=null?' · '+esc(s.aMin)+' min':'')+(s.rpe?' · effort '+esc(s.rpe)+'/10':'')+(s.aNote?'<br>'+esc(s.aNote):'')+'</div>':sk?'<div class="muted">Skipped'+(s.aNote?': '+esc(s.aNote):'')+'</div>':'';
+  var canLog=s.type!=='rest';
+  return '<div class="ses '+(d?'done':sk?'skipped':'')+'"><div class="row"><div><span class="type">'+esc(TYPEL[s.type]||s.type)+'</span> <b>'+esc(s.title)+'</b>'+(full?'<div class="muted">'+esc(fdate(s.date))+'</div>':'')+'</div><div style="text-align:right">'+(s.km?'<b>'+esc(s.km)+' km</b>':'')+(s.minutes?'<div class="muted">'+esc(s.minutes)+' min</div>':'')+'</div></div>'
+   +(s.notes?'<div class="muted" style="margin-top:4px">'+esc(s.notes)+'</div>':'')+detail+(s.feedback?'<div class="fb"><b>'+esc(s.feedbackBy||'Coach')+':</b> '+esc(s.feedback)+'</div>':'')
+   +(canLog&&S.logId!==s.id?'<button class="btn alt sm" data-act="logOpen" data-id="'+esc(s.id)+'">'+(d||sk?'Change':'Log this workout')+'</button>':'')
+   +(S.logId===s.id?logForm(s):'')+'</div>';
+}
+function logForm(s){
+  return '<form class="logForm" data-id="'+esc(s.id)+'"><div class="grid2"><label class="f">Distance (km)<input name="aKm" type="number" step="0.01" min="0" value="'+esc(s.aKm!=null?s.aKm:s.km||'')+'"></label><label class="f">Time (minutes)<input name="aMin" type="number" min="0" value="'+esc(s.aMin!=null?s.aMin:s.minutes||'')+'"></label></div>'
+   +'<label class="f">Effort, 1 easy to 10 hardest<input name="rpe" type="number" min="1" max="10" value="'+esc(s.rpe||'')+'"></label><label class="f">How did it feel?<textarea name="note" rows="2">'+esc(s.aNote||'')+'</textarea></label>'
+   +'<div class="grid2"><button class="btn" type="submit" data-status="done">I did it</button><button class="btn alt" type="submit" data-status="skipped">Skip</button></div>'
+   +(s.status!=='planned'?'<button class="btn alt sm" type="button" data-act="undo" data-id="'+esc(s.id)+'">Mark as not done</button>':'')+'<button class="btn alt sm" type="button" data-act="logClose">Close</button></form>';
+}
+function authView(){
+  var su=S.mode==='signup',fv=S.form||{};
+  return '<div class="eyebrow">VTRA</div><h1>Train with VTRA</h1><p class="muted" style="margin-top:6px">Free '+esc(S.settings?S.settings.freeWeeks:8)+'-week plans for 5K, 10K and half marathon. Log your runs, track your progress, and ask for a coach.</p>'
+   +'<div class="card"><h2>'+(su?'Create your account':'Log in')+'</h2><form id="authForm">'
+   +(su?'<label class="f">Your name<input name="name" autocomplete="name" value="'+esc(fv.name)+'" required></label>':'')
+   +'<label class="f">Mobile number<input name="phone" inputmode="numeric" autocomplete="tel" placeholder="10-digit number" value="'+esc(fv.phone)+'" required></label>'
+   +'<label class="f">6-digit PIN<input name="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="'+(su?'new-password':'current-password')+'" required></label>'
+   +(su?'<label class="f">Your level<select name="level"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label><label class="f">What are you training for? (optional)<input name="goal" placeholder="e.g. Vizag Half Marathon" value="'+esc(fv.goal)+'"></label><div class="hp" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>':'')
+   +'<button class="btn" type="submit">'+(su?'Sign me up':'Log in')+'</button></form>'+(S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'')
+   +'<button class="btn alt" data-act="mode" type="button">'+(su?'I already have an account':'Create an account')+'</button></div>';
+}
+function pickPlan(){
+  var h=S.home;
+  return '<div class="eyebrow">Hello, '+esc(h.athlete.name.split(' ')[0])+'</div><h1>Pick your plan</h1><p class="muted" style="margin-top:6px">Free. Choose the one that matches where you are today, and a start date (Monday works best).</p>'
+   +(S.plans&&S.plans.length?S.plans.map(function(p){return '<div class="card"><h2>'+esc(p.name)+'</h2><p class="muted">'+esc(p.level)+' · '+esc(p.weeks)+' weeks</p><p>'+esc(p.blurb)+'</p><form class="planForm" data-id="'+esc(p.id)+'"><label class="f">Start date<input type="date" name="startDate" value="'+nextMonday()+'" required></label><button class="btn" type="submit">Start this plan</button></form></div>'}).join(''):'<div class="card">No plans are open right now.</div>')
+   +'<button class="btn alt" data-act="logout">Log out</button>';
+}
+function bar(a,b){return '<div class="bar"><i style="width:'+(b?Math.min(100,Math.round(a/b*100)):0)+'%"></i></div>'}
+function todayView(){
+  var h=S.home,st=h.stats;
+  var td=h.todays.length?h.todays.map(function(s){return sessionRow(s,false)}).join(''):'<p class="muted">Nothing planned today.</p>';
+  return '<div class="card"><h2>Today · '+esc(fdate(h.today))+'</h2>'+td+'</div>'
+   +(h.next?'<div class="card"><div class="muted">Next up</div>'+sessionRow(h.next,true)+'</div>':'')
+   +'<div class="card"><h2>This week</h2><div class="big">'+esc(st.weekDoneKm)+' <span class="muted" style="font:600 16px var(--f-body)">of '+esc(st.weekPlannedKm)+' km</span></div>'+bar(st.weekDoneKm,st.weekPlannedKm)
+   +'<p class="muted" style="margin-top:10px">'+(st.adherence===null?'Your plan has not started yet.':'Plan so far: <b>'+st.adherence+'%</b> done ('+st.done+' of '+st.due+' workouts)'+(st.missed?', '+st.missed+' not logged':''))+'</p></div>';
+}
+function planView(){
+  if(!S.sessions)return '<div class="card muted">Loading…</div>';
+  var by={};S.sessions.forEach(function(s){var k=s.week||0;(by[k]=by[k]||[]).push(s)});
+  var keys=Object.keys(by).map(Number).sort(function(a,b){return a-b});
+  var addf=S.addRun?'<form id="addRun" class="card"><h2>Add my own run</h2><div class="grid2"><label class="f">Date<input type="date" name="date" value="'+S.home.today+'" required></label><label class="f">Type<select name="type"><option value="easy">Easy</option><option value="long">Long run</option><option value="tempo">Tempo</option><option value="interval">Intervals</option><option value="cross">Cross-train</option><option value="strength">Strength</option></select></label></div><label class="f">Name<input name="title" placeholder="My run"></label><div class="grid2"><label class="f">km<input name="km" type="number" step="0.1" min="0"></label><label class="f">Minutes<input name="minutes" type="number" min="0"></label></div><button class="btn" type="submit">Add</button></form>':'<button class="btn alt" data-act="addRun">+ Add my own run</button>';
+  return addf+keys.map(function(k){return '<div class="wk">'+(k?'Week '+k:'My extra runs')+'</div><div class="card" style="margin-top:6px">'+by[k].map(function(s){return sessionRow(s,true)}).join('')+'</div>'}).join('');
+}
+function coachView(){
+  var h=S.home,e=h.enrollment;
+  if(e.coachStatus==='active'){
+    var m=S.msgs?S.msgs.messages:null;
+    return '<div class="card"><h2>Your coach: '+esc(e.coach)+'</h2><p class="muted">Messages are private between you and your coach. Coach feedback on workouts shows in your plan.</p><div id="thread">'+(m?(m.length?m.map(function(x){return '<div class="msg '+(x.from==='athlete'?'me':'')+'">'+esc(x.text)+'</div>'}).join(''):'<p class="muted">No messages yet. Say hello.</p>'):'<p class="muted">Loading…</p>')+'</div><form id="sendMsg"><label class="f">Message<textarea name="text" rows="2" required></textarea></label><button class="btn" type="submit">Send</button></form></div>';
+  }
+  var s=h.settings;
+  return '<div class="card"><h2>Want a coach?</h2><p>A coach adjusts your plan, gives feedback on every workout and answers your questions.</p><p><b>Price: '+esc(s.coachedPriceText)+'</b></p>'+(s.coachedBlurb?'<p class="muted">'+esc(s.coachedBlurb)+'</p>':'')
+   +(e.coachStatus==='requested'?'<p class="pill good">Requested. We will assign a coach soon.</p><button class="btn alt" data-act="cancelReq">Withdraw request</button>':'<form id="reqForm"><label class="f">Anything your coach should know? (optional)<textarea name="note" rows="2"></textarea></label><button class="btn" type="submit">Request a coach</button></form>')+'</div>'
+   +'<div class="card"><h3 style="margin:0">On the free plan</h3><p class="muted">You get the full schedule and your own log. Messages open when a coach is assigned.</p></div>';
+}
+function homeView(){
+  var h=S.home,e=h.enrollment;
+  var body=S.tab==='today'?todayView():S.tab==='plan'?planView():coachView();
+  return '<div class="eyebrow">'+esc(e.planName)+(e.kind==='coached'?' · coached':'')+'</div><h1>Hi '+esc(h.athlete.name.split(' ')[0])+'</h1>'
+   +'<div class="nav" role="tablist"><button data-act="tab" data-tab="today" aria-current="'+(S.tab==='today')+'">Today</button><button data-act="tab" data-tab="plan" aria-current="'+(S.tab==='plan')+'">My plan</button><button data-act="tab" data-tab="coach" aria-current="'+(S.tab==='coach')+'">Coach'+(h.unread?' ('+h.unread+')':'')+'</button></div>'
+   +body+'<div class="grid2" style="margin-top:20px"><button class="btn alt sm" data-act="logout">Log out</button><button class="btn alt sm" data-act="endPlan">Finish this plan</button></div>';
+}
+function render(){
+  var app=$('#app');
+  if(!S.tok||!S.home){app.innerHTML=authView();return}
+  app.innerHTML=S.home.enrollment?homeView():pickPlan();
+}
+async function openTab(t){S.tab=t;S.logId='';render();
+  if(t==='plan'){S.sessions=(await api('mySessions')).sessions;render()}
+  if(t==='coach'&&S.home.enrollment.coachStatus==='active'){S.msgs=await api('myMessages');await loadHome();render()}}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
+  if(act==='mode'){S.mode=S.mode==='signup'?'login':'signup';S.err='';render()}
+  else if(act==='tab')run(function(){return openTab(b.getAttribute('data-tab'))});
+  else if(act==='logOpen'){S.logId=id;render()}
+  else if(act==='logClose'){S.logId='';render()}
+  else if(act==='undo')run(async function(){await api('logSession',{id:id,status:'planned'});S.logId='';await refresh()});
+  else if(act==='addRun'){S.addRun=true;render()}
+  else if(act==='cancelReq')run(async function(){await api('cancelCoachingRequest');await loadHome();render()});
+  else if(act==='logout'){api('athleteLogout').catch(function(){});S.tok='';S.home=null;S.sessions=null;try{localStorage.removeItem('tr.tok')}catch(x){}render()}
+  else if(act==='endPlan'){if(!b.getAttribute('data-sure')){b.setAttribute('data-sure','1');b.textContent='Sure? Tap again';return}run(async function(){await api('endPlan');S.sessions=null;await loadHome();S.tab='today';render()})}
+});
+async function refresh(){await loadHome();if(S.tab==='plan')S.sessions=(await api('mySessions')).sessions;render()}
+document.addEventListener('submit',function(e){
+  e.preventDefault();var f=e.target,d={};Array.prototype.forEach.call(f.elements,function(x){if(x.name)d[x.name]=x.value});
+  if(f.id==='authForm')run(async function(){S.err='';S.form={name:d.name,phone:d.phone,goal:d.goal};var r=await api(S.mode==='signup'?'athleteSignup':'athleteLogin',Object.assign({token:''},d));if(r.ok&&!r.token)return;S.tok=r.token;try{localStorage.setItem('tr.tok',S.tok)}catch(x){}await loadHome();render()});
+  else if(f.classList.contains('planForm'))run(async function(){await api('enrollPlan',{planId:f.getAttribute('data-id'),startDate:d.startDate});S.tab='today';await loadHome();render()});
+  else if(f.classList.contains('logForm')){var st=(e.submitter&&e.submitter.getAttribute('data-status'))||'done';run(async function(){await api('logSession',{id:f.getAttribute('data-id'),status:st,aKm:d.aKm,aMin:d.aMin,rpe:d.rpe,note:d.note});S.logId='';toast(st==='done'?'Logged. Well done!':'Marked as skipped');await refresh()})}
+  else if(f.id==='addRun')run(async function(){await api('addMySession',d);S.addRun=false;await refresh()});
+  else if(f.id==='reqForm')run(async function(){await api('requestCoaching',{note:d.note});toast('Requested');await loadHome();render()});
+  else if(f.id==='sendMsg')run(async function(){await api('sendMyMessage',{text:d.text});S.msgs=await api('myMessages');render()});
+});
+render();
+window.parent.postMessage({kind:'hello'},'*');setTimeout(boot,1500);
+})();
+</script>
+</body>
+</html>

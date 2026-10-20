@@ -34,7 +34,7 @@ Your Expo files and the findmybib files are not changed.
 5. **Publish.** It works on the published site only.
 6. Open `/director`. Under **First-time setup (owner only)** enter the setup key and, only if you have no logins yet, a new admin name and password. It creates the Director collections (locked to Admin). It never changes existing logins.
 7. Log in, open **Setup**, create the race. Fill **Expo race ID** with the Import collection of that race (for example `Import910`) so the Overview shows live check-in, bib and T-shirt counts from the Expo desk.
-8. Open **Volunteers**, add shifts, then copy the sign-up link. If your volunteer page is not at `https://vtra.run/volunteer`, edit the address in the box once; it is remembered in that browser.
+8. Open **Volunteers**, add shifts, then copy the sign-up link. If your volunteer page is not at `https://www.vtra.run/volunteer`, edit the address in the box once; it is remembered in that browser.
 9. Add lead and viewer logins in ExpoStaff (role column).
 
 ## Race-day use

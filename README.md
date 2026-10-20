@@ -26,3 +26,9 @@ Neither package has run on a live Wix site yet. Rehearse on the published site b
 ## Secrets
 
 `SETUP_KEY` in `exposoft.web.js` and `racedir.web.js` ships as `change-this-key`. Change it in Wix to your own secret. Never commit your real key.
+
+## Site map
+See docs/SITEMAP.md. Race Director is at /rd, volunteers at /volunteer, athletes at /train, coaches at /coach.
+
+## Training
+See wix/training/README.md.
