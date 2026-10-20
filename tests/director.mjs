@@ -279,9 +279,50 @@ const ovn = await D.overview({ token: T.v, ev: near.id });
 ok(ovn.expo === null && ovn.alerts.some((a) => a.level === 'warn' && /checklist/.test(a.text)), 'overview: race inside a week warns about open checklist');
 ok((await err(D.overview({ token: T.v, ev: 'nope' }))) === 'no_event', 'overview: unknown event');
 
-// ---- qualification checks
-const QR = (id, name, cat) => wd.insert('Runners', { _id: 'Import910~' + id, event: 'Import910', bib: id, name, cat, checkedInAt: '', bibAt: '', shirtAt: '' }, SA);
-await QR('q1', 'Asha', '25 K - Debut Trail'); await QR('q2', 'Ravi', '25K'); await QR('q3', 'Kiran', '110 K - Conquer The Trail'); await QR('q4', 'Meena', '10 K - Vanajangi Challenge');
+// ---- Wix Events registrations
+const G = (n, first, last, cat, o) => Object.assign({ _id: 'g' + n, eventId: 'W1', guestType: 'TICKET_HOLDER', ticketNumber: 'T' + n, orderNumber: 'O' + n, tickets: [{ name: cat, number: 'T' + n, definitionId: 'd1' }],
+  guestDetails: { firstName: first, lastName: last, email: first.toLowerCase() + '@x.com', phone: '+91 98480 1200' + n, formResponse: { inputValues: [{ inputName: 'tshirt', value: 'm' }, { inputName: 'bib_name', value: first.toUpperCase() }, { inputName: 'notes', value: 'hi' }] } },
+  additionalDetails: { orderStatus: 'PAID' } }, o || {});
+global.__EV = { fail: false, events: [{ _id: 'W1', title: 'Ultribe Paderu 26', status: 'SCHEDULED', dateAndTimeSettings: { startDate: new Date('2026-12-05T08:30:00Z') } }],
+  guests: [G(1, 'Asha', 'Rao', '25 K - Debut Trail'), G(2, 'Ravi', 'Kumar', '25K'), G(3, 'Kiran', 'P', '110 K - Conquer The Trail'), G(4, 'Meena', 'S', '10 K - Vanajangi Challenge'),
+    G(5, 'Cancelled', 'One', '10 K', { additionalDetails: { orderStatus: 'CANCELED' } }), G(6, 'Unpaid', 'Two', '10 K', { additionalDetails: { orderStatus: 'PENDING' } }),
+    G(7, '', '', '10 K', { guestDetails: { email: 'n@x.com' } }), G(8, 'Buyer', 'Only', '10 K', { guestType: 'BUYER' }), G(9, 'Other', 'Event', '10 K', { eventId: 'W2' })] };
+ok((await err(D.listWixEvents({ token: T.l }))) === 'director_only', 'wix: lead cannot list Wix events');
+ok((await D.listWixEvents({ token: T.b })).events[0].start === '2026-12-05', 'wix: events listed with date');
+ok((await err(D.importRegs({ token: T.b, ev: E }))) === 'wix_event_not_linked', 'wix: import needs a linked event');
+ok((await err(D.linkWixEvent({ token: T.l, ev: E, wixEventId: 'W1' }))) === 'director_only', 'wix: lead cannot link');
+await D.linkWixEvent({ token: T.b, ev: E, wixEventId: 'W1' });
+ok((await D.listEvents({ token: T.v })).events.find((x) => x.id === E).wixEventId === 'W1', 'wix: link kept on the event');
+ok((await D.saveEvent({ token: T.b, id: E, venue: 'RK Beach' })).event.wixEventId === 'W1', 'wix: editing the event keeps the link');
+const ff = await D.wixFormFields({ token: T.b, ev: E });
+ok(ff.fields.some((f) => f.name === 'tshirt' && f.sample.includes('m')) && ff.tickets.some((t) => t.name === '25 K - Debut Trail'), 'wix: form fields and ticket names shown for mapping');
+ok((await D.saveWixMap({ token: T.b, ev: E, map: { size: 'tshirt', bibName: 'bib_name', phone: '' } })).map.size === 'tshirt', 'wix: mapping saved');
+global.__EV.fail = true;
+ok((await err(D.importRegs({ token: T.b, ev: E }))) === 'wix_events_unavailable', 'wix: Wix failure gives a clear error');
+global.__EV.fail = false;
+const imp = await D.importRegs({ token: T.b, ev: E });
+ok(imp.done && imp.added === 5 && imp.skipped.cancelled === 1 && imp.skipped.noName === 1, 'wix: import adds ticket holders, skips cancelled and nameless');
+ok((await D.importRegs({ token: T.b, ev: E })).added === 0, 'wix: importing again adds nothing');
+ok((await count('RDRegs', (r) => r.event === E)) === 5, 'wix: one row per ticket, other events and buyers left out');
+let lr = await D.listRegs({ token: T.v, ev: E });
+const ashaReg = lr.rows.find((r) => r.name === 'Asha Rao');
+ok(ashaReg && ashaReg.size === 'M' && ashaReg.bibName === 'ASHA' && ashaReg.phone === '9848012001' && ashaReg.cat === '25 K - Debut Trail', 'wix: size, bib name, phone and ticket name mapped');
+ok(lr.cats.find((c) => c.cat === '10 K - Vanajangi Challenge').total === 1 && lr.rows.find((r) => r.name === 'Unpaid Two').unpaid, 'wix: categories counted, pending payment flagged');
+ok(lr.expoCount !== null && lr.rows.every((r) => r.inExpo === false), 'wix: runners not yet in findmybib are flagged');
+await wd.insert('Runners', { _id: 'Import910~m1', event: 'Import910', bib: 'm1', name: 'Asha R', phone: '9848012001', email: '', cat: '', checkedInAt: '', bibAt: '', shirtAt: '' }, SA);
+lr = await D.listRegs({ token: T.v, ev: E });
+ok(lr.rows.find((r) => r.name === 'Asha Rao').inExpo === true, 'wix: a registration matches its findmybib runner by phone');
+const imp2 = await D.importRegs({ token: T.b, ev: E, cursor: '' });
+ok(imp2.updated === 5, 'wix: re-import updates in place');
+global.__EV.guests.push(G(10, 'Page', 'Two', '25 K')); global.__EV.guests.push(...Array.from({ length: 210 }, (_, k) => G(100 + k, 'Bulk' + k, 'R', '10 K')));
+let cur = '', added = 0, pages = 0;
+do { const r = await D.importRegs({ token: T.b, ev: E, cursor: cur }); added += r.added; cur = r.next; pages++; if (r.done) break; } while (pages < 10);
+ok(added === 211 && pages >= 2, 'wix: large lists import page by page (' + added + ' in ' + pages + ')');
+// remove the bulk rows so later counts stay simple
+await wd.bulkRemove('RDRegs', [...(await wd.query('RDRegs').limit(1000).find(SA)).items].filter((r) => /Bulk|Page/.test(r.name)).map((r) => r._id), SA);
+global.__EV.guests = global.__EV.guests.filter((g) => !/^g(10$|1\d\d|2\d\d|3\d\d)/.test(g._id));
+
+// ---- qualification checks (run on the imported registrations)
 const RULES = [{ cat: '25 K', text: 'Half marathon under 3 hrs', alts: [{ minKm: 21.0975, maxTime: '3:00' }] },
   { cat: '110 K', text: 'Full marathon under 6 hrs, or any 50 km+', alts: [{ minKm: 42.195, maxTime: '6:00' }, { minKm: 50 }] }];
 ok((await err(D.saveQualRules({ token: T.l, ev: E, rules: RULES }))) === 'director_only', 'quals: lead cannot set rules');
@@ -292,35 +333,35 @@ ok((await D.saveQualRules({ token: T.b, ev: E, rules: RULES })).count === 2, 'qu
 ok((await D.listEvents({ token: T.v })).events.find((x) => x.id === E).quals.length === 2, 'quals: rules come back with the event');
 ok((await D.saveEvent({ token: T.b, id: E, venue: 'RK Beach' })).event.quals.length === 2, 'quals: editing the event keeps rules');
 let ql = await D.listQuals({ token: T.v, ev: E });
-ok(ql.rows.length === 3 && ql.counts.pending === 3 && ql.counts.noclaim === 3, 'quals: only runners of ruled categories listed, all pending with no claim');
-ok(!ql.rows.some((r) => r.name === 'Meena'), 'quals: category without rule not listed');
-ok((await err(D.listQuals({ token: T.v, ev: E2 }))) === '' && (await D.listQuals({ token: T.v, ev: E2 })).hasExpo === false, 'quals: race with no expo link is empty, not an error');
+ok(ql.rows.length === 3 && ql.counts.pending === 3 && ql.counts.noclaim === 3, 'quals: only registrations in ruled categories listed, all pending with no claim');
+ok(!ql.rows.some((r) => r.name === 'Meena S'), 'quals: category without rule not listed');
+ok((await err(D.listQuals({ token: T.v, ev: E2 }))) === '' && (await D.listQuals({ token: T.v, ev: E2 })).hasRegs === false, 'quals: race with no registrations is empty, not an error');
 const rid = (n) => ql.rows.find((r) => r.name === n).runnerId;
-ok((await err(D.saveQualClaim({ token: T.v, ev: E, runnerId: rid('Asha'), text: 'x', km: 21 }))) === 'read_only', 'quals: viewer cannot record a claim');
-ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: 'Import910~q4', text: 'x', km: 21 }))) === 'no_rule', 'quals: claim for category without rule refused');
-ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: 'Import999~1', text: 'x', km: 21 }))) === 'no_runner', 'quals: runner of another race refused');
-ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), km: 21, time: '2:5x' }))) === 'bad_claim', 'quals: bad time refused');
-ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), km: 21, time: '2:50', link: 'javascript:alert(1)' }))) === 'bad_link', 'quals: non-http link refused');
-ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), text: 'Vizag HM 2025', km: 21.1, time: '2:45:10' })).row.verdict === 'meets', 'quals: half in 2:45 meets 25 K rule');
-ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Ravi'), text: 'Hyd HM', km: 21.1, time: '3:20' })).row.verdict === 'below', 'quals: half in 3:20 is below');
-ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran'), text: '50 km trail', km: 50, time: '8:30' })).row.verdict === 'meets', 'quals: second alternative (50 km+) meets');
-ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran'), text: 'FM', km: 42.2, time: '6:30' })).row.verdict === 'below', 'quals: marathon over 6 hrs is below');
-ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran'), text: '50 km trail', km: 50, time: '8:30' })).row.verdict === 'meets', 'quals: claim can be replaced');
-ok((await count('RDQuals', (q) => q.runnerId === rid('Kiran'))) === 1, 'quals: one claim row per runner');
-ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Asha'), status: 'banana' }))) === 'bad_status', 'quals: bad status');
-ok((await D.decideQual({ token: T.l, ev: E, runnerId: rid('Asha'), status: 'approved' })).row.status === 'approved', 'quals: approve a runner who meets the rule');
-ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'approved' }))) === 'note_needed', 'quals: approving a runner below the rule needs a reason');
-ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'rejected' }))) === 'note_needed', 'quals: rejecting needs a reason');
-ok((await D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'rejected', note: 'Under-distance, move to 10 K' })).row.status === 'rejected', 'quals: reject with reason');
-ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi'), status: 'waived', note: 'ok by RD' }))) === 'director_only', 'quals: lead cannot waive');
-ok((await D.decideQual({ token: T.b, ev: E, runnerId: rid('Ravi'), status: 'waived', note: 'Known ultra runner' })).row.status === 'waived', 'quals: director can waive with a reason');
-ok((await err(D.decideQual({ token: T.v, ev: E, runnerId: rid('Asha'), status: 'rejected', note: 'no' }))) === 'read_only', 'quals: viewer cannot decide');
+ok((await err(D.saveQualClaim({ token: T.v, ev: E, runnerId: rid('Asha Rao'), text: 'x', km: 21 }))) === 'read_only', 'quals: viewer cannot record a claim');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: (await wd.query('RDRegs').eq('name', 'Meena S').find(SA)).items[0]._id, text: 'x', km: 21 }))) === 'no_rule', 'quals: claim for category without rule refused');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: 'nope', text: 'x', km: 21 }))) === 'no_runner', 'quals: runner of another race refused');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha Rao'), km: 21, time: '2:5x' }))) === 'bad_claim', 'quals: bad time refused');
+ok((await err(D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha Rao'), km: 21, time: '2:50', link: 'javascript:alert(1)' }))) === 'bad_link', 'quals: non-http link refused');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha Rao'), text: 'Vizag HM 2025', km: 21.1, time: '2:45:10' })).row.verdict === 'meets', 'quals: half in 2:45 meets 25 K rule');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Ravi Kumar'), text: 'Hyd HM', km: 21.1, time: '3:20' })).row.verdict === 'below', 'quals: half in 3:20 is below');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran P'), text: '50 km trail', km: 50, time: '8:30' })).row.verdict === 'meets', 'quals: second alternative (50 km+) meets');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran P'), text: 'FM', km: 42.2, time: '6:30' })).row.verdict === 'below', 'quals: marathon over 6 hrs is below');
+ok((await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Kiran P'), text: '50 km trail', km: 50, time: '8:30' })).row.verdict === 'meets', 'quals: claim can be replaced');
+ok((await count('RDQuals', (q) => q.runnerId === rid('Kiran P'))) === 1, 'quals: one claim row per runner');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Asha Rao'), status: 'banana' }))) === 'bad_status', 'quals: bad status');
+ok((await D.decideQual({ token: T.l, ev: E, runnerId: rid('Asha Rao'), status: 'approved' })).row.status === 'approved', 'quals: approve a runner who meets the rule');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi Kumar'), status: 'approved' }))) === 'note_needed', 'quals: approving a runner below the rule needs a reason');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi Kumar'), status: 'rejected' }))) === 'note_needed', 'quals: rejecting needs a reason');
+ok((await D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi Kumar'), status: 'rejected', note: 'Under-distance, move to 10 K' })).row.status === 'rejected', 'quals: reject with reason');
+ok((await err(D.decideQual({ token: T.l, ev: E, runnerId: rid('Ravi Kumar'), status: 'waived', note: 'ok by RD' }))) === 'director_only', 'quals: lead cannot waive');
+ok((await D.decideQual({ token: T.b, ev: E, runnerId: rid('Ravi Kumar'), status: 'waived', note: 'Known ultra runner' })).row.status === 'waived', 'quals: director can waive with a reason');
+ok((await err(D.decideQual({ token: T.v, ev: E, runnerId: rid('Asha Rao'), status: 'rejected', note: 'no' }))) === 'read_only', 'quals: viewer cannot decide');
 ql = await D.listQuals({ token: T.v, ev: E });
 ok(ql.counts.approved === 1 && ql.counts.waived === 1 && ql.counts.pending === 1, 'quals: counts add up');
-ok(ql.rows[0].name === 'Kiran' && ql.rows[0].status === 'pending', 'quals: pending runners listed first');
-await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha'), text: 'New race', km: 10, time: '0:50' });
+ok(ql.rows[0].name === 'Kiran P' && ql.rows[0].status === 'pending', 'quals: pending runners listed first');
+await D.saveQualClaim({ token: T.l, ev: E, runnerId: rid('Asha Rao'), text: 'New race', km: 10, time: '0:50' });
 ql = await D.listQuals({ token: T.v, ev: E });
-const ashaQ = ql.rows.find((r) => r.name === 'Asha');
+const ashaQ = ql.rows.find((r) => r.name === 'Asha Rao');
 ok(ashaQ.status === 'pending' && ashaQ.verdict === 'below', 'quals: a new claim resets an old approval');
 ok((await D.overview({ token: T.v, ev: E })).alerts.some((a) => /qualification/.test(a.text) && a.go === 'quals'), 'quals: overview alert for uncleared runners');
 ok((await D.overview({ token: T.v, ev: E })).quals.pending === 2, 'quals: overview count (not approved or waived)');

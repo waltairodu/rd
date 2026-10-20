@@ -69,7 +69,14 @@ From the repository root: `tests/all.sh`. It runs the Expo checks and the Direct
 - Tab **Qualification**. The director sets rules per category in one text box, one line each:
   `110 K | Marathon under 6 hrs, or any 50 km+ | 42.195@6:00; 50@`
   A runner qualifies if they meet any one way (distance, time, or both).
-- Needs the race linked to its Expo race, so the runner list and categories can be read. Category names are matched loosely ("25 K - Debut Trail" matches a rule called "25 K").
+- Runs on the registrations imported from Wix Events (see below), so rules can be cleared long before bibs exist. Category names are matched loosely ("25 K - Debut Trail" matches a rule called "25 K").
 - Lead or director records what the runner claims (race, distance, time, proof link). The screen gives a first opinion: Meets, Below, or No claim. Then a person approves, rejects or (director only) waives, each with a reason when it is not a clean pass. A new claim resets an earlier decision.
 - The Overview lists how many runners are not yet cleared.
 - Not yet: runners submitting their own proof on a public page. For now the team records it.
+
+## Registrations from Wix Events (new)
+- Tab **Registrations**. Director: Load my Wix events, pick the race's event, Link. Then Import / refresh (safe to repeat; one row per ticket; cancelled orders are skipped, payment-pending ones are flagged).
+- The category is the **ticket name** (10 K, 25 K, ...). Name, email and phone come from the ticket holder.
+- T-shirt size, bib name and phone often have field names chosen by whoever built the checkout form. Press **Form fields**, pick which field is which, Save, then Import again.
+- Shows counts per ticket, who has no size, and (when the race is linked to its Expo race) who is registered but not yet in the findmybib/Expo list, matched by phone or email. CSV download.
+- Needs the Wix Events app on the site. Never run on a live site yet: the first Import is the real test. Send me any error text.

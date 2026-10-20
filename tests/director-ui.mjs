@@ -252,19 +252,35 @@ ok(dirAllowed.filter((x) => !exported.includes(x)).length === 0, 'director page 
   ok(d.querySelector('#loginForm'), 'log out returns to login');
 }
 
-// ---- qualification
+// ---- registrations and qualification
 {
-  await wd.insert('Runners', { _id: 'Import910~u1', event: 'Import910', bib: 'u1', name: 'Uma', cat: '25 K - Debut Trail', checkedInAt: '', bibAt: '', shirtAt: '' }, SA);
-  await wd.insert('Runners', { _id: 'Import910~u2', event: 'Import910', bib: 'u2', name: 'Vikram <b>', cat: '25K', checkedInAt: '', bibAt: '', shirtAt: '' }, SA);
+  const G = (n, first, last, cat) => ({ _id: 'u' + n, eventId: 'W9', guestType: 'TICKET_HOLDER', ticketNumber: 'UT' + n, orderNumber: 'UO' + n, tickets: [{ name: cat }],
+    guestDetails: { firstName: first, lastName: last, email: first.toLowerCase() + '@x.com', phone: '98480110' + n, formResponse: { inputValues: [{ inputName: 'tshirt', value: 'L' }] } }, additionalDetails: { orderStatus: 'PAID' } });
+  global.__EV = { fail: false, events: [{ _id: 'W9', title: 'Ultribe Paderu 26', status: 'SCHEDULED', dateAndTimeSettings: { startDate: new Date('2026-12-05T08:30:00Z') } }],
+    guests: [G(1, 'Uma', 'A', '25 K - Debut Trail'), G(2, 'Vikram', '<b>', '25K')] };
   const B = await login('boss');
   const { w, d } = B;
+  await tab(w, d, 'regs');
+  ok(/Load my Wix events/.test(txt(d.querySelector('#app'))), 'regs: not linked, director can load Wix events');
+  click(w, d.querySelector('[data-act="loadWix"]')); await sleep(300);
+  ok(/Ultribe Paderu 26/.test(txt(d.querySelector('#linkForm'))), 'regs: Wix events listed');
+  submit(w, d.querySelector('#linkForm')); await sleep(400);
+  ok(d.querySelector('[data-act="impRegs"]'), 'regs: linked, import button shown');
+  click(w, d.querySelector('[data-act="impRegs"]')); await sleep(600);
+  ok(/Imported: 2 new/.test(txt(d.querySelector('#app'))) && /Uma A/.test(txt(d.querySelector('#app'))), 'regs: import fills the list');
+  ok(d.querySelector('#app').innerHTML.indexOf('<b>') === -1 || !/Vikram <b>/.test(d.querySelector('#app').innerHTML), 'regs: names are escaped');
+  click(w, d.querySelector('[data-act="chkForm"]')); await sleep(400);
+  const mf = d.querySelector('#mapForm');
+  ok(mf && /tshirt/.test(txt(mf)), 'regs: form fields shown for mapping');
+  mf.elements.size.value = 'tshirt'; submit(w, mf); await sleep(400);
+  click(w, d.querySelector('[data-act="impRegs"]')); await sleep(600);
+  ok([...d.querySelectorAll('tr')].some((r) => /Uma/.test(r.textContent) && [...r.children].some((c) => c.textContent === 'L')), 'regs: size field mapped after re-import');
   await tab(w, d, 'quals');
   ok(d.querySelector('#ruleForm'), 'quals: director sees the rules editor');
   const rf = d.querySelector('#ruleForm');
   set(w, rf.elements.rules, '25 K | Half marathon under 3 hrs | 21.0975@3:00\n110 K | FM under 6 hrs or 50 km+ | 42.195@6:00; 50@');
   submit(w, rf); await sleep(400);
-  ok(/Uma/.test(txt(d.querySelector('#app'))) && /No claim yet/.test(txt(d.querySelector('#app'))), 'quals: runners of ruled categories listed with no claim');
-  ok(!/<b>/.test(d.querySelector('#app').innerHTML.replace(/<\/?b>/g, '')) || /&lt;b&gt;/.test(d.querySelector('#app').innerHTML), 'quals: runner name is escaped');
+  ok(/Uma/.test(txt(d.querySelector('#app'))) && /No claim yet/.test(txt(d.querySelector('#app'))), 'quals: registrations in ruled categories listed with no claim');
   const cf = d.querySelector('.claimForm');
   set(w, cf.elements.text, 'Vizag HM 2025'); set(w, cf.elements.km, '21.1'); set(w, cf.elements.time, '2:40'); submit(w, cf); await sleep(400);
   ok(/Meets rule/.test(txt(d.querySelector('#app'))), 'quals: saved claim shows Meets rule');
@@ -282,6 +298,8 @@ ok(dirAllowed.filter((x) => !exported.includes(x)).length === 0, 'director page 
   ok(/qualification not cleared/.test(txt(d.querySelector('#app'))), 'quals: overview alert shown');
   click(w, d.querySelector('[data-act="logout"]'));
   const V = await login('view1');
+  await tab(V.w, V.d, 'regs');
+  ok(!V.d.querySelector('[data-act="impRegs"]') && !V.d.querySelector('[data-act="chkForm"]') && /Uma A/.test(txt(V.d.querySelector('#app'))), 'regs: viewer reads the list but has no import or mapping');
   await tab(V.w, V.d, 'quals');
   ok(!V.d.querySelector('#ruleForm') && !V.d.querySelector('[data-act="qOk"]') && !V.d.querySelector('.claimForm'), 'quals: viewer sees no editing controls');
   const Ld = await login('lead1');

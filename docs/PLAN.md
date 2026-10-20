@@ -34,3 +34,4 @@ Race date; the VHM bib and size column names from findmybib; the registration to
 
 - Training: free plan runs 8 weeks (decided 20 Oct). Registration confirmed as Wix Events. findmybib export columns per Yogi: name, bib name, email id, phone number, Tshirt size (no category or separate bib-number column named; 'bib name' still unclear).
 - findmybib: Bib Number and Bib Name are two columns; bib name is kept as 'bibName' and shown on the bib card at the Bib desk. Runners collection needs a new text column bibName.
+- Wix Events import built (Registrations tab). Qualification now runs on registrations instead of the Expo runner list.

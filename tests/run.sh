@@ -7,5 +7,5 @@ if [ -f ../wix/director/racedir.web.js ]; then
   sed "s/^const SETUP_KEY = 'change-this-key'/const SETUP_KEY = 'k-test'/" ../wix/director/racedir.web.js > racedir.test.mjs
 fi
 mkdir -p node_modules
-for m in wix-web-module wix-data wix-auth wix-data.v2; do rm -rf node_modules/$m; ln -s ../mocks/$m node_modules/$m; done
+for m in wix-web-module wix-data wix-auth wix-data.v2 wix-events.v2; do rm -rf node_modules/$m; ln -s ../mocks/$m node_modules/$m; done
 node "$@"

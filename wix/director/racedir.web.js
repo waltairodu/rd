@@ -12,6 +12,7 @@ import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
+import { wixEventsV2, guests } from 'wix-events.v2';
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -26,6 +27,7 @@ const PACERS = 'RDPacers';
 const CHECK = 'RDChecklist';
 const RATE = 'RDRate';
 const QUALS = 'RDQuals';
+const REGS = 'RDRegs';
 
 // Choose your own secret. It is asked on setup so that only you can create the collections and the first admin.
 const SETUP_KEY = 'change-this-key';
@@ -216,6 +218,8 @@ function eventOut(it) {
     distanceKm: Number(j.distanceKm) || 21.0975,
     groups: Array.isArray(j.groups) ? j.groups : DEFAULT_GROUPS,
     quals: Array.isArray(j.quals) ? j.quals : [],
+    wixEventId: j.wixEventId || '',
+    wixMap: j.wixMap && typeof j.wixMap === 'object' ? j.wixMap : {},
     daysToGo: Number.isFinite(t) ? Math.ceil((t - Date.now()) / 86400000) : null,
   };
 }
@@ -764,6 +768,171 @@ export const removeCheck = webMethod(Permissions.Anyone, async (arg) => {
 });
 
 
+
+/* ---------- registrations from Wix Events ---------- */
+// Reads the ticket holders of one Wix Events event into RDRegs. Safe to repeat: a ticket is one row.
+// The checkout form's field names are chosen by whoever built the form, so the director maps which field holds
+// the T-shirt size, the bib name and the phone (Registrations tab > Form fields).
+const PAID_OK = ['PAID', 'FREE', 'AUTHORIZED', 'UNKNOW_ORDER_STATUS', ''];
+const DEAD = ['CANCELED', 'DECLINED', 'VOIDED'];
+const dayOf = (d) => {
+  const t = d ? new Date(d) : null;
+  return t && !isNaN(t.getTime()) ? t.toISOString().slice(0, 10) : '';
+};
+function wixErr(e) {
+  const m = String((e && e.message) || e);
+  return new Error(/permission|forbidden|not installed|unauthor/i.test(m) ? 'wix_events_denied' : 'wix_events_unavailable');
+}
+export const listWixEvents = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  let r;
+  try {
+    r = await elevate(wixEventsV2.queryEvents)().limit(100).find();
+  } catch (e) {
+    throw wixErr(e);
+  }
+  return {
+    events: r.items.map((x) => ({ id: x._id, title: String(x.title || ''), start: dayOf(x.dateAndTimeSettings && x.dateAndTimeSettings.startDate), status: String(x.status || '') })),
+  };
+});
+export const linkWixEvent = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const old = await getEvent(arg.ev);
+  const id = clean(arg.wixEventId, 64);
+  let j = {};
+  try {
+    j = old.json ? JSON.parse(old.json) : {};
+  } catch (e) {
+    j = {};
+  }
+  j.wixEventId = id;
+  await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
+  return { ok: true };
+});
+async function holders(wixEventId, cursor, limit, fields) {
+  let q = elevate(guests.queryGuests)({ fields }).eq('eventId', wixEventId).eq('guestType', 'TICKET_HOLDER').limit(limit);
+  if (cursor) q = q.skipTo(String(cursor));
+  try {
+    const r = await q.find();
+    return { items: r.items, next: (r.cursors && r.cursors.next) || '' };
+  } catch (e) {
+    throw wixErr(e);
+  }
+}
+const inputsOf = (g) => ((g.guestDetails && g.guestDetails.formResponse && g.guestDetails.formResponse.inputValues) || []).map((i) => ({ name: String(i.inputName || ''), value: String(i.value || (Array.isArray(i.values) ? i.values.join(', ') : '') || '') }));
+const pick = (inputs, name) => (name ? (inputs.find((i) => i.name === name) || { value: '' }).value : '');
+// Shows what the checkout form asks and what ticket names exist, so the mapping can be chosen.
+export const wixFormFields = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const e = eventOut(await getEvent(arg.ev));
+  if (!e.wixEventId) throw new Error('wix_event_not_linked');
+  const h = await holders(e.wixEventId, '', 200, ['GUEST_DETAILS']);
+  const fields = new Map();
+  const tickets = new Map();
+  h.items.forEach((g) => {
+    inputsOf(g).forEach((i) => {
+      const f = fields.get(i.name) || { name: i.name, count: 0, sample: [] };
+      if (i.value) {
+        f.count++;
+        if (f.sample.length < 3 && !f.sample.includes(i.value.slice(0, 40))) f.sample.push(i.value.slice(0, 40));
+      }
+      fields.set(i.name, f);
+    });
+    (g.tickets || []).slice(0, 1).forEach((t) => tickets.set(t.name, (tickets.get(t.name) || 0) + 1));
+  });
+  return { scanned: h.items.length, fields: Array.from(fields.values()), tickets: Array.from(tickets, ([name, count]) => ({ name, count })), map: e.wixMap };
+}
+);
+export const saveWixMap = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const old = await getEvent(arg.ev);
+  const m = arg.map || {};
+  const map = { size: clean(m.size, 100), bibName: clean(m.bibName, 100), phone: clean(m.phone, 100) };
+  let j = {};
+  try {
+    j = old.json ? JSON.parse(old.json) : {};
+  } catch (e) {
+    j = {};
+  }
+  j.wixMap = map;
+  await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
+  return { ok: true, map };
+});
+export const importRegs = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const e = eventOut(await getEvent(arg.ev));
+  if (!e.wixEventId) throw new Error('wix_event_not_linked');
+  const h = await holders(e.wixEventId, arg.cursor, 200, ['GUEST_DETAILS']);
+  const skipped = { cancelled: 0, noName: 0 };
+  const byId = new Map();
+  h.items.forEach((g) => {
+    const st = String((g.additionalDetails && g.additionalDetails.orderStatus) || '');
+    if (DEAD.includes(st)) {
+      skipped.cancelled++;
+      return;
+    }
+    const gd = g.guestDetails || {};
+    const inputs = inputsOf(g);
+    const name = clean(((gd.firstName || '') + ' ' + (gd.lastName || '')).trim() || pick(inputs, 'name'), 80);
+    if (!name) {
+      skipped.noName++;
+      return;
+    }
+    const ticket = clean(g.ticketNumber || g.orderNumber || g._id, 60);
+    const phone = phoneDigits(pick(inputs, e.wixMap.phone) || gd.phone || '');
+    const size = clean(pick(inputs, e.wixMap.size), 12).toUpperCase();
+    const id = e.id + '~' + ticket;
+    byId.set(id, {
+      _id: id,
+      event: e.id,
+      ticketNumber: ticket,
+      orderNumber: clean(g.orderNumber, 60),
+      guestId: clean(g._id, 60),
+      name,
+      email: clean(gd.email, 120).toLowerCase(),
+      phone,
+      cat: clean(((g.tickets || [])[0] || {}).name, 60),
+      size,
+      bibName: clean(pick(inputs, e.wixMap.bibName), 40),
+      status: PAID_OK.includes(st) ? 'ok' : 'unpaid',
+      form: JSON.stringify(inputs.slice(0, 40)).slice(0, 4000),
+      at: nowIso(),
+    });
+  });
+  const ids = Array.from(byId.keys());
+  const old = ids.length ? (await wixData.query(REGS).hasSome('_id', ids).limit(1000).find(SA)).items : [];
+  const have = new Set(old.map((o) => o._id));
+  const add = ids.filter((i) => !have.has(i)).map((i) => byId.get(i));
+  const upd = ids.filter((i) => have.has(i)).map((i) => byId.get(i));
+  if (add.length) await wixData.bulkInsert(REGS, add, SA);
+  if (upd.length) await wixData.bulkUpdate(REGS, upd, SA);
+  return { done: !h.next, next: h.next, added: add.length, updated: upd.length, skipped };
+});
+const last10 = (p) => phoneDigits(p).slice(-10);
+export const listRegs = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg);
+  const e = eventOut(await getEvent(arg.ev));
+  const regs = await rows(REGS, e.id).catch(() => []);
+  let expo = null;
+  if (e.expoId) {
+    const rs = await rows(RUNNERS, e.expoId).catch(() => null);
+    if (rs) expo = { phones: new Set(rs.map((r) => last10(r.phone)).filter(Boolean)), emails: new Set(rs.map((r) => lc(r.email)).filter(Boolean)), count: rs.length };
+  }
+  const cats = new Map();
+  const list = regs.map((r) => {
+    const inExpo = expo ? (!!last10(r.phone) && expo.phones.has(last10(r.phone))) || (!!r.email && expo.emails.has(lc(r.email))) : null;
+    const c = cats.get(r.cat) || { cat: r.cat || '(no ticket name)', total: 0, unpaid: 0, missingInExpo: 0, noSize: 0 };
+    c.total++;
+    if (r.status === 'unpaid') c.unpaid++;
+    if (inExpo === false) c.missingInExpo++;
+    if (!r.size) c.noSize++;
+    cats.set(r.cat, c);
+    return { id: r._id, ticket: r.ticketNumber, name: r.name, email: r.email, phone: r.phone, cat: r.cat, size: r.size, bibName: r.bibName, unpaid: r.status === 'unpaid', inExpo };
+  });
+  list.sort((a, b) => a.name.localeCompare(b.name));
+  return { linked: !!e.wixEventId, wixEventId: e.wixEventId, map: e.wixMap, total: list.length, expoCount: expo ? expo.count : null, cats: Array.from(cats.values()).sort((a, b) => a.cat.localeCompare(b.cat)), rows: list.slice(0, 2000) };
+});
+
 /* ---------- qualification checks ---------- */
 // A rule is per category and has one or more ways to qualify (alternatives). An alternative is a minimum
 // distance, a maximum time, or both: "half marathon under 3 hrs" = { minKm: 21.0975, maxSec: 10800 }.
@@ -805,7 +974,7 @@ const qualOut = (e, r, q) => {
   const rule = ruleFor(e, r.cat);
   return {
     runnerId: r._id,
-    bib: r.bib || '',
+    ref: r.ticketNumber || '',
     name: r.name || '',
     cat: r.cat || '',
     rule: rule ? rule.text || 'Rule set' : '',
@@ -817,22 +986,22 @@ const qualOut = (e, r, q) => {
     by: q ? q.by || '' : '',
   };
 };
+// Qualification runs on the registrations imported from Wix Events, so it works long before bibs exist.
 async function qualData(e) {
-  if (!e.expoId) return { runners: [], quals: new Map() };
-  const [runners, qs] = await Promise.all([rows(RUNNERS, e.expoId).catch(() => []), rows(QUALS, e.id).catch(() => [])]);
-  return { runners, quals: new Map(qs.map((q) => [q.runnerId, q])) };
+  const [regs, qs] = await Promise.all([rows(REGS, e.id).catch(() => []), rows(QUALS, e.id).catch(() => [])]);
+  return { regs, quals: new Map(qs.map((q) => [q.runnerId, q])) };
 }
 export const listQuals = webMethod(Permissions.Anyone, async (arg) => {
   await auth(arg);
   const e = eventOut(await getEvent(arg.ev));
   const d = await qualData(e);
-  const list = d.runners.filter((r) => ruleFor(e, r.cat)).map((r) => qualOut(e, r, d.quals.get(r._id)));
+  const list = d.regs.filter((r) => ruleFor(e, r.cat)).map((r) => qualOut(e, r, d.quals.get(r._id)));
   const rank = { noclaim: 0, below: 1, manual: 2, meets: 3 };
   list.sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || rank[a.verdict] - rank[b.verdict] || a.name.localeCompare(b.name));
   const n = (f) => list.filter(f).length;
   return {
     rules: e.quals,
-    hasExpo: !!e.expoId,
+    hasRegs: d.regs.length > 0,
     rows: list.slice(0, 2000),
     counts: { total: list.length, pending: n((x) => x.status === 'pending'), approved: n((x) => x.status === 'approved'), waived: n((x) => x.status === 'waived'), rejected: n((x) => x.status === 'rejected'), noclaim: n((x) => x.verdict === 'noclaim' && x.status === 'pending') },
   };
@@ -853,8 +1022,8 @@ export const saveQualRules = webMethod(Permissions.Anyone, async (arg) => {
 });
 async function qualTarget(arg) {
   const e = eventOut(await getEvent(arg.ev));
-  const r = e.expoId ? await wixData.get(RUNNERS, String(arg.runnerId || ''), SA).catch(() => null) : null;
-  if (!r || r.event !== e.expoId) throw new Error('no_runner');
+  const r = await wixData.get(REGS, String(arg.runnerId || ''), SA).catch(() => null);
+  if (!r || r.event !== e.id) throw new Error('no_runner');
   const rule = ruleFor(e, r.cat);
   if (!rule) throw new Error('no_rule');
   const q = (await all(() => wixData.query(QUALS).eq('event', e.id).eq('runnerId', r._id).ascending('_id')))[0] || null;
@@ -929,9 +1098,9 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
   if (open && near) alerts.push({ level: 'warn', text: open + ' safety checklist item' + (open > 1 ? 's' : '') + ' not done, race is within a week', go: 'safety' });
   const logOpen = log.filter((x) => x.status === 'open').length;
   let qualPending = 0;
-  if (e.quals.length && e.expoId) {
+  if (e.quals.length) {
     const qd = await qualData(e);
-    qualPending = qd.runners.filter((r) => ruleFor(e, r.cat) && !['approved', 'waived'].includes((qd.quals.get(r._id) || {}).status)).length;
+    qualPending = qd.regs.filter((r) => ruleFor(e, r.cat) && !['approved', 'waived'].includes((qd.quals.get(r._id) || {}).status)).length;
     if (qualPending) alerts.push({ level: near ? 'warn' : 'info', text: qualPending + ' runner' + (qualPending > 1 ? 's' : '') + ' with qualification not cleared', go: 'quals' });
   }
   return {
@@ -964,6 +1133,7 @@ function collectionDefs() {
     def(RUN, ['event', 'time', 'what', 'owner', 'status']),
     def(PACERS, ['event', 'name', 'phone', 'group', 'status', 'trial', 'briefing', 'kit', 'notes']),
     def(CHECK, ['event', 'section', 'item', 'done', 'doneBy', 'doneAt', 'order']),
+    def(REGS, ['event', 'ticketNumber', 'orderNumber', 'guestId', 'name', 'email', 'phone', 'cat', 'size', 'bibName', 'status', 'form', 'at']),
     def(QUALS, ['event', 'runnerId', 'name', 'cat', 'claim', 'claimKm', 'claimSec', 'link', 'status', 'note', 'by', 'at']),
     def(RATE, ['n']),
   ];
