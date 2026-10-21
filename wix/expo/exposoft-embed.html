@@ -407,7 +407,11 @@ function normSize(v){
 /* ---------- bridge to the Wix page code ---------- */
 var pending={},seq=0;
 window.addEventListener('message',function(e){
-  var m=e.data;if(!m||m.kind!=='result'||!pending[m.id])return;
+  var m=e.data;
+  // The Race Director shell logs the person in here with the login they just typed, and logs out with it.
+  if(m&&m.kind==='autologin'&&m.username&&$('#lgUser')&&!S.token){$('#lgUser').value=String(m.username);$('#lgPass').value=String(m.password||'');doLogin({preventDefault:function(){}});return}
+  if(m&&m.kind==='shell-logout'){try{sessionStorage.removeItem('expo-token')}catch(x){}if(S.token)api('logout').catch(function(){});S.token='';return}
+  if(!m||m.kind!=='result'||!pending[m.id])return;
   var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);
   if(m.ok)p.res(m.result);else{if((m.error==='not_logged_in'||m.error==='desk_busy')&&S.canWrite)forceLogin(m.error);p.rej(new Error(m.error||'failed'))}
 });

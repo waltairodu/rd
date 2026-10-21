@@ -81,6 +81,7 @@ td{padding:9px 8px;border-bottom:1px solid var(--surface-2);vertical-align:top}
 </head>
 <body>
 <div class="app" id="app"></div>
+<div id="expoWrap" hidden></div>
 <div id="toast" class="toast" hidden></div>
 <script>
 (function(){
@@ -97,11 +98,19 @@ var ERR={not_logged_in:'Your session ended. Please log in again.',bad_login:'Wro
   text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',wix_event_not_linked:'Link this race to its Wix event first.',wix_events_unavailable:'Wix Events did not answer. Try again in a minute.',wix_events_denied:'Wix Events refused access. Check that the Events app is installed on this site.',bad_quals:'Check the rules: each line needs a different category and at least one way to qualify (distance, time or both). Times look like 3:00.',no_runner:'That runner was not found.',no_rule:'This category has no qualification rule.',bad_claim:'Check the distance and the time (for example 21.1 and 2:45:10).',bad_link:'The proof link must start with http.',note_needed:'Please write a short reason.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',timeout:'No answer from the server. Try again.'};
 var msg=function(e){return ERR[e]||('Something went wrong ('+e+')')};
 
-var S={token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:''};
+var EXPO_SRC=null; /* filled in by tools/build_rd.py: the Expo desk page, shown in the Expo desk tab */
+var S={cred:null,expoOnly:false,token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:''};
 try{var b=localStorage.getItem('rd.base');if(b)S.base=b}catch(e){}
 var pending={},seq=0;
+var xmap={},xseq=0;
 window.addEventListener('message',function(e){
-  var m=e.data;if(!m||m.kind!=='result'||!pending[m.id])return;
+  var m=e.data;
+  // The Expo desk runs in a frame inside this page. Its requests are passed up to the page code tagged mod:'expo',
+  // and the answers are passed back down. Only a frame we made can send a 'call' to this page.
+  var xf=$('#expoFrame');
+  if(m&&m.kind==='call'&&xf&&(!e.source||e.source===xf.contentWindow)){if(S.cred){var c=S.cred;S.cred=null;setTimeout(function(){xf.contentWindow.postMessage({kind:'autologin',username:c.u,password:c.p},'*')},0)}var xid='x'+(++xseq);xmap[xid]=m.id;window.parent.postMessage({kind:'call',id:xid,method:m.method,arg:m.arg,mod:'expo'},'*');return}
+  if(m&&m.kind==='result'&&xmap[m.id]){var oid=xmap[m.id];delete xmap[m.id];if(xf&&xf.contentWindow)xf.contentWindow.postMessage(Object.assign({},m,{id:oid}),'*');return}
+  if(!m||m.kind!=='result'||!pending[m.id])return;
   var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);
   if(m.ok)p.res(m.result);else{if(m.error==='not_logged_in'&&S.token){S.token='';S.me=null;S.loginErr=msg('not_logged_in');render()}p.rej(new Error(m.error||'failed'))}
 });
@@ -164,10 +173,10 @@ function loginView(){
    +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
    +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
 }
-var TABS=[['overview','Overview'],['volunteers','Volunteers'],['raceday','Race day'],['pacers','Pacers'],['safety','Safety'],['regs','Registrations'],['quals','Qualification']];
+var TABS_BASE=[['overview','Overview'],['volunteers','Volunteers'],['raceday','Race day'],['pacers','Pacers'],['safety','Safety'],['regs','Registrations'],['quals','Qualification']];
 function head(){
   var ev=S.events.find(function(e){return e.id===S.ev});
-  var tabs=TABS.concat(man()?[['setup','Setup']]:[]);
+  var tabs=TABS_BASE.concat(man()&&EXPO_SRC?[['expo','Expo desk']]:[],man()?[['setup','Setup']]:[]);
   return '<div class="top"><div class="row between"><div><div class="eyebrow">VTRA Race Director</div><h1>'+esc(ev?ev.name:'No race yet')+'</h1>'
    +(ev?'<small>'+esc(fdate(ev.date))+(ev.venue?' · '+esc(ev.venue):'')+(ev.daysToGo!==null?' · '+(ev.daysToGo>0?ev.daysToGo+' days to go':ev.daysToGo===0?'race day':'finished'):'')+'</small>':'')+'</div>'
    +'<div class="row">'+(S.events.length>1?'<select id="evPick" aria-label="Race">'+S.events.map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===S.ev?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>':'')
@@ -321,10 +330,20 @@ function setupView(){
    +'<div class="card"><h3>Who can log in</h3><p class="muted" style="margin-top:6px">Logins live in the CMS collection <b>ExpoStaff</b>. Set the <b>role</b> column: <b>admin</b> or <b>director</b> (everything), <b>lead</b> (volunteers, race day, pacers, safety), <b>viewer</b> (look only, for sponsors and partners). A login with role <b>desk</b> works only on the Expo desk.</p></div></div>';
 }
 
+function showExpo(on){
+  var w=$('#expoWrap');if(!w)return;
+  if(on&&EXPO_SRC&&!$('#expoFrame')){var f=document.createElement('iframe');f.id='expoFrame';f.title='Expo desk';f.srcdoc=EXPO_SRC;f.setAttribute('style','width:100%;height:88vh;min-height:620px;border:0;border-radius:12px;background:#fff');
+    w.appendChild(f)}
+  w.hidden=!on;
+}
+function dropExpo(){var f=$('#expoFrame');if(f){try{f.contentWindow.postMessage({kind:'shell-logout'},'*')}catch(x){}setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f)},400)}var w=$('#expoWrap');if(w)w.hidden=true}
+function expoOnlyView(){return '<div class="top"><div class="row between"><div><div class="eyebrow">VTRA Race Director</div><h1>Expo desk</h1></div><div class="row"><span class="muted">'+esc((S.me&&S.me.name)||'')+'</span><button class="btn sm" data-act="logout">Log out</button></div></div></div>'}
 function render(){
   var app=$('#app');
-  if(!S.token){app.innerHTML=loginView();return}
-  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='setup'&&man()?setupView():'';
+  if(S.expoOnly){app.innerHTML=expoOnlyView();showExpo(true);return}
+  if(!S.token){app.innerHTML=loginView();showExpo(false);return}
+  showExpo(S.tab==='expo'&&man());
+  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.innerHTML=head()+body;
 }
 
@@ -346,7 +365,7 @@ document.addEventListener('click',function(e){
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
   else if(act==='impRegs')run(async function(){var cur='',add=0,upd=0,sk=0;for(var i=0;i<60;i++){var r=await api('importRegs',{cursor:cur});add+=r.added;upd+=r.updated;sk+=r.skipped.cancelled+r.skipped.noName;S.impMsg='importing... '+(add+upd);render();cur=r.next;if(r.done)break}S.impMsg='Imported: '+add+' new, '+upd+' updated, '+sk+' skipped (cancelled or no name)';await reload()});
   else if(act==='regCsv'){var rr=S.regs.rows;download('registrations.csv',[['Name','Email','Phone','Ticket','Ticket no.','Size','Bib name','Payment pending']].concat(rr.map(function(r){return [r.name,r.email,r.phone,r.cat,r.ticket,r.size,r.bibName,r.unpaid?'yes':'']})).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
-  else if(act==='logout'){api('logout').catch(function(){});S.token='';S.me=null;S.ev='';S.ov=null;render()}
+  else if(act==='logout'){if(S.token)api('logout').catch(function(){});dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.cred=null;S.expoOnly=false;render()}
   else if(act==='copyLink'){var t=$('#linkOut').textContent;try{navigator.clipboard.writeText(t).then(function(){toast('Link copied')},function(){toast(t)})}catch(x){toast(t)}}
   else if(act==='shiftNew'){S.editShift={id:'',role:'',location:'',date:(S.events.find(function(x){return x.id===S.ev})||{}).date||'',start:'05:00',end:'09:00',need:'4',notes:''};render()}
   else if(act==='shiftEdit'){S.editShift=Object.assign({},S.shifts.find(function(s){return s.id===id}));render()}
@@ -383,8 +402,11 @@ document.addEventListener('input',function(e){if(e.target.id==='regQ'){S.regQ=e.
 document.addEventListener('submit',function(e){
   e.preventDefault();var f=e.target,id=f.id,d=formData(f);
   if(id==='loginForm'){S.loginErr='';run(async function(){
-    try{var r=await api('login',{username:d.lgUser||$('#lgUser').value,password:$('#lgPass').value,token:''});S.token=r.token;S.me=r;await afterLogin()}
-    catch(x){S.loginErr=msg(x.message);var el=$('#lgErr');if(el)el.textContent=S.loginErr;toast(S.loginErr,true)}})}
+    var u0=d.lgUser||$('#lgUser').value,p0=$('#lgPass').value;
+    try{var r=await api('login',{username:u0,password:p0,token:''});S.token=r.token;S.me=r;S.cred=EXPO_SRC&&r.role==='director'?{u:u0,p:p0}:null;await afterLogin()}
+    catch(x){
+      // A correct login that has no Director role is an Expo desk login: send it straight to the Expo desk.
+      if(x.message==='not_allowed'&&EXPO_SRC){S.cred={u:u0,p:p0};S.me={name:u0,role:'desk'};S.expoOnly=true;render();return}S.loginErr=msg(x.message);var el=$('#lgErr');if(el)el.textContent=S.loginErr;toast(S.loginErr,true)}})}
   else if(id==='setupForm'){run(async function(){try{var r=await api('ensureSetup',{key:$('#suKey').value,username:$('#suUser').value,password:$('#suPass').value,token:''});$('#suMsg').textContent=r.summary}catch(x){$('#suMsg').textContent=x.message}})}
   else if(id==='shiftForm')run(async function(){await api('saveShift',Object.assign({id:S.editShift.id||undefined},d));S.editShift=null;toast('Shift saved');await loadTab()});
   else if(id==='addVol')run(async function(){var r=await api('addVolunteer',d);toast('Added. Code '+r.code);await loadTab()});

@@ -37,3 +37,4 @@ Race date; the VHM bib and size column names from findmybib; the registration to
 - Wix Events import built (Registrations tab). Qualification now runs on registrations instead of the Expo runner list.
 - Navigation: / (home), /rd (login, then Director; Setup tab = races setup), /volunteer, /train, /coach. Free plan 8 weeks, coached free for now with director-set price text.
 - Training module built (athlete page, coach desk, backend, 165 tests).
+- Expo desk incorporated into /rd (Expo desk tab for director/admin, desk logins routed straight to it, one page and one login). Built by tools/build_rd.py into rd-embed.html.

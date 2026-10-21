@@ -80,3 +80,12 @@ From the repository root: `tests/all.sh`. It runs the Expo checks and the Direct
 - T-shirt size, bib name and phone often have field names chosen by whoever built the checkout form. Press **Form fields**, pick which field is which, Save, then Import again.
 - Shows counts per ticket, who has no size, and (when the race is linked to its Expo race) who is registered but not yet in the findmybib/Expo list, matched by phone or email. CSV download.
 - Needs the Wix Events app on the site. Never run on a live site yet: the first Import is the real test. Send me any error text.
+
+## Expo desk inside /rd (new)
+The /rd page now holds the Expo desk too, behind the same login.
+- Paste **`rd-embed.html`** (not `director-embed.html`) into the /rd page. It is the Director page with the Expo desk built in (about 145 KB). Use **`director-page-code.js`** as before: it now also needs the `exposoft.web.js` backend file, because the Expo desk's calls are routed to it.
+- **Director or admin logins** see an **Expo desk** tab next to Setup. The desk signs in by itself with the same login (admins still pick a desk). Leads and viewers do not get the tab.
+- **Desk logins** (the existing Expo staff, locked to a desk and race) type their login at /rd and go straight to the Expo desk; they never see the Director. Everything the Expo desk enforces (locked T-shirt size, role per desk, selfie, one login per desk) is unchanged, because it is the same Expo code and backend.
+- Logging out of /rd also ends the Expo session.
+- `director-embed.html` is the source. After changing it or `wix/expo/exposoft-embed.html`, run `python3 tools/build_rd.py` to rebuild `rd-embed.html` (the tests do this too).
+- The stand-alone Expo page keeps working, so you can keep it as a fallback, or if Wix refuses a page that large, keep using `director-embed.html` on /rd and the stand-alone Expo page.
