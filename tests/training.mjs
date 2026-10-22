@@ -106,7 +106,7 @@ ok((await err(T.enrollPlan({ token: a3.token, planId: op.plans[2].id, startDate:
 
 // ---- free plan: logging
 let h = await T.myHome({ token: A1 });
-ok(h.today === today() && h.todays.length === 1 && h.week.length === 7 && h.stats.due === ses.filter((x) => x.date < today() && x.type !== 'rest').length && h.stats.due > 0, 'home: today, this week, and past workouts due (rest days do not count)');
+ok(h.today === today() && h.todays.length === 1 && h.week.length === (() => { const dow = (new Date(today() + 'T00:00:00Z').getUTCDay() + 6) % 7; const mon = add(today(), -dow); return ses.filter((x) => x.date >= mon && x.date <= add(mon, 6)).length; })() && h.stats.due === ses.filter((x) => x.date < today() && x.type !== 'rest').length && h.stats.due > 0, 'home: today, this week, and past workouts due (rest days do not count)');
 const run = ses.find((s) => s.type !== 'rest' && s.date <= today());
 const rest0 = ses.find((s) => s.type === 'rest' && s.date < today());
 ok((await T.logSession({ token: A1, id: run.id, status: 'done', aKm: 5.2, aMin: 34, rpe: 15, note: 'felt good' })).session.rpe === 10, 'log: done saved, effort limited to 1 to 10');
