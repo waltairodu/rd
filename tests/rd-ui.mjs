@@ -12,7 +12,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 execSync('python3 ../tools/build_rd.py');
 const html = fs.readFileSync('../wix/director/rd-embed.html', 'utf8');
 ok(/var EXPO_SRC="<!doctype html>/i.test(html) && !/var EXPO_SRC=null/.test(html), 'built page contains the Expo desk');
-ok((html.match(/<\/script>/g) || []).length === 1, 'built page: no stray script end tag inside the embedded Expo page');
+ok((html.match(/<\/script>/g) || []).length === 2, 'built page: only the two real script end tags (main script and height reporter), none leaked from the embedded Expo page');
 ok(fs.readFileSync('../wix/director/director-embed.html', 'utf8').includes('var EXPO_SRC=null;'), 'source director page still has the placeholder');
 const pc = fs.readFileSync('../wix/director/director-page-code.js', 'utf8');
 const exAllowed = pc.match(/const EXPO_ALLOWED = \[([^\]]*)\]/)[1].split(',').map((x) => x.trim().replace(/'/g, ''));

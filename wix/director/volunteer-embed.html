@@ -137,5 +137,14 @@ setTimeout(function(){if(!booted)boot()},1200);
 render();
 })();
 </script>
+<script>
+/* Tells the Wix page how tall this content is, so the page can resize the embed (no inner scrollbar). */
+(function(){var last=0,t;
+function h(){var r=0;[].forEach.call(document.body.children,function(el){if(el.tagName==='SCRIPT'||el.hidden||getComputedStyle(el).position==='fixed')return;var q=el.getBoundingClientRect();if(q.height>0)r=Math.max(r,q.bottom+(window.pageYOffset||0))});return Math.ceil(r)+8}
+function send(){var v=h();if(Math.abs(v-last)>2){last=v;try{window.parent.postMessage({kind:'resize',height:v},'*')}catch(e){}}}
+if(window.ResizeObserver){try{new ResizeObserver(function(){clearTimeout(t);t=setTimeout(send,60)}).observe(document.body)}catch(e){}}
+window.addEventListener('load',send);setInterval(send,1000);setTimeout(send,50);
+})();
+</script>
 </body>
 </html>

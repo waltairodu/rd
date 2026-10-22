@@ -206,5 +206,14 @@ const A = await login('boss');
   ok(rows(d).length >= 20 && !d.querySelector('[data-act="pnew"]'), 'viewer: approvals visible, read only');
 }
 
+// ---- every page reports its content height to the Wix page
+for (const f of ['../wix/director/director-embed.html', '../wix/director/volunteer-embed.html', '../wix/training/athlete-embed.html', '../wix/training/coach-embed.html', '../wix/expo/exposoft-embed.html']) {
+  const dom = open(fs.readFileSync(f, 'utf8'));
+  const got = [];
+  dom.w.addEventListener('message', (e) => { if (e.data && e.data.kind === 'resize') got.push(e.data.height); });
+  await sleep(400);
+  ok(got.length >= 1 && got.every((h) => typeof h === 'number' && h > 0), f.split('/').pop() + ': posts its height to the page');
+}
+
 console.log(`Plan UI: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

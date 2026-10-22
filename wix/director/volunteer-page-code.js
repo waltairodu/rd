@@ -22,6 +22,18 @@ $w.onReady(function () {
   frame.onMessage(async (event) => {
     const msg = event.data;
     if (!msg) return;
+    if (msg.kind === 'resize') {
+      // The embed reports its content height; the page grows or shrinks the element to fit (no inner scrollbar).
+      const h = Math.round(Number(msg.height));
+      if (h > 0) {
+        try {
+          frame.height = Math.max(300, Math.min(20000, h));
+        } catch (e) {
+          // the element cannot be resized from code; it keeps its designed height
+        }
+      }
+      return;
+    }
     if (msg.kind === 'hello') {
       frame.postMessage({ kind: 'init', ev });
       return;

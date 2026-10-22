@@ -193,7 +193,7 @@ fieldset{border:0;margin:0 0 14px;padding:0;min-width:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .deskin select{height:36px;max-width:210px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:500 15px var(--f-body);letter-spacing:0;text-transform:none}
 details.more{margin-top:16px}details.more>summary{cursor:pointer;font:600 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);padding:10px 2px}details.more>.card{margin-top:8px}
-.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.gate{min-height:560px;display:flex;align-items:center;justify-content:center;padding:16px}
 .gatebox{width:100%;max-width:420px}.gatebox h1{margin:6px 0 18px}
 .gatebox .field input,.gatebox .field select{height:42px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:500 16px var(--f-body);width:100%;box-sizing:border-box}
 .item.notdesk{opacity:.75;border-style:dashed}
@@ -1208,5 +1208,14 @@ start();
 })();
 </script>
 
+<script>
+/* Tells the Wix page how tall this content is, so the page can resize the embed (no inner scrollbar). */
+(function(){var last=0,t;
+function h(){var r=0;[].forEach.call(document.body.children,function(el){if(el.tagName==='SCRIPT'||el.hidden||getComputedStyle(el).position==='fixed')return;var q=el.getBoundingClientRect();if(q.height>0)r=Math.max(r,q.bottom+(window.pageYOffset||0))});return Math.ceil(r)+8}
+function send(){var v=h();if(Math.abs(v-last)>2){last=v;try{window.parent.postMessage({kind:'resize',height:v},'*')}catch(e){}}}
+if(window.ResizeObserver){try{new ResizeObserver(function(){clearTimeout(t);t=setTimeout(send,60)}).observe(document.body)}catch(e){}}
+window.addEventListener('load',send);setInterval(send,1000);setTimeout(send,50);
+})();
+</script>
 </body>
 </html>
