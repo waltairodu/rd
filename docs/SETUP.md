@@ -38,3 +38,7 @@ Optional: the stand-alone Expo desk page (also still works). Embed 2-pages/expo-
 12. **Training** (/coach): log in as admin. The first login creates the collections and three starter 8-week plans. Check Settings. Then open /train on a phone and sign up as a test athlete.
 13. **Expo desk** (/rd > Expo desk, or the stand-alone page): Setup tab > Check data, and send the Columns line to Claude.
 14. **Test** with a test race, a test volunteer and a test athlete before announcing. Send any error text with the page name.
+
+## Planning tabs
+After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.
+

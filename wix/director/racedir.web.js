@@ -5,7 +5,7 @@
 // Logins are the same ExpoStaff rows the Expo desk uses. Role column:
 //   admin or director  everything, including events and settings
 //   lead               volunteers, race day, pacers and safety (read and write), no events or deletes
-//   viewer             read only (sponsor or partner)
+//   viewer             read only (sponsor or partner); sees no budget, sponsor or contact details
 //   anything else (desk, empty) is refused here.
 // Every method except login, ensureSetup, openShifts, volunteerSignup and volunteerStatus needs a session token.
 import { Permissions, webMethod } from 'wix-web-module';
@@ -75,7 +75,7 @@ function phoneDigits(p) {
 }
 const validPhone = (d) => /^[6-9]\d{9}$/.test(d);
 const validEmail = (e) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
-const validDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d + 'T00:00:00Z'));
+const validDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d + 'T00:00:00Z')) && new Date(d + 'T00:00:00Z').toISOString().slice(0, 10) === d;
 const validTime = (t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 
 // Reads all rows of a query, page by page.
@@ -270,6 +270,7 @@ export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
   const saved = await wixData.insert(EVENTS, Object.assign(base, { json: JSON.stringify({ distanceKm: has('distanceKm') ? dist : 21.0975, groups: DEFAULT_GROUPS }) }), SA);
   await wixData.bulkInsert(CHECK, DEFAULT_CHECKLIST.map(([section, item], k) => ({ event: saved._id, section, item, done: '', doneBy: '', doneAt: '', order: String(k).padStart(3, '0') })), SA);
   await wixData.bulkInsert(RUN, DEFAULT_RUN.map(([time, what, owner]) => ({ event: saved._id, time, what, owner, status: 'todo' })), SA);
+  await seedPlan(saved._id, Object.keys(PLAN_DEFAULTS));
   return { event: eventOut(saved), by: a.username };
 });
 
@@ -1078,7 +1079,7 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
   await auth(arg);
   const it = await getEvent(arg.ev);
   const e = eventOut(it);
-  const [shifts, vols, asg, log, run, pacers, chk, expo] = await Promise.all([rows(SHIFTS, e.id), rows(VOLS, e.id), rows(ASSIGN, e.id), rows(LOG, e.id), rows(RUN, e.id), rows(PACERS, e.id), rows(CHECK, e.id), expoCounts(e.expoId)]);
+  const [shifts, vols, asg, log, run, pacers, chk, expo, planRows] = await Promise.all([rows(SHIFTS, e.id), rows(VOLS, e.id), rows(ASSIGN, e.id), rows(LOG, e.id), rows(RUN, e.id), rows(PACERS, e.id), rows(CHECK, e.id), expoCounts(e.expoId), rows(PLAN, e.id)]);
   const c = await shiftCounts(e.id);
   const alerts = [];
   const need = shifts.reduce((s, x) => s + int(x.need), 0);
@@ -1103,6 +1104,9 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
     qualPending = qd.regs.filter((r) => ruleFor(e, r.cat) && !['approved', 'waived'].includes((qd.quals.get(r._id) || {}).status)).length;
     if (qualPending) alerts.push({ level: near ? 'warn' : 'info', text: qualPending + ' runner' + (qualPending > 1 ? 's' : '') + ' with qualification not cleared', go: 'quals' });
   }
+  const me = await auth(arg);
+  const plan = planSummary(planRows, me.role, e);
+  alerts.push(...planAlerts(plan, e, me.role));
   return {
     event: e,
     expo,
@@ -1112,8 +1116,364 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
     pacers: { need: groups.reduce((s, x) => s + int(x.g.need), 0), have: groups.reduce((s, x) => s + Math.min(x.have, int(x.g.need)), 0), approved: pacers.filter((p) => p.status === 'approved').length },
     checklist: { done: chk.length - open, total: chk.length },
     quals: { pending: qualPending },
+    plan,
     alerts,
   };
+});
+
+/* ---------- planning: budget, sponsors, supplies, approvals, ceremonies, tasks, contacts, documents, debrief ---------- */
+// One collection (RDPlan) holds every planning item. The "kind" column says what it is. Each kind has its own
+// allowed phases and statuses, and its own access rule:
+//   money kinds (budget, sponsor)  directors write, leads read, viewers see nothing
+//   contact                        directors and leads read and write, viewers see nothing (phone numbers)
+//   everything else                directors and leads write, viewers read
+const PLAN = 'RDPlan';
+const PKINDS = {
+  budget: { phases: ['expense', 'income'], statuses: ['planned', 'committed', 'paid', 'cancelled'], done: ['paid', 'cancelled'], money: true },
+  sponsor: { phases: ['cash', 'inkind'], statuses: ['lead', 'pitched', 'negotiating', 'committed', 'received', 'declined'], done: ['received', 'declined'], money: true },
+  supply: { phases: ['all'], statuses: ['to_order', 'ordered', 'received', 'delivered'], done: ['delivered'] },
+  approval: { phases: ['permit', 'raceday'], statuses: ['todo', 'applied', 'approved', 'rejected', 'expired'], done: ['approved'] },
+  ceremony: { phases: ['pre', 'during', 'post'], statuses: ['todo', 'ready', 'done', 'skipped'], done: ['done', 'skipped'] },
+  task: { phases: ['d90', 'd30', 'd7', 'week', 'day', 'after'], statuses: ['todo', 'doing', 'blocked', 'done'], done: ['done'] },
+  contact: { phases: ['all'], statuses: ['active'], done: ['active'], secret: true },
+  doc: { phases: ['all'], statuses: ['active'], done: ['active'], needLink: true },
+  lesson: { phases: ['worked', 'fix', 'idea'], statuses: ['open', 'actioned'], done: ['actioned'] },
+};
+const istToday = () => new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
+const isSecret = (k) => !!(PKINDS[k].money || PKINDS[k].secret);
+function kindOf(v) {
+  const k = String(v || '');
+  if (!Object.prototype.hasOwnProperty.call(PKINDS, k)) throw new Error('bad_kind');
+  return k;
+}
+// Who may read or write this kind. Money kinds are written by directors only; viewers see no money or phone numbers.
+async function planAuth(arg, kind, write) {
+  const a = await auth(arg, write ? (PKINDS[kind].money ? 'manage' : 'write') : undefined);
+  if (a.role === 'viewer' && isSecret(kind)) throw new Error('not_allowed');
+  return a;
+}
+function money(v) {
+  const s = String(v === undefined || v === null ? '' : v).replace(/[₹,\s]/g, '');
+  if (s === '') return '';
+  const x = Number(s);
+  if (!Number.isFinite(x) || x < 0 || x > 1e10) throw new Error('bad_amount');
+  return String(Math.round(x * 100) / 100);
+}
+const num = (v) => {
+  const x = Number(v);
+  return Number.isFinite(x) ? x : 0;
+};
+const planDone = (r) => PKINDS[r.kind] && PKINDS[r.kind].done.includes(r.status);
+const planOverdue = (r, today) => !!(r.due && r.due < today && !planDone(r) && !(r.kind === 'budget' || r.kind === 'sponsor' ? ['cancelled', 'declined'].includes(r.status) : false));
+function planOut(r, today) {
+  return {
+    id: r._id,
+    kind: r.kind,
+    title: r.title || '',
+    cat: r.cat || '',
+    phase: r.phase || '',
+    status: r.status || '',
+    owner: r.owner || '',
+    party: r.party || '',
+    contact: r.contact || '',
+    due: r.due || '',
+    time: r.time || '',
+    amount: r.amount === '' || r.amount === undefined ? null : num(r.amount),
+    amount2: r.amount2 === '' || r.amount2 === undefined ? null : num(r.amount2),
+    ref: r.ref || '',
+    link: r.link || '',
+    notes: r.notes || '',
+    by: r.by || '',
+    at: r.at || '',
+    overdue: planOverdue(r, today),
+  };
+}
+const planSort = (a, b) => String(a.due || '9999').localeCompare(String(b.due || '9999')) || String(a.order || '999').localeCompare(String(b.order || '999')) || String(a.title).localeCompare(String(b.title));
+
+// Builds the figures shown on the Overview and at the top of each planning tab. Viewers get no money figures.
+function planSummary(list, role, e) {
+  const today = istToday();
+  const of = (k) => list.filter((r) => r.kind === k);
+  const sum = (a, f) => a.reduce((s, r) => s + num(r[f]), 0);
+  const out = { overdue: 0 };
+  const live = (r) => !['cancelled', 'declined'].includes(r.status);
+  out.overdue = list.filter((r) => planOverdue(r, today) && !(role === 'viewer' && isSecret(r.kind))).length;
+  const tasks = of('task');
+  out.tasks = { total: tasks.length, done: tasks.filter((r) => r.status === 'done').length, blocked: tasks.filter((r) => r.status === 'blocked').length, overdue: tasks.filter((r) => planOverdue(r, today)).length };
+  const ap = of('approval');
+  const permits = ap.filter((r) => r.phase === 'permit');
+  const day = ap.filter((r) => r.phase === 'raceday');
+  out.approvals = {
+    permits: { total: permits.length, approved: permits.filter((r) => r.status === 'approved').length },
+    raceday: { total: day.length, approved: day.filter((r) => r.status === 'approved').length },
+    problems: ap.filter((r) => r.status === 'rejected' || r.status === 'expired').length,
+  };
+  out.ceremonies = {};
+  for (const p of PKINDS.ceremony.phases) {
+    const c = of('ceremony').filter((r) => r.phase === p);
+    out.ceremonies[p] = { total: c.length, done: c.filter((r) => planDone(r)).length };
+  }
+  const sup = of('supply');
+  out.supplies = { total: sup.length, delivered: sup.filter((r) => r.status === 'delivered').length, short: sup.filter((r) => r.status !== 'delivered' && r.amount !== '' && num(r.amount2) < num(r.amount)).length };
+  out.lessons = { open: of('lesson').filter((r) => r.status === 'open').length };
+  if (role !== 'viewer') {
+    const exp = of('budget').filter((r) => r.phase === 'expense' && live(r));
+    const inc = of('budget').filter((r) => r.phase === 'income' && live(r));
+    const cats = {};
+    for (const r of exp) {
+      const c = r.cat || 'Other';
+      cats[c] = cats[c] || { cat: c, planned: 0, actual: 0 };
+      cats[c].planned += num(r.amount);
+      cats[c].actual += num(r.amount2);
+    }
+    const expPlanned = sum(exp, 'amount');
+    const expActual = sum(exp, 'amount2');
+    const incPlanned = sum(inc, 'amount');
+    const incActual = sum(inc, 'amount2');
+    out.budget = {
+      expPlanned, expActual, incPlanned, incActual,
+      netPlanned: incPlanned - expPlanned,
+      netActual: incActual - expActual,
+      committedUnpaid: sum(exp.filter((r) => r.status === 'committed'), 'amount'),
+      overBy: Math.max(0, expActual - expPlanned),
+      overLines: exp.filter((r) => r.amount !== '' && num(r.amount2) > num(r.amount)).length,
+      byCat: Object.keys(cats).sort().map((k) => cats[k]),
+    };
+    const sp = of('sponsor');
+    const cash = sp.filter((r) => r.phase === 'cash');
+    const firm = (r) => r.status === 'committed' || r.status === 'received';
+    out.sponsors = {
+      total: sp.length,
+      cashPromised: sum(cash.filter(firm), 'amount'),
+      cashReceived: sum(cash, 'amount2'),
+      pipeline: sum(cash.filter((r) => !firm(r) && r.status !== 'declined'), 'amount'),
+      inKind: sum(sp.filter((r) => r.phase === 'inkind' && firm(r)), 'amount'),
+      stages: PKINDS.sponsor.statuses.map((s) => ({ status: s, n: sp.filter((r) => r.status === s).length })),
+    };
+    out.sponsors.outstanding = Math.max(0, out.sponsors.cashPromised - out.sponsors.cashReceived);
+    out.sponsors.coversPct = expPlanned > 0 ? Math.round((out.sponsors.cashPromised * 100) / expPlanned) : null;
+  }
+  return out;
+}
+function planAlerts(sum, e, role) {
+  const al = [];
+  const days = e.daysToGo;
+  const near = days !== null && days <= 30;
+  if (sum.overdue) al.push({ level: 'warn', text: sum.overdue + ' planning item' + (sum.overdue > 1 ? 's' : '') + ' past the due date', go: 'plan' });
+  if (sum.approvals.problems) al.push({ level: 'bad', text: sum.approvals.problems + ' approval' + (sum.approvals.problems > 1 ? 's' : '') + ' rejected or expired', go: 'approvals' });
+  const waiting = sum.approvals.permits.total - sum.approvals.permits.approved;
+  if (waiting > 0) al.push({ level: near ? 'warn' : 'info', text: waiting + ' permit' + (waiting > 1 ? 's' : '') + ' not approved yet', go: 'approvals' });
+  const dayWait = sum.approvals.raceday.total - sum.approvals.raceday.approved;
+  if (dayWait > 0 && days !== null && days >= 0 && days <= 1) al.push({ level: 'warn', text: dayWait + ' race-day sign-off' + (dayWait > 1 ? 's' : '') + ' still to give', go: 'approvals' });
+  if (sum.supplies.short && days !== null && days >= 0 && days <= 14) al.push({ level: 'warn', text: sum.supplies.short + ' suppl' + (sum.supplies.short > 1 ? 'ies' : 'y') + ' short of the quantity needed', go: 'logistics' });
+  if (role !== 'viewer' && sum.budget && sum.budget.overBy > 0) al.push({ level: 'bad', text: 'Spending is ' + Math.round(sum.budget.overBy) + ' over the planned budget', go: 'money' });
+  return al;
+}
+
+const PLAN_FIELDS = ['title', 'cat', 'phase', 'status', 'owner', 'party', 'contact', 'due', 'time', 'amount', 'amount2', 'ref', 'link', 'notes'];
+export const listPlan = webMethod(Permissions.Anyone, async (arg) => {
+  const kinds = (Array.isArray(arg.kinds) ? arg.kinds : [arg.kind]).map(kindOf);
+  for (const k of kinds) await planAuth(arg, k, false);
+  const it = await getEvent(arg.ev);
+  const e = eventOut(it);
+  const a = await auth(arg);
+  const all = await rows(PLAN, e.id);
+  const today = istToday();
+  const out = {};
+  for (const k of kinds) out[k] = all.filter((r) => r.kind === k).sort(planSort).map((r) => planOut(r, today));
+  return { items: out, summary: planSummary(all, a.role, e), canMoney: a.role === 'director' };
+});
+
+export const savePlanItem = webMethod(Permissions.Anyone, async (arg) => {
+  const kind = kindOf(arg.kind);
+  const a = await planAuth(arg, kind, true);
+  await getEvent(arg.ev);
+  const K = PKINDS[kind];
+  const old = arg.id ? await wixData.get(PLAN, String(arg.id), SA).catch(() => null) : null;
+  if (arg.id && (!old || old.event !== arg.ev || old.kind !== kind)) throw new Error('no_item');
+  const has = (k) => arg[k] !== undefined;
+  const pick = (k, fn) => (has(k) || !old ? fn(arg[k]) : old[k] || '');
+  const title = pick('title', (v) => clean(v, 120));
+  if (title.length < 2) throw new Error('title_needed');
+  const phase = pick('phase', (v) => clean(v, 20) || K.phases[0]);
+  if (!K.phases.includes(phase)) throw new Error('bad_phase');
+  const status = pick('status', (v) => clean(v, 20) || K.statuses[0]);
+  if (!K.statuses.includes(status)) throw new Error('bad_status');
+  const due = pick('due', (v) => clean(v, 10));
+  if (due && !validDate(due)) throw new Error('bad_date');
+  const time = pick('time', (v) => clean(v, 5));
+  if (time && !validTime(time)) throw new Error('bad_time');
+  const link = pick('link', (v) => clean(v, 300));
+  if (link && !/^https?:\/\//i.test(link)) throw new Error('bad_link');
+  if (K.needLink && !link) throw new Error('link_needed');
+  const row = {
+    event: arg.ev,
+    kind,
+    title,
+    cat: pick('cat', (v) => clean(v, 40)),
+    phase,
+    status,
+    owner: pick('owner', (v) => clean(v, 60)),
+    party: pick('party', (v) => clean(v, 80)),
+    contact: pick('contact', (v) => clean(v, 80)),
+    due,
+    time,
+    amount: has('amount') || !old ? money(arg.amount) : old.amount || '',
+    amount2: has('amount2') || !old ? money(arg.amount2) : old.amount2 || '',
+    ref: pick('ref', (v) => clean(v, 60)),
+    link,
+    notes: pick('notes', (v) => clean(v, 600)),
+    order: old ? old.order || '999' : '999',
+    by: a.name,
+    at: nowIso(),
+  };
+  if (kind === 'budget' && !row.cat) row.cat = 'Other';
+  const saved = old ? await wixData.update(PLAN, Object.assign({}, old, row), SA) : await wixData.insert(PLAN, row, SA);
+  return { item: planOut(saved, istToday()) };
+});
+
+// Quick status change. Marking something paid, received or delivered fills the actual with the planned amount if empty.
+export const setPlanStatus = webMethod(Permissions.Anyone, async (arg) => {
+  const old = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
+  if (!old || old.event !== arg.ev) throw new Error('no_item');
+  const a = await planAuth(arg, kindOf(old.kind), true);
+  const K = PKINDS[old.kind];
+  const status = String(arg.status || '');
+  if (!K.statuses.includes(status)) throw new Error('bad_status');
+  const patch = { status, by: a.name, at: nowIso() };
+  if (['paid', 'received', 'delivered'].includes(status) && (old.amount2 === '' || old.amount2 === undefined) && old.amount) patch.amount2 = old.amount;
+  const saved = await wixData.update(PLAN, Object.assign({}, old, patch), SA);
+  return { item: planOut(saved, istToday()) };
+});
+
+export const removePlanItem = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const old = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
+  if (!old || old.event !== arg.ev) throw new Error('no_item');
+  await wixData.bulkRemove(PLAN, [old._id], SA);
+  return { ok: true };
+});
+
+/* starter lists: what a race director usually has to track. Loaded for a new race, and on demand for kinds that are empty. */
+const tk = (phase, cat, title) => ({ kind: 'task', phase, cat, title });
+const BUDGET_CATS = [
+  ['Permits and approvals', ['Permit and application fees']],
+  ['Venue and site', ['Venue or ground hire', 'Tents, tables and chairs']],
+  ['Timing and results', ['Chip timing and mats', 'Bib printing and findmybib']],
+  ['Medical and safety', ['Ambulance and doctors', 'Event insurance', 'First-aid supplies']],
+  ['Route and marking', ['Cones, barricades and signage']],
+  ['Aid stations', ['Water, electrolytes and ice', 'Food and fruit']],
+  ['Finisher items', ['Medals', 'Finisher T-shirts', 'Goodie bags']],
+  ['Stage, sound and MC', ['Stage, sound and lights', 'Announcer or MC']],
+  ['Marketing and media', ['Design and printing', 'Photography and video', 'Ads and promotion']],
+  ['Volunteers', ['Volunteer T-shirts and food', 'Certificates']],
+  ['Logistics', ['Transport', 'Toilets and generator', 'Waste and cleaning']],
+  ['Awards', ['Prize money and trophies']],
+  ['Admin', ['Payment gateway and platform fees', 'Contingency (about 10 percent)']],
+];
+const PLAN_DEFAULTS = {
+  task: [
+    tk('d90', 'Operations', 'Fix the race date, venue and distances'),
+    tk('d90', 'Approvals', 'Start permit applications (police, municipal, forest for trail routes)'),
+    tk('d90', 'Finance', 'Draft the budget and get it signed off'),
+    tk('d90', 'Sponsors', 'Build the sponsor deck and a target list'),
+    tk('d90', 'Registration', 'Open registration with ticket categories, prices and qualification rules'),
+    tk('d90', 'Marketing', 'Announce the race (website, Instagram, WhatsApp, clubs)'),
+    tk('d90', 'Operations', 'Book timing, bib and results vendors'),
+    tk('d90', 'Operations', 'Shortlist medal, T-shirt and goodie-bag vendors'),
+    tk('d30', 'Operations', 'Finalise the route, measurement and marking plan'),
+    tk('d30', 'Volunteers', 'Open volunteer sign-up and fill the key roles'),
+    tk('d30', 'Medical', 'Confirm ambulances, doctors and the nearest hospital'),
+    tk('d30', 'Supplies', 'Place orders for medals, T-shirts and bibs'),
+    tk('d30', 'Sponsors', 'Confirm each sponsor deliverable (logos, banners, stalls)'),
+    tk('d30', 'Marketing', 'Send the runner information mailer (expo, bib collection, parking, cut-offs)'),
+    tk('d7', 'Operations', 'Hold the final briefing: volunteers, pacers, medical and police'),
+    tk('d7', 'Registration', 'Close entries and publish bib-collection details'),
+    tk('d7', 'Supplies', 'Check that every supply has been delivered'),
+    tk('d7', 'Operations', 'Check the weather and agree the heat or rain plan'),
+    tk('d7', 'Media', 'Brief the photographers, videographers and announcer'),
+    tk('week', 'Expo', 'Set up the expo desk and test the bib list'),
+    tk('week', 'Operations', 'Print the run of show, maps and control-room phone list'),
+    tk('week', 'Safety', 'Walk or drive the full course once'),
+    tk('day', 'Operations', 'Final site and course check before the start'),
+    tk('day', 'Operations', 'Hold the go or no-go call (see Approvals)'),
+    tk('after', 'Finance', 'Settle all vendor and prize payments'),
+    tk('after', 'Sponsors', 'Send sponsor thank-you notes and a short report'),
+    tk('after', 'Operations', 'Publish results and send finisher certificates'),
+    tk('after', 'Media', 'Share photos and the highlight video'),
+    tk('after', 'Registration', 'Send the runner feedback survey'),
+    tk('after', 'Volunteers', 'Thank volunteers and issue certificates'),
+    tk('after', 'Operations', 'Hold the team debrief and record lessons'),
+    tk('after', 'Finance', 'Close the books: final budget against actual'),
+  ],
+  budget: [].concat(
+    BUDGET_CATS.flatMap(([cat, items]) => items.map((title) => ({ kind: 'budget', phase: 'expense', cat, title }))),
+    ['Registration revenue', 'Sponsorship (cash)', 'Grants and partners', 'Merchandise', 'Other income'].map((title) => ({ kind: 'budget', phase: 'income', cat: 'Income', title }))
+  ),
+  supply: [
+    ['Hydration', 'Drinking water', 'litres'], ['Hydration', 'Electrolyte sachets', 'sachets'], ['Hydration', 'Cups', 'pcs'], ['Hydration', 'Ice', 'kg'],
+    ['Nutrition', 'Bananas and oranges', 'pcs'], ['Nutrition', 'Energy bars or biscuits', 'pcs'], ['Nutrition', 'Salt and snacks', 'packs'],
+    ['Medical', 'First-aid kits', 'kits'], ['Medical', 'Cold spray and ice packs', 'pcs'], ['Medical', 'Space blankets', 'pcs'], ['Medical', 'Stretchers', 'pcs'],
+    ['Tech', 'Walkie-talkies', 'sets'], ['Tech', 'Power banks and chargers', 'pcs'], ['Tech', 'Generator and fuel', 'sets'], ['Tech', 'Microphones and speakers', 'sets'], ['Tech', 'Timing mats and chips', 'sets'],
+    ['Signage', 'Start and finish gantry', 'sets'], ['Signage', 'Route arrows and ribbons', 'pcs'], ['Signage', 'Kilometre markers', 'pcs'], ['Signage', 'Cones and barricades', 'pcs'], ['Signage', 'Banners and directional boards', 'pcs'],
+    ['Kit', 'Bibs and safety pins', 'sets'], ['Kit', 'Finisher medals', 'pcs'], ['Kit', 'Finisher T-shirts', 'pcs'], ['Kit', 'Goodie bags', 'pcs'], ['Kit', 'Volunteer T-shirts', 'pcs'], ['Kit', 'Pacer flags and bibs', 'sets'],
+    ['General', 'Tents, tables and chairs', 'sets'], ['General', 'Dustbins and bags', 'pcs'], ['General', 'Portable toilets', 'pcs'], ['General', 'Rope, cable ties and tape', 'sets'], ['General', 'Trophies', 'pcs'],
+  ].map(([cat, title, ref]) => ({ kind: 'supply', cat, title, ref })),
+  approval: [].concat(
+    [
+      ['Police permission for road use and traffic diversion', 'Police and traffic'],
+      ['Municipal corporation permission for the route and venue', 'Municipal corporation'],
+      ['Forest department permission (trail routes)', 'Forest department'],
+      ['Fire safety clearance for the expo, stage and tents', 'Fire services'],
+      ['Ambulance and hospital tie-up letter', 'Hospital'],
+      ['Event insurance policy', 'Insurer'],
+      ['Loudspeaker and sound permission', 'Police'],
+      ['Drone permission (if drones are used)', 'Police or aviation'],
+      ['Land or beach owner permission', 'Owner'],
+      ['Food safety registration for aid-station food', 'Food safety'],
+      ['Electricity and generator permission', 'Power utility'],
+      ['Banner and hoarding permission', 'Municipal corporation'],
+    ].map(([title, party]) => ({ kind: 'approval', phase: 'permit', cat: 'Permit', title, party })),
+    [
+      ['Weather go or no-go', 'Race Director'], ['Course cleared and marked', 'Route lead'], ['Medical team in position', 'Medical lead'],
+      ['Police and traffic in position', 'Operations'], ['Start, timing and finish ready', 'Timing lead'], ['Aid stations stocked and staffed', 'Aid-station lead'],
+      ['Volunteers and pacers briefed', 'Volunteer lead'], ['Final flag-off approval', 'Race Director'],
+    ].map(([title, owner]) => ({ kind: 'approval', phase: 'raceday', cat: 'Sign-off', title, owner }))
+  ),
+  ceremony: [
+    ['pre', 'Runner briefing (course, cut-offs, rules)'], ['pre', 'Expo opening and bib collection'], ['pre', 'Volunteer and pacer briefing'], ['pre', 'Guest and sponsor welcome, VIP list ready'],
+    ['pre', 'Inauguration or lamp lighting (if planned)'], ['pre', 'Warm-up and pledge'], ['pre', 'Announcer script and MC ready'],
+    ['during', 'Flag-off for each category'], ['during', 'Announcements and cheering at aid stations'], ['during', 'Finish line welcome and medal handover'],
+    ['during', 'Podium and prize presentation (overall and age groups)'], ['during', 'Sponsor recognition on stage'], ['during', 'Spot prizes or lucky draw'], ['during', 'Photo and video moments (start, finish, podium)'],
+    ['post', 'Closing speech and thank-yous'], ['post', 'Volunteer felicitation and certificates'], ['post', 'Sponsor and partner thank-you'], ['post', 'Results published and certificates sent'],
+    ['post', 'Photos and highlight video shared'], ['post', 'Runner feedback survey'], ['post', 'Team debrief'], ['post', 'Prize and vendor payments cleared'],
+  ].map(([phase, title]) => ({ kind: 'ceremony', phase, title })),
+  contact: [
+    ['Police', 'Traffic police contact'], ['Police', 'Local police station'], ['Medical', 'Ambulance provider'], ['Medical', 'Nearest hospital'], ['Government', 'Municipal corporation officer'],
+    ['Government', 'Forest range officer'], ['Government', 'Fire station'], ['Venue', 'Venue or ground owner'], ['Vendor', 'Timing vendor'], ['Vendor', 'Sound and stage vendor'],
+    ['Vendor', 'Water and catering supplier'], ['Vendor', 'Medal and T-shirt vendor'], ['Media', 'Photographer'], ['Media', 'Press and local media'],
+  ].map(([cat, title]) => ({ kind: 'contact', cat, title })),
+};
+async function seedPlan(ev, kinds) {
+  const have = await rows(PLAN, ev);
+  const made = {};
+  const list = [];
+  for (const k of kinds) {
+    if (have.some((r) => r.kind === k)) continue;
+    (PLAN_DEFAULTS[k] || []).forEach((d, i) => {
+      const K = PKINDS[d.kind];
+      list.push({ event: ev, kind: d.kind, title: d.title, cat: d.cat || '', phase: d.phase || K.phases[0], status: K.statuses[0], owner: d.owner || '', party: d.party || '', contact: '', due: '', time: '', amount: '', amount2: '', ref: d.ref || '', link: '', notes: '', order: String(i).padStart(3, '0'), by: '', at: '' });
+    });
+    made[k] = (PLAN_DEFAULTS[k] || []).length;
+  }
+  if (list.length) await wixData.bulkInsert(PLAN, list, SA);
+  return made;
+}
+export const seedPlanLists = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  await getEvent(arg.ev);
+  const kinds = (Array.isArray(arg.kinds) && arg.kinds.length ? arg.kinds : Object.keys(PLAN_DEFAULTS)).map(kindOf).filter((k) => PLAN_DEFAULTS[k]);
+  return { added: await seedPlan(arg.ev, kinds) };
 });
 
 /* ---------- one-time database setup ---------- */
@@ -1135,6 +1495,7 @@ function collectionDefs() {
     def(CHECK, ['event', 'section', 'item', 'done', 'doneBy', 'doneAt', 'order']),
     def(REGS, ['event', 'ticketNumber', 'orderNumber', 'guestId', 'name', 'email', 'phone', 'cat', 'size', 'bibName', 'status', 'form', 'at']),
     def(QUALS, ['event', 'runnerId', 'name', 'cat', 'claim', 'claimKm', 'claimSec', 'link', 'status', 'note', 'by', 'at']),
+    def(PLAN, ['event', 'kind', 'title', 'cat', 'phase', 'status', 'owner', 'party', 'contact', 'due', 'time', 'amount', 'amount2', 'ref', 'link', 'notes', 'order', 'by', 'at']),
     def(RATE, ['n']),
   ];
 }

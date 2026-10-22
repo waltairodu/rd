@@ -72,6 +72,7 @@ td{padding:9px 8px;border-bottom:1px solid var(--surface-2);vertical-align:top}
 .toast.err{background:var(--bad);color:#fff}
 .login{max-width:380px;margin:12vh auto 0}
 .login form{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.short{color:var(--bad);font-weight:700}
 .sec{margin-top:6px;font:700 13px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
 .chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--surface-2)}
 .chk input{margin-top:3px;min-height:0;width:18px;height:18px}
@@ -95,11 +96,11 @@ var ERR={not_logged_in:'Your session ended. Please log in again.',bad_login:'Wro
   role_needed:'Please enter a role name.',bad_time:'Times must look like 05:30 and end after they start.',bad_need:'Please enter a number of people.',need_below_taken:'More people are already on this shift than that.',no_shift:'That shift was not found.',shift_has_checkins:'Some people already checked in to this shift.',
   shift_full:'That shift is full.',shifts_overlap:'Those shifts overlap in time.',no_volunteer:'Volunteer not found.',already_assigned:'Already on that shift.',volunteer_declined:'This volunteer was declined.',bad_phone:'Please enter a 10-digit mobile number.',already_signed_up:'That mobile number is already registered.',
   not_found:'No volunteer with that code.',not_approved:'This volunteer is not approved yet.',no_confirmed_shift:'No confirmed shift for this volunteer.',nothing_to_check:'Nothing to check in or out.',already_in:'Already checked in.',not_checked_in:'Not checked in yet.',already_out:'Already checked out.',already_checked_in:'They already checked in, so this cannot change.',no_assignment:'Shift assignment not found.',
-  text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',wix_event_not_linked:'Link this race to its Wix event first.',wix_events_unavailable:'Wix Events did not answer. Try again in a minute.',wix_events_denied:'Wix Events refused access. Check that the Events app is installed on this site.',bad_quals:'Check the rules: each line needs a different category and at least one way to qualify (distance, time or both). Times look like 3:00.',no_runner:'That runner was not found.',no_rule:'This category has no qualification rule.',bad_claim:'Check the distance and the time (for example 21.1 and 2:45:10).',bad_link:'The proof link must start with http.',note_needed:'Please write a short reason.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',timeout:'No answer from the server. Try again.'};
+  text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',wix_event_not_linked:'Link this race to its Wix event first.',wix_events_unavailable:'Wix Events did not answer. Try again in a minute.',wix_events_denied:'Wix Events refused access. Check that the Events app is installed on this site.',bad_quals:'Check the rules: each line needs a different category and at least one way to qualify (distance, time or both). Times look like 3:00.',no_runner:'That runner was not found.',no_rule:'This category has no qualification rule.',bad_claim:'Check the distance and the time (for example 21.1 and 2:45:10).',bad_link:'The proof link must start with http.',note_needed:'Please write a short reason.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',title_needed:'Please give it a name (2 or more letters).',bad_phase:'Pick a valid group.',bad_amount:'Amounts must be a number, zero or more.',link_needed:'Please paste the link.',timeout:'No answer from the server. Try again.'};
 var msg=function(e){return ERR[e]||('Something went wrong ('+e+')')};
 
 var EXPO_SRC=null; /* filled in by tools/build_rd.py: the Expo desk page, shown in the Expo desk tab */
-var S={cred:null,expoOnly:false,token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:''};
+var S={cred:null,expoOnly:false,token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',plan:null,pedit:null,regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:''};
 try{var b=localStorage.getItem('rd.base');if(b)S.base=b}catch(e){}
 var pending={},seq=0;
 var xmap={},xseq=0;
@@ -154,6 +155,7 @@ async function loadTab(){
     else if(t==='safety')S.checks=(await api('listChecklist')).items;
     else if(t==='quals')S.qual=await api('listQuals');
     else if(t==='regs')S.regs=await api('listRegs');
+    else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){toast(msg(e.message),true)}
   render();
 }
@@ -173,10 +175,10 @@ function loginView(){
    +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
    +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
 }
-var TABS_BASE=[['overview','Overview'],['volunteers','Volunteers'],['raceday','Race day'],['pacers','Pacers'],['safety','Safety'],['regs','Registrations'],['quals','Qualification']];
+var TABS_BASE=[['overview','Overview'],['plan','Plan'],['money','Money'],['approvals','Approvals'],['ceremonies','Ceremonies'],['logistics','Logistics'],['volunteers','Volunteers'],['raceday','Race day'],['pacers','Pacers'],['safety','Safety'],['regs','Registrations'],['quals','Qualification']];
 function head(){
   var ev=S.events.find(function(e){return e.id===S.ev});
-  var tabs=TABS_BASE.concat(man()&&EXPO_SRC?[['expo','Expo desk']]:[],man()?[['setup','Setup']]:[]);
+  var tabs=TABS_BASE.filter(function(t){return !(t[0]==='money'&&S.me&&S.me.role==='viewer')}).concat(man()&&EXPO_SRC?[['expo','Expo desk']]:[],man()?[['setup','Setup']]:[]);
   return '<div class="top"><div class="row between"><div><div class="eyebrow">VTRA Race Director</div><h1>'+esc(ev?ev.name:'No race yet')+'</h1>'
    +(ev?'<small>'+esc(fdate(ev.date))+(ev.venue?' · '+esc(ev.venue):'')+(ev.daysToGo!==null?' · '+(ev.daysToGo>0?ev.daysToGo+' days to go':ev.daysToGo===0?'race day':'finished'):'')+'</small>':'')+'</div>'
    +'<div class="row">'+(S.events.length>1?'<select id="evPick" aria-label="Race">'+S.events.map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===S.ev?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>':'')
@@ -188,7 +190,7 @@ function noEvent(){return '<div class="card"><h3>No race yet</h3><p class="muted
 function overviewView(){
   var o=S.ov;if(!o)return '<p class="muted">Loading…</p>';
   var v=o.volunteers,x=o.expo,al=o.alerts;
-  var goTab={regs:'Registrations',volunteers:'Volunteers',raceday:'Race day',pacers:'Pacers',safety:'Safety',quals:'Qualification'};
+  var goTab={plan:'Plan',money:'Money',approvals:'Approvals',logistics:'Logistics',regs:'Registrations',volunteers:'Volunteers',raceday:'Race day',pacers:'Pacers',safety:'Safety',quals:'Qualification'};
   return '<div class="grid g4">'
    +'<div class="card kpi"><div class="l">Runners checked in</div><div class="n">'+(x?x.checkedIn:'–')+(x?' <small>/ '+x.total+'</small>':'')+'</div>'+(x?bar(x.checkedIn,x.total):'<small>Link the Expo race in Setup</small>')+'</div>'
    +'<div class="card kpi"><div class="l">Bibs and T-shirts given</div><div class="n">'+(x?x.bibs+' · '+x.shirts:'–')+'</div><small>'+(x?'bibs · T-shirts':'from the Expo desk')+'</small></div>'
@@ -196,6 +198,7 @@ function overviewView(){
    +'<div class="card kpi"><div class="l">Pacers</div><div class="n">'+o.pacers.have+' <small>/ '+o.pacers.need+'</small></div>'+bar(o.pacers.have,o.pacers.need)+'</div>'
    +'<div class="card kpi"><div class="l">Safety checklist</div><div class="n">'+o.checklist.done+' <small>/ '+o.checklist.total+'</small></div>'+bar(o.checklist.done,o.checklist.total)+'</div>'
    +'<div class="card kpi"><div class="l">Run of show</div><div class="n">'+o.run.done+' <small>/ '+o.run.total+'</small></div>'+bar(o.run.done,o.run.total)+'</div>'
+   +(o.plan?'<div class="card kpi"><div class="l">Plan tasks done</div><div class="n">'+o.plan.tasks.done+' <small>/ '+o.plan.tasks.total+'</small></div>'+bar(o.plan.tasks.done,o.plan.tasks.total)+'</div><div class="card kpi"><div class="l">Permits approved</div><div class="n">'+o.plan.approvals.permits.approved+' <small>/ '+o.plan.approvals.permits.total+'</small></div>'+bar(o.plan.approvals.permits.approved,o.plan.approvals.permits.total)+'</div>'+(o.plan.budget?'<div class="card kpi"><div class="l">Spent of budget</div><div class="n" style="'+(o.plan.budget.overBy>0?'color:var(--bad)':'')+'">'+(INR(o.plan.budget.expActual)||'\u20b90')+'</div><small>of '+(INR(o.plan.budget.expPlanned)||'\u20b90')+' planned</small></div>':''):'')
    +'<div class="card kpi"><div class="l">Open incidents</div><div class="n" style="'+(o.log.open?'color:var(--bad)':'')+'">'+o.log.open+'</div><small>'+o.log.total+' logged</small></div></div>'
    +'<div class="card" style="margin-top:14px"><h3>Needs attention</h3>'+(al.length?al.map(function(a){return '<div class="alert '+(a.level==='bad'?'bad':a.level==='warn'?'warn':'')+'"><span>'+esc(a.text)+'</span><button class="btn sm" data-act="tab" data-tab="'+esc(a.go)+'">'+esc(goTab[a.go]||'Open')+'</button></div>'}).join(''):'<p class="muted" style="margin-top:6px">Nothing needs you right now.</p>')+'</div>';
 }
@@ -343,15 +346,124 @@ function render(){
   if(S.expoOnly){app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.innerHTML=loginView();showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.innerHTML=head()+body;
+}
+
+/* ---------- planning: tasks, money, approvals, ceremonies, logistics ---------- */
+var INR=function(n){return n===null||n===undefined||n===''?'':'₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:2})};
+var CATS={task:['Operations','Approvals','Finance','Sponsors','Registration','Marketing','Medical','Supplies','Volunteers','Expo','Safety','Media'],
+ budget:['Permits and approvals','Venue and site','Timing and results','Medical and safety','Route and marking','Aid stations','Finisher items','Stage, sound and MC','Marketing and media','Volunteers','Logistics','Awards','Admin','Income'],
+ sponsor:['Title','Gold','Silver','Bronze','In-kind','Partner'],supply:['Hydration','Nutrition','Medical','Tech','Signage','Kit','General'],
+ contact:['Police','Medical','Government','Venue','Vendor','Media','Sponsor','Guest','Other'],doc:['Permit','Route map','Contract','Insurance','Results','Photos','Other'],
+ lesson:['Operations','Safety','Volunteers','Registration','Sponsors','Finance','Media'],approval:['Permit','Sign-off'],ceremony:['Stage','Medals','Guests','Media','Volunteers']};
+var KD={
+ task:{one:'task',many:'Tasks',group:'phase',ph:{d90:'90 days or more before',d30:'About 30 days before',d7:'About a week before',week:'Race week',day:'Race day',after:'After the race'},st:{todo:'To do',doing:'Doing',blocked:'Blocked',done:'Done'},
+  f:[['title','Task','text',1],['cat','Area','cat'],['phase','When','phase'],['owner','Owner','text'],['due','Due date','date'],['status','Status','status'],['notes','Notes','area']],cols:[['Area','cat'],['Owner','owner'],['Due','due']]},
+ lesson:{one:'lesson',many:'Debrief and lessons',group:'phase',ph:{worked:'What worked',fix:'What to fix',idea:'Ideas for next time'},st:{open:'Open',actioned:'Actioned'},
+  f:[['title','Lesson','text',1],['cat','Area','cat'],['phase','Type','phase'],['owner','Owner','text'],['status','Status','status'],['notes','Detail','area']],cols:[['Area','cat'],['Owner','owner']]},
+ budget:{one:'budget line',many:'Budget',money:1,group:'phase',ph:{expense:'Costs',income:'Income'},st:{planned:'Planned',committed:'Committed',paid:'Paid',cancelled:'Cancelled'},
+  f:[['title','Item','text',1],['cat','Category','cat'],['phase','Type','phase'],['amount','Planned (₹)','num'],['amount2','Actual (₹)','num'],['party','Vendor or payer','text'],['due','Pay by','date'],['status','Status','status'],['notes','Notes','area']],
+  cols:[['Category','cat'],['Planned',function(i){return INR(i.amount)}],['Actual',function(i){return INR(i.amount2)}],['Vendor','party'],['Pay by','due']]},
+ sponsor:{one:'sponsor',many:'Sponsors',money:1,group:'status',st:{lead:'Lead',pitched:'Pitched',negotiating:'Negotiating',committed:'Committed',received:'Received',declined:'Declined'},ph:{cash:'Cash',inkind:'In-kind'},
+  f:[['title','Company','text',1],['cat','Tier','cat'],['phase','Support','phase'],['amount','Promised value (₹)','num'],['amount2','Received (₹)','num'],['party','Contact person','text'],['contact','Phone or email','text'],['owner','Our owner','text'],['due','Payment due','date'],['status','Stage','status'],['notes','What they get (logo, banner, stall, speech)','area']],
+  cols:[['Tier','cat'],['Support',function(i){return i.phase==='inkind'?'In-kind':'Cash'}],['Promised',function(i){return INR(i.amount)}],['Received',function(i){return INR(i.amount2)}],['Contact',function(i){return esc([i.party,i.contact].filter(Boolean).join(' · '))}],['Due','due']]},
+ supply:{one:'supply',many:'Supplies',group:'cat',ph:{all:'All'},st:{to_order:'To order',ordered:'Ordered',received:'Received',delivered:'At the site'},
+  f:[['title','Item','text',1],['cat','Type','cat'],['amount','Needed','num'],['amount2','Have','num'],['ref','Unit','text'],['party','Supplier','text'],['contact','Supplier phone','text'],['owner','Owner','text'],['due','Needed by','date'],['status','Status','status'],['notes','Where it goes (aid station, expo, finish)','area']],
+  cols:[['Needed',function(i){return i.amount===null?'':esc(i.amount+' '+i.ref)}],['Have',function(i){return i.amount2===null?'':'<span class="'+(i.amount!==null&&i.amount2<i.amount&&i.status!=='delivered'?'short':'')+'">'+esc(i.amount2)+'</span>'}],['Supplier','party'],['Needed by','due']]},
+ approval:{one:'approval',many:'Approvals',group:'phase',ph:{permit:'Permits and permissions',raceday:'Race-day sign-offs'},st:{todo:'To do',applied:'Applied',approved:'Approved',rejected:'Rejected',expired:'Expired'},
+  f:[['title','Approval','text',1],['cat','Type','cat'],['phase','Kind','phase'],['party','Authority','text'],['contact','Contact','text'],['ref','Reference no.','text'],['owner','Responsible','text'],['due','Needed by','date'],['link','Document link','url'],['status','Status','status'],['notes','Notes','area']],
+  cols:[['Authority or owner',function(i){return esc(i.party||i.owner)}],['Ref','ref'],['Needed by','due'],['Signed off',function(i){return i.status==='approved'&&i.by?esc(i.by):''}]]},
+ ceremony:{one:'ceremony item',many:'Ceremonies and programme',group:'phase',ph:{pre:'Before the race',during:'During the race',post:'After the race'},st:{todo:'To do',ready:'Ready',done:'Done',skipped:'Skipped'},
+  f:[['title','What','text',1],['phase','When','phase'],['time','Time','time'],['due','Date','date'],['owner','Owner','text'],['party','Who presents or hosts','text'],['status','Status','status'],['notes','Script, needs, notes','area']],
+  cols:[['Time','time'],['Owner','owner'],['Presented by','party']]},
+ contact:{one:'contact',many:'Contacts and vendors',group:'cat',ph:{all:'All'},st:{active:'Active'},
+  f:[['title','Name or role','text',1],['cat','Group','cat'],['party','Organisation','text'],['contact','Phone','text'],['ref','Email','text'],['notes','Notes','area']],cols:[['Group','cat'],['Organisation','party'],['Phone','contact'],['Email','ref']]},
+ doc:{one:'document',many:'Documents and links',group:'cat',ph:{all:'All'},st:{active:'Active'},
+  f:[['title','Name','text',1],['cat','Type','cat'],['link','Link (https://)','url',1],['notes','Notes','area']],cols:[['Type','cat'],['Link',function(i){return /^https?:\/\//i.test(i.link)?'<a href="'+esc(i.link)+'" target="_blank" rel="noopener">Open</a>':''}]]}
+};
+var PLAN_SEED={task:1,budget:1,supply:1,approval:1,ceremony:1,contact:1};
+var PLAN_TABS={plan:['task','lesson'],money:['budget','sponsor'],approvals:['approval'],ceremonies:['ceremony'],logistics:['supply','contact','doc']};
+function planKindsFor(t){return PLAN_TABS[t].filter(function(k){return !(S.me&&S.me.role==='viewer'&&(KD[k].money||k==='contact'))})}
+function canKind(k){return KD[k].money?man():can()}
+function cellOf(c,i){var v=c[1];if(typeof v==='function')return v(i);v=i[v];return v?(c[1]==='due'?esc(fdate(v)):esc(v)):''}
+function planForm(kind){
+  var K=KD[kind],pe=S.pedit;if(!pe||pe.kind!==kind)return '';
+  var v=pe.vals||{};
+  var fs=K.f.map(function(f){
+    var k=f[0],t=f[2],val=v[k]===undefined||v[k]===null?'':v[k],req=f[3]?' required':'';
+    var span=t==='area'?' style="grid-column:1/-1"':'';
+    var inp;
+    if(t==='phase')inp='<select name="phase">'+Object.keys(K.ph).map(function(p){return '<option value="'+p+'"'+((val||Object.keys(K.ph)[0])===p?' selected':'')+'>'+esc(K.ph[p])+'</option>'}).join('')+'</select>';
+    else if(t==='status')inp='<select name="status">'+Object.keys(K.st).map(function(p){return '<option value="'+p+'"'+((val||Object.keys(K.st)[0])===p?' selected':'')+'>'+esc(K.st[p])+'</option>'}).join('')+'</select>';
+    else if(t==='area')inp='<textarea name="'+k+'" rows="2" maxlength="600">'+esc(val)+'</textarea>';
+    else if(t==='cat')inp='<input name="'+k+'" list="dl'+kind+'" value="'+esc(val)+'" maxlength="40"><datalist id="dl'+kind+'">'+(CATS[kind]||[]).map(function(c){return '<option value="'+esc(c)+'">'}).join('')+'</datalist>';
+    else if(t==='num')inp='<input name="'+k+'" type="number" min="0" step="any" value="'+esc(val)+'">';
+    else if(t==='date')inp='<input name="'+k+'" type="date" value="'+esc(val)+'">';
+    else if(t==='time')inp='<input name="'+k+'" type="time" value="'+esc(val)+'">';
+    else if(t==='url')inp='<input name="'+k+'" type="url" value="'+esc(val)+'" placeholder="https://"'+req+'>';
+    else inp='<input name="'+k+'" value="'+esc(val)+'" maxlength="120"'+req+'>';
+    return '<label class="f"'+span+'>'+esc(f[1])+inp+'</label>'});
+  return '<form id="planForm" data-kind="'+kind+'" class="form" style="margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:10px"><b style="grid-column:1/-1">'+(pe.id?'Edit':'Add')+' '+esc(K.one)+'</b>'+fs.join('')+'<div class="row" style="grid-column:1/-1"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" data-act="pcancel">Cancel</button></div></form>';
+}
+function planSection(kind,opts){
+  opts=opts||{};var K=KD[kind],items=(S.plan&&S.plan.items[kind])||[];
+  var w=canKind(kind);
+  var head='<div class="row between"><h3>'+esc(K.many)+'</h3><span class="row"><span class="muted">'+items.length+' item'+(items.length===1?'':'s')+'</span>'+(items.length?'<button class="btn sm" data-act="pcsv" data-kind="'+kind+'">Download CSV</button>':'')+(w?'<button class="btn sm pri" data-act="pnew" data-kind="'+kind+'">Add</button>':'')+'</span></div>';
+  if(opts.note)head+='<p class="muted" style="margin-top:4px">'+esc(opts.note)+'</p>';
+  var body='';
+  if(!items.length){
+    body='<p class="muted" style="margin-top:8px">Nothing here yet.'+(man()&&PLAN_SEED[kind]?' <button class="btn sm" data-act="pseed" data-kind="'+kind+'">Load the starter list</button>':'')+'</p>';
+  }else{
+    var keys=K.group==='phase'?Object.keys(K.ph):K.group==='status'?Object.keys(K.st):Array.from(new Set(items.map(function(i){return i.cat||'Other'}))).sort();
+    var showSt=Object.keys(K.st).length>1;
+    keys.forEach(function(g){
+      var gi=items.filter(function(i){return (K.group==='phase'?i.phase:K.group==='status'?i.status:(i.cat||'Other'))===g});
+      if(!gi.length)return;
+      var label=K.group==='phase'?K.ph[g]:K.group==='status'?K.st[g]:g;
+      body+='<div class="sec" style="margin-top:14px">'+esc(label)+' <span class="muted">('+gi.length+')</span></div><div class="scroll"><table><tr>'+(showSt?'<th>Status</th>':'')+'<th>Item</th>'+K.cols.map(function(c){return '<th>'+esc(c[0])+'</th>'}).join('')+'<th></th></tr>'
+       +gi.map(function(i){
+         var sel=showSt?'<td><select data-act="pstatus" data-id="'+esc(i.id)+'" aria-label="Status"'+(w?'':' disabled')+'>'+Object.keys(K.st).map(function(s){return '<option value="'+s+'"'+(i.status===s?' selected':'')+'>'+esc(K.st[s])+'</option>'}).join('')+'</select></td>':'';
+         return '<tr>'+sel+'<td><b>'+esc(i.title)+'</b>'+(i.overdue?' '+pill('overdue','bad'):'')+(i.notes?'<br><small class="muted">'+esc(i.notes)+'</small>':'')+'</td>'+K.cols.map(function(c){return '<td>'+cellOf(c,i)+'</td>'}).join('')
+          +'<td style="white-space:nowrap">'+(w?'<button class="btn sm" data-act="pedit" data-kind="'+kind+'" data-id="'+esc(i.id)+'">Edit</button> ':'')+(man()?arm('pd'+i.id,'×','pdel','data-kind="'+kind+'" data-id="'+esc(i.id)+'"'):'')+'</td></tr>'}).join('')+'</table></div>'});
+  }
+  return '<div class="card">'+head+planForm(kind)+body+'</div>';
+}
+function sumCard(l,n,sub,bad){return '<div class="card kpi"><div class="l">'+esc(l)+'</div><div class="n" style="'+(bad?'color:var(--bad)':'')+'">'+n+'</div><small>'+(sub||'')+'</small></div>'}
+function planLoading(){return '<div class="card muted">Loading...</div>'}
+function planTabView(){
+  if(!S.plan)return planLoading();var s=S.plan.summary,t=s.tasks;
+  return '<div class="stack"><div class="grid g4">'+sumCard('Tasks done',t.done+' <small>/ '+t.total+'</small>',bar(t.done,t.total))+sumCard('Overdue',s.overdue,'across all planning lists',s.overdue>0)+sumCard('Blocked',t.blocked,'tasks',t.blocked>0)+sumCard('Open lessons',s.lessons.open,'after the race')+'</div>'
+   +planSection('task',{note:'Everything to do, from 90 days out to the debrief. Change the status in the first column.'})+planSection('lesson',{note:'Fill in after the race: what worked, what to fix, ideas for next year.'})+'</div>';
+}
+function moneyTabView(){
+  if(!S.plan)return planLoading();var b=S.plan.summary.budget,sp=S.plan.summary.sponsors;if(!b)return '<div class="card muted">You do not have access to money details.</div>';
+  var z=function(n){return INR(n)||'₹0'};
+  var cats=b.byCat.length?'<div class="card"><h3>Costs by category</h3><div class="scroll"><table><tr><th>Category</th><th>Planned</th><th>Actual</th><th>Difference</th></tr>'+b.byCat.map(function(c){return '<tr><td>'+esc(c.cat)+'</td><td>'+z(c.planned)+'</td><td>'+z(c.actual)+'</td><td>'+(c.actual>c.planned?pill('over by '+INR(c.actual-c.planned),'bad'):z(c.planned-c.actual))+'</td></tr>'}).join('')+'</table></div></div>':'';
+  return '<div class="stack"><div class="grid g4">'+sumCard('Planned costs',z(b.expPlanned),'spent so far '+z(b.expActual),b.overBy>0)+sumCard('Income expected',z(b.incPlanned),'received '+z(b.incActual))+sumCard('Planned result',(b.netPlanned<0?'-':'')+z(Math.abs(b.netPlanned)),b.netPlanned<0?'planned shortfall':'planned surplus',b.netPlanned<0)+sumCard('Committed, not paid',z(b.committedUnpaid),'cost lines marked committed')+'</div>'
+   +'<div class="grid g4">'+sumCard('Sponsor cash promised',z(sp.cashPromised),sp.coversPct===null?'':'covers '+sp.coversPct+'% of planned costs')+sumCard('Sponsor cash received',z(sp.cashReceived),'still to collect '+z(sp.outstanding))+sumCard('In the pipeline',z(sp.pipeline),'leads, pitched, negotiating')+sumCard('In-kind support',z(sp.inKind),'committed or received')+'</div>'
+   +cats+planSection('budget',{note:'Planned is what you expect to spend or earn. Actual is what really happened. Marking a line Paid fills Actual with Planned if it is empty.'})+planSection('sponsor',{note:'Track each sponsor from lead to money received, and what you owe them (logo, banner, stall, speech).'})+'</div>';
+}
+function approvalsTabView(){
+  if(!S.plan)return planLoading();var a=S.plan.summary.approvals;
+  return '<div class="stack"><div class="grid g4">'+sumCard('Permits approved',a.permits.approved+' <small>/ '+a.permits.total+'</small>',bar(a.permits.approved,a.permits.total))+sumCard('Race-day sign-offs',a.raceday.approved+' <small>/ '+a.raceday.total+'</small>',bar(a.raceday.approved,a.raceday.total))+sumCard('Rejected or expired',a.problems,'needs action',a.problems>0)+'</div>'
+   +planSection('approval',{note:'Permits come from outside authorities. Race-day sign-offs are given by your leads on the morning; the name of whoever approves is recorded.'})+'</div>';
+}
+function ceremoniesTabView(){
+  if(!S.plan)return planLoading();var c=S.plan.summary.ceremonies;
+  return '<div class="stack"><div class="grid g4">'+['pre','during','post'].map(function(p){return sumCard(KD.ceremony.ph[p],c[p].done+' <small>/ '+c[p].total+'</small>',bar(c[p].done,c[p].total))}).join('')+'</div>'+planSection('ceremony',{note:'The programme around the race: briefings, flag-off, finish, podium, thank-yous.'})+'</div>';
+}
+function logisticsTabView(){
+  if(!S.plan)return planLoading();var s=S.plan.summary.supplies;
+  return '<div class="stack"><div class="grid g4">'+sumCard('Supplies at the site',s.delivered+' <small>/ '+s.total+'</small>',bar(s.delivered,s.total))+sumCard('Short of quantity',s.short,'needed more than we have',s.short>0)+'</div>'
+   +planSection('supply',{note:'Set Needed and Have. An item counts as short while Have is below Needed and it has not reached the site.'})+(S.plan.items.contact?planSection('contact',{note:'Vendors and authorities you may need to call on the day.'}):'')+planSection('doc',{note:'Links to permits, route maps, contracts and insurance papers. Keep the files in Drive or similar and paste the link.'})+'</div>';
 }
 
 /* ---------- actions ---------- */
 function formData(f){var o={};Array.prototype.forEach.call(f.elements,function(el){if(!el.name)return;o[el.name]=el.type==='checkbox'?el.checked:el.value});return o}
 function download(name,text){try{var b=new Blob([text],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
 function csvCell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
-async function doTab(t){S.tab=t;S.armed=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
+async function doTab(t){S.tab=t;S.armed=null;S.pedit=null;S.plan=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||b.tagName==='INPUT')return;
   var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
@@ -385,6 +497,12 @@ document.addEventListener('click',function(e){
   else if(act==='pacerCancel'){S.editPacer=null;render()}
   else if(act==='pacerDel')run(async function(){await api('removePacer',{id:id});await reload()});
   else if(act==='checkDel')run(async function(){await api('removeCheck',{id:id});await reload()});
+  else if(act==='pnew'){var k0=b.getAttribute('data-kind');S.pedit={kind:k0,id:'',vals:{}};render();var f0=$('#planForm');if(f0&&f0.scrollIntoView)f0.scrollIntoView({block:'center'})}
+  else if(act==='pedit'){var k1=b.getAttribute('data-kind'),it1=((S.plan&&S.plan.items[k1])||[]).find(function(x){return x.id===id});if(it1){S.pedit={kind:k1,id:id,vals:Object.assign({},it1)};render();var f1=$('#planForm');if(f1&&f1.scrollIntoView)f1.scrollIntoView({block:'center'})}}
+  else if(act==='pcancel'){S.pedit=null;render()}
+  else if(act==='pdel')run(async function(){await api('removePlanItem',{id:id});toast('Removed');await reload()});
+  else if(act==='pseed')run(async function(){var r=await api('seedPlanLists',{kinds:[b.getAttribute('data-kind')]});var n=0;Object.keys(r.added).forEach(function(k){n+=r.added[k]});toast('Added '+n+' starter items');await reload()});
+  else if(act==='pcsv'){var k2=b.getAttribute('data-kind'),ls=(S.plan&&S.plan.items[k2])||[];download(k2+'.csv',[['Title','Category','Group','Status','Owner','Party','Contact','Due','Time','Amount','Actual','Ref','Link','Notes']].concat(ls.map(function(i){return [i.title,i.cat,i.phase,i.status,i.owner,i.party,i.contact,i.due,i.time,i.amount,i.amount2,i.ref,i.link,i.notes]})).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
   else if(act==='evEdit'){S.editEvent=Object.assign({},S.events.find(function(x){return x.id===id}));render()}
   else if(act==='evNew'){S.editEvent=null;render()}
 });
@@ -396,6 +514,7 @@ document.addEventListener('change',function(e){
   else if(t.id==='qF'){S.qF=t.value;render()}
   else if(t.id==='logF'){S.logFilter=t.value;render()}
   else if(t.id==='baseUrl'){S.base=t.value.trim()||S.base;try{localStorage.setItem('rd.base',S.base)}catch(x){}render()}
+  else if(t.getAttribute('data-act')==='pstatus'){var pid=t.getAttribute('data-id'),pst=t.value;run(async function(){await api('setPlanStatus',{id:pid,status:pst});await loadTab()})}
   else if(t.getAttribute('data-act')==='assign'&&t.value){var sid=t.value,vid=t.getAttribute('data-vid');run(async function(){await api('assignShift',{volunteerId:vid,shiftId:sid});await loadTab()})}
   else if(t.getAttribute('data-act')==='tick'){var id=t.getAttribute('data-id'),on=t.checked;run(async function(){await api('toggleCheck',{id:id,done:on});S.checks=(await api('listChecklist')).items;render()}).then(function(){if(!S.busy)return});}
 });
@@ -420,6 +539,7 @@ document.addEventListener('submit',function(e){
   else if(id==='mapForm')run(async function(){await api('saveWixMap',{map:d});toast('Saved. Press Import / refresh to apply it.');S.wixForm=await api('wixFormFields');await loadTab()});
   else if(id==='ruleForm')run(async function(){var r=await api('saveQualRules',{rules:textToRules(d.rules)});toast('Rules saved ('+r.count+')');await loadTab()});
   else if(f.classList.contains('claimForm'))run(async function(){await api('saveQualClaim',{runnerId:f.getAttribute('data-rid'),text:d.text,km:d.km,time:d.time,link:d.link});toast('Claim saved');await loadTab()});
+  else if(id==='planForm')run(async function(){var kd=f.getAttribute('data-kind');await api('savePlanItem',Object.assign({kind:kd,id:S.pedit&&S.pedit.id||undefined},d));S.pedit=null;toast('Saved');await loadTab()});
   else if(id==='checkForm')run(async function(){await api('addCheck',d);await loadTab()});
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });

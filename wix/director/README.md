@@ -89,3 +89,18 @@ The /rd page now holds the Expo desk too, behind the same login.
 - Logging out of /rd also ends the Expo session.
 - `director-embed.html` is the source. After changing it or `wix/expo/exposoft-embed.html`, run `python3 tools/build_rd.py` to rebuild `rd-embed.html` (the tests do this too).
 - The stand-alone Expo page keeps working, so you can keep it as a fallback, or if Wix refuses a page that large, keep using `director-embed.html` on /rd and the stand-alone Expo page.
+
+## Planning: tasks, money, approvals, ceremonies, logistics (new)
+Five tabs hold everything a race director tracks, all in one collection, **RDPlan** (created automatically at the first login after you publish; if you prefer to make it by hand, give it these text columns: event, kind, title, cat, phase, status, owner, party, contact, due, time, amount, amount2, ref, link, notes, order, by, at, and make it Admin-only).
+
+| Tab | What it holds |
+|---|---|
+| Plan | Tasks from 90 days out to the debrief; lessons (what worked, what to fix, ideas) |
+| Money | Budget (costs and income, planned and actual, by category) and sponsors (lead to received, what you owe them) |
+| Approvals | Permits (police, municipal, forest, fire, insurance...) and race-day sign-offs, with who signed and when |
+| Ceremonies | Programme before, during and after the race |
+| Logistics | Supplies (needed and have, short quantities), contacts and vendors, document links |
+
+A new race starts with a starter list for tasks, budget, supplies, approvals, ceremonies and contacts. On older races, press **Load the starter list** in an empty section.
+Who can do what: directors read and write everything and delete; leads read money and write everything except money; viewers read everything except money and contacts (phone numbers). Overview shows overdue items, permits not approved, race-day sign-offs due, short supplies and overspend. Each list downloads as CSV.
+
