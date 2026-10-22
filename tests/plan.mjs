@@ -182,6 +182,16 @@ const one = async (t, e, k) => (await list(t, e, k)).items[k];
   ok(!o1.alerts.some((a) => /short of the quantity/.test(a.text)), 'no supplies alert 40 days out');
 }
 
+// ---- race banner image (dashboard hero)
+{
+  const bn = (await D.saveEvent({ token: B, id: E, bannerUrl: 'https://static.example.com/vhm.jpg' })).event;
+  ok(bn.bannerUrl === 'https://static.example.com/vhm.jpg', 'banner link saved');
+  ok((await D.saveEvent({ token: B, id: E, venue: 'RK Beach' })).event.bannerUrl === 'https://static.example.com/vhm.jpg', 'banner kept when another field is edited');
+  ok((await err(D.saveEvent({ token: B, id: E, bannerUrl: 'http://insecure.example.com/a.jpg' }))) === 'bad_link', 'only https banners');
+  ok((await err(D.saveEvent({ token: B, id: E, bannerUrl: 'javascript:alert(1)' }))) === 'bad_link', 'script banner refused');
+  ok((await D.saveEvent({ token: B, id: E, bannerUrl: '' })).event.bannerUrl === '', 'banner can be cleared');
+}
+
 // ---- starter lists on demand
 {
   const r1 = await D.seedPlanLists({ token: B, ev: E });

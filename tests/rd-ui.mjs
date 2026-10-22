@@ -72,7 +72,7 @@ const inner = (s) => { const f = s.d.querySelector('#expoFrame'); return f && f.
 {
   calls.length = 0;
   const s = await login('boss');
-  ok(s.d.querySelector('[data-tab="expo"]') && /Expo desk/.test(txt(s.d.querySelector('.tabs'))), 'admin sees the Expo desk tab');
+  ok(s.d.querySelector('[data-tab="expo"]') && /BIB & Expo/.test(txt(s.d.querySelector('.tabs'))), 'admin sees the Expo desk tab');
   ok(s.d.querySelector('#expoWrap').hidden && !s.d.querySelector('#expoFrame'), 'Expo desk is not loaded until its tab is opened');
   click(s.w, s.d.querySelector('[data-tab="expo"]')); await sleep(1800);
   const f = s.d.querySelector('#expoFrame');

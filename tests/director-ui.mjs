@@ -73,7 +73,7 @@ const A = await login('boss');
   set(w, f.elements.name, 'Vizag Half Marathon'); set(w, f.elements.date, future); set(w, f.elements.venue, 'RK Beach'); set(w, f.elements.expoId, 'Import910');
   submit(w, f);
   await sleep(400);
-  ok(/Vizag Half Marathon/.test(txt(d.querySelector('h1'))) && /days to go/.test(txt(d.querySelector('.top'))), 'race created and shown in the header with countdown');
+  ok(/Vizag Half Marathon/.test(txt(d.querySelector('h1'))) && /days to go/.test(txt(d.querySelector('.topbar'))), 'race created and shown in the header with countdown');
   await tab(w, d, 'overview');
   ok(/Runners checked in/.test(txt(d.querySelector('#app'))) && /Safety checklist/.test(txt(d.querySelector('#app'))), 'overview shows the dashboard cards');
 }

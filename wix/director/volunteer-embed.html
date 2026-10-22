@@ -6,11 +6,10 @@
 <title>Volunteer sign-up</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
-:root{--bg:#edf0f0;--surface:#fff;--surface-2:#f4f6f6;--line:#d2dadb;--ink:#11242b;--ink-2:#4b5f66;--primary:#0b5d6b;--on-primary:#fff;--good:#17803d;--good-bg:#dcf1e4;--warn:#a85a00;--warn-bg:#fbe8c8;--bad:#b42318;--bad-bg:#f8d9d5;
-  --f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;--f-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1619;--surface:#142125;--surface-2:#1a2b30;--line:#2a3d43;--ink:#e6eef0;--ink-2:#9db0b6;--primary:#5cc7d6;--on-primary:#06191d;--good:#4cc77a;--good-bg:#16351f;--warn:#f0a640;--warn-bg:#3a2a0d;--bad:#ff8a80;--bad-bg:#3d1a17;color-scheme:dark}}
+:root{--bg:#f3f6fb;--surface:#ffffff;--surface-2:#f1f5fb;--line:#e2e8f2;--ink:#0f1b33;--ink-2:#5b6b85;--primary:#1558e8;--on-primary:#ffffff;--navy:#0a1f4f;--navy-2:#12306f;--good:#12803d;--warn:#b45309;--bad:#c0261c;--good-bg:#ddf5e6;--warn-bg:#fef0d0;--bad-bg:#fde3e0;--info-bg:#e4edff;--f-display:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;--f-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0a1226;--surface:#111c36;--surface-2:#16233f;--line:#243457;--ink:#e8eefb;--ink-2:#9fb0d0;--primary:#5b8dff;--on-primary:#06122b;--navy:#060d1f;--navy-2:#0e1c3d;--good:#4cc77a;--warn:#f0a640;--bad:#ff8a80;--good-bg:#12331f;--warn-bg:#3a2a0d;--bad-bg:#3d1a17;--info-bg:#172a52;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
 button,input,select{font:inherit;color:inherit}
@@ -39,6 +38,23 @@ label.f input{border:1px solid var(--line);border-radius:8px;background:var(--su
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .waiver{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px}
 .waiver input{width:22px;height:22px;flex:0 0 22px;margin-top:2px}
+/*raceos-theme*/
+body{font-family:var(--f-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--f-display);letter-spacing:-.01em}
+h1{font-weight:700}h2{font-size:22px;font-weight:700}h3{font-size:16px;font-weight:700}
+.eyebrow{font:600 11px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.card{border-radius:14px;border-color:var(--line);box-shadow:0 1px 2px rgba(15,27,51,.04),0 4px 14px rgba(15,27,51,.04)}
+.btn{border-radius:9px;font-weight:600;border-color:var(--line)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn.pri:hover:not(:disabled){filter:brightness(1.08)}
+.btn.alt{background:var(--info-bg);border-color:transparent;color:var(--primary)}
+.pill{background:var(--info-bg);color:var(--primary)}
+.kpi .n{font:700 30px/1.05 var(--f-display);letter-spacing:-.02em}
+.kpi .l{font:600 12px var(--f-display);letter-spacing:.06em;text-transform:none;color:var(--ink-2)}
+.bar i{background:var(--primary)}
+th{font:600 11px var(--f-display);letter-spacing:.07em;color:var(--ink-2)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:0;border-color:var(--primary)}
+.tab[aria-selected=true]{border-bottom-color:var(--primary)}
 </style>
 </head>
 <body>

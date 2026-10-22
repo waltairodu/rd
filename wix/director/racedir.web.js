@@ -219,6 +219,7 @@ function eventOut(it) {
     groups: Array.isArray(j.groups) ? j.groups : DEFAULT_GROUPS,
     quals: Array.isArray(j.quals) ? j.quals : [],
     wixEventId: j.wixEventId || '',
+    bannerUrl: j.bannerUrl || '',
     wixMap: j.wixMap && typeof j.wixMap === 'object' ? j.wixMap : {},
     daysToGo: Number.isFinite(t) ? Math.ceil((t - Date.now()) / 86400000) : null,
   };
@@ -249,6 +250,8 @@ export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
   const status = has('status') ? arg.status : old ? old.status || 'open' : 'open';
   const dist = Number(arg.distanceKm);
   if (has('distanceKm') && !(dist >= 1 && dist <= 100)) throw new Error('bad_distance');
+  const banner = has('bannerUrl') ? clean(arg.bannerUrl, 300) : '';
+  if (banner && !/^https:\/\//i.test(banner)) throw new Error('bad_link');
   const base = {
     name,
     date,
@@ -264,10 +267,11 @@ export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
       j = {};
     }
     if (has('distanceKm')) j.distanceKm = dist;
+    if (has('bannerUrl')) j.bannerUrl = banner;
     const saved = await wixData.update(EVENTS, Object.assign({}, old, base, { json: JSON.stringify(j) }), SA);
     return { event: eventOut(saved), by: a.username };
   }
-  const saved = await wixData.insert(EVENTS, Object.assign(base, { json: JSON.stringify({ distanceKm: has('distanceKm') ? dist : 21.0975, groups: DEFAULT_GROUPS }) }), SA);
+  const saved = await wixData.insert(EVENTS, Object.assign(base, { json: JSON.stringify({ distanceKm: has('distanceKm') ? dist : 21.0975, groups: DEFAULT_GROUPS, bannerUrl: banner }) }), SA);
   await wixData.bulkInsert(CHECK, DEFAULT_CHECKLIST.map(([section, item], k) => ({ event: saved._id, section, item, done: '', doneBy: '', doneAt: '', order: String(k).padStart(3, '0') })), SA);
   await wixData.bulkInsert(RUN, DEFAULT_RUN.map(([time, what, owner]) => ({ event: saved._id, time, what, owner, status: 'todo' })), SA);
   await seedPlan(saved._id, Object.keys(PLAN_DEFAULTS));
