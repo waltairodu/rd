@@ -298,7 +298,7 @@ function qualView(){
 
 function regsView(){
   var g=S.regs;if(!g)return '<div class="card muted">Loading...</div>';
-  var top='<div class="card"><div class="row between"><h3>Registrations from Wix Events</h3>'+(g.linked&&man()?'<button class="btn pri" data-act="impRegs">Import / refresh</button>':'')+'</div>';
+  var top='<div class="card"><div class="row between"><h3>Registrations from Wix Events</h3>'+(g.linked&&man()?'<span class="row">'+arm('unlinkWix','Unlink','unlinkWix')+'<button class="btn pri" data-act="impRegs">Import / refresh</button></span>':'')+'</div>';
   if(!g.linked){
     top+='<p class="muted" style="margin:6px 0">'+(man()?'Choose the Wix event that holds this race\'s tickets.':'Ask the Race Director to link this race to its Wix event.')+'</p>';
     if(man()){top+='<div class="row"><button class="btn" data-act="loadWix">Load my Wix events</button></div>';
@@ -363,6 +363,7 @@ document.addEventListener('click',function(e){
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
+  else if(act==='unlinkWix')run(async function(){await api('linkWixEvent',{wixEventId:''});S.wixEvents=null;S.wixForm=null;toast('Unlinked');await loadTab()});
   else if(act==='impRegs')run(async function(){var cur='',add=0,upd=0,sk=0;for(var i=0;i<60;i++){var r=await api('importRegs',{cursor:cur});add+=r.added;upd+=r.updated;sk+=r.skipped.cancelled+r.skipped.noName;S.impMsg='importing... '+(add+upd);render();cur=r.next;if(r.done)break}S.impMsg='Imported: '+add+' new, '+upd+' updated, '+sk+' skipped (cancelled or no name)';await reload()});
   else if(act==='regCsv'){var rr=S.regs.rows;download('registrations.csv',[['Name','Email','Phone','Ticket','Ticket no.','Size','Bib name','Payment pending']].concat(rr.map(function(r){return [r.name,r.email,r.phone,r.cat,r.ticket,r.size,r.bibName,r.unpaid?'yes':'']})).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
   else if(act==='logout'){if(S.token)api('logout').catch(function(){});dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.cred=null;S.expoOnly=false;render()}
