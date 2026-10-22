@@ -5,6 +5,16 @@ import * as rd from 'backend/racedir.web';
 import * as expo from 'backend/exposoft.web';
 import * as train from 'backend/training.web';
 
+// Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
+function pickFrame(byId) {
+  if (byId && typeof byId.onMessage === 'function') return byId;
+  const byType = $w('HtmlComponent');
+  if (byType && typeof byType.onMessage === 'function') return byType;
+  console.error('No HTML embed found on this page. Add the HTML embed and give it the element ID named at the top of this file.');
+  return { onMessage() {}, postMessage() {} };
+}
+
+
 const ALLOWED = ['health', 'login', 'logout', 'whoami', 'ensureSetup', 'listEvents', 'saveEvent', 'listShifts', 'saveShift', 'removeShift', 'listVolunteers', 'setVolunteerStatus', 'setVolunteerNote', 'addVolunteer', 'assignShift', 'unassignShift', 'volunteerCheck', 'listRun', 'saveRunItem', 'removeRunItem', 'listLog', 'addLog', 'closeLog', 'listPacers', 'savePaceGroups', 'savePacer', 'removePacer', 'listChecklist', 'toggleCheck', 'addCheck', 'removeCheck', 'overview', 'listQuals', 'saveQualRules', 'saveQualClaim', 'decideQual', 'listWixEvents', 'linkWixEvent', 'wixFormFields', 'saveWixMap', 'importRegs', 'listRegs', 'listPlan', 'savePlanItem', 'setPlanStatus', 'removePlanItem', 'seedPlanLists'];
 
 // The Expo desk is shown inside this page. Its calls arrive tagged mod:'expo' and go to the Expo backend,
@@ -15,7 +25,7 @@ const EXPO_ALLOWED = ['health', 'login', 'logout', 'whoami', 'chooseDesk', 'load
 const TRAIN_ALLOWED = ['listAthletes', 'listCoaches', 'assignCoach', 'declineCoaching', 'stopCoaching'];
 
 $w.onReady(function () {
-  const frame = $w('#dirFrame');
+  const frame = pickFrame($w('#dirFrame'));
   frame.onMessage(async (event) => {
     const msg = event.data;
     if (!msg || msg.kind !== 'call') return;

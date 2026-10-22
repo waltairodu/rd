@@ -4,10 +4,20 @@
 import wixLocation from 'wix-location';
 import * as rd from 'backend/racedir.web';
 
+// Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
+function pickFrame(byId) {
+  if (byId && typeof byId.onMessage === 'function') return byId;
+  const byType = $w('HtmlComponent');
+  if (byType && typeof byType.onMessage === 'function') return byType;
+  console.error('No HTML embed found on this page. Add the HTML embed and give it the element ID named at the top of this file.');
+  return { onMessage() {}, postMessage() {} };
+}
+
+
 const ALLOWED = ['openEvents', 'openShifts', 'volunteerSignup', 'volunteerStatus'];
 
 $w.onReady(function () {
-  const frame = $w('#volFrame');
+  const frame = pickFrame($w('#volFrame'));
   const ev = String((wixLocation.query && wixLocation.query.ev) || '');
   frame.onMessage(async (event) => {
     const msg = event.data;

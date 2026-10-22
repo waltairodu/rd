@@ -4,10 +4,20 @@
 // the session token against ExpoStaff / ExpoSessions on every call.
 import * as expo from 'backend/exposoft.web';
 
+// Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
+function pickFrame(byId) {
+  if (byId && typeof byId.onMessage === 'function') return byId;
+  const byType = $w('HtmlComponent');
+  if (byType && typeof byType.onMessage === 'function') return byType;
+  console.error('No HTML embed found on this page. Add the HTML embed and give it the element ID named at the top of this file.');
+  return { onMessage() {}, postMessage() {} };
+}
+
+
 const ALLOWED = ['health', 'login', 'logout', 'whoami', 'chooseDesk', 'loadPage', 'loadSince', 'issue', 'getPickup', 'revert', 'addRunner', 'importRunners', 'removeSample', 'saveConfig', 'listEvents', 'ensureSetup', 'previewFindMyBib', 'syncFromFindMyBib'];
 
 $w.onReady(function () {
-  const frame = $w('#expoFrame');
+  const frame = pickFrame($w('#expoFrame'));
   frame.onMessage(async (event) => {
     const msg = event.data;
     if (!msg || msg.kind !== 'call') return;
