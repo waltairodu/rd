@@ -26,6 +26,8 @@ const TRAIN_ALLOWED = ['listAthletes', 'listCoaches', 'assignCoach', 'declineCoa
 
 $w.onReady(function () {
   const frame = pickFrame($w('#dirFrame'));
+  // A method this page code does not list is answered with an error, so the screen can say "page code out of date" instead of waiting.
+  const refuse = (m) => frame.postMessage({ kind: 'result', id: m.id, ok: false, error: 'page_code_old' });
   frame.onMessage(async (event) => {
     const msg = event.data;
     if (!msg) return;
@@ -47,7 +49,7 @@ $w.onReady(function () {
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result: { pong: true } });
         return;
       }
-      if (EXPO_ALLOWED.indexOf(msg.method) < 0) return;
+      if (EXPO_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
       try {
         const result = await expo[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
@@ -57,7 +59,7 @@ $w.onReady(function () {
       return;
     }
     if (msg.mod === 'train') {
-      if (TRAIN_ALLOWED.indexOf(msg.method) < 0) return;
+      if (TRAIN_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
       try {
         const result = await train[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
@@ -66,7 +68,11 @@ $w.onReady(function () {
       }
       return;
     }
-    if (ALLOWED.indexOf(msg.method) < 0) return;
+    if (ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+    if (typeof rd[msg.method] !== 'function') {
+      frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+      return;
+    }
     try {
       const result = await rd[msg.method](msg.arg || {});
       frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });

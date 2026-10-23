@@ -36,5 +36,25 @@ for (const [f, id] of files) {
     else ok(attached === 0 && errs.length === 1 && /No HTML embed/.test(errs[0]), f + ' [noEmbed]: clear console message instead of a crash');
   }
 }
+
+// The director page code answers with an error (instead of staying silent) for a method it does not list or a backend that lacks it.
+{
+  const src = fs.readFileSync('../wix/director/director-page-code.js', 'utf8').replace(/^import .*$/gm, '');
+  let ready, handler = null; const posts = [];
+  const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
+  const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
+  const rd = { overview: async () => ({ fine: 1 }) };
+  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'console', src)($w, { query: {} }, rd, {}, {}, {}, console);
+  ready();
+  await handler({ data: { kind: 'call', id: 1, method: 'overview', arg: {} } });
+  await handler({ data: { kind: 'call', id: 2, method: 'notListedAnywhere', arg: {} } });
+  await handler({ data: { kind: 'call', id: 3, method: 'dashboard', arg: {} } });
+  await handler({ data: { kind: 'call', id: 4, method: 'x', mod: 'train', arg: {} } });
+  const by = (id) => posts.find((p) => p.id === id) || {};
+  ok(by(1).ok === true, 'listed method works');
+  ok(by(2).ok === false && by(2).error === 'page_code_old', 'unlisted method: error, not silence');
+  ok(by(3).ok === false && by(3).error === 'backend_old', 'listed method missing in the backend: backend_old');
+  ok(by(4).ok === false && by(4).error === 'page_code_old', 'unlisted training method: error');
+}
 console.log(`Page code: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

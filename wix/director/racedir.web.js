@@ -1586,9 +1586,11 @@ export const dashboard = webMethod(Permissions.Anyone, async (arg) => {
 export const racesSummary = webMethod(Permissions.Anyone, async (arg) => {
   const a = await auth(arg);
   const evs = (await all(() => wixData.query(EVENTS).ascending('_id'))).filter((x) => (x.status || 'open') !== 'archived').map(eventOut);
+  const regsOf = await Promise.all(evs.map((e) => rows(REGS, e.id).catch(() => [])));
   const out = [];
-  for (const e of evs) {
-    const d = dashOut(e, await rows(REGS, e.id).catch(() => []), a.role !== 'viewer');
+  for (let i = 0; i < evs.length; i++) {
+    const e = evs[i];
+    const d = dashOut(e, regsOf[i], a.role !== 'viewer');
     out.push({ id: e.id, name: e.name, date: e.date, venue: e.venue, status: e.status, daysToGo: e.daysToGo, bannerUrl: e.bannerUrl, total: d.total, capacity: d.capacity, revenue: d.revenue, cats: d.byCat.map((r) => ({ name: r.name, count: r.count, cap: r.cap })) });
   }
   out.sort((x, y) => String(x.date || '9999').localeCompare(String(y.date || '9999')));

@@ -138,7 +138,7 @@ var $=function(s,r){return (r||document).querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 var ROLES=['Aid station / hydration','Course marshal','Start line crew','Finish line crew','Medal and finisher goodies','Finisher food and recovery','Bib and packet pickup (expo)','T-shirt / swag handout','Registration and check-in help','Information booth','Baggage check','Timing and results support','Medical support (first aid)','Sweeper / back-of-pack','Bike or cart escort','Traffic and road crossing','Parking and shuttle','Pacer support','Kids run helper','Cheer zone','Photography and social media','Set-up and tear-down','Sponsor and partner booth','Water and sanitation (toilets, bins)'];
-var ERR={not_logged_in:'Your session ended. Please log in again.',bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for the Director. Ask for a director, lead or viewer role.',setup_needed:'Setup is not finished. Run the one-time setup first.',
+var ERR={page_code_old:'This page\'s code is out of date. Paste the latest page-code.js for this page, then publish.',backend_old:'The backend file is out of date. Paste the latest backend files, then publish.',timeout:'No answer from the server in time. Try again.',not_logged_in:'Your session ended. Please log in again.',bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for the Director. Ask for a director, lead or viewer role.',setup_needed:'Setup is not finished. Run the one-time setup first.',
   read_only:'Your login can only look, not change.',director_only:'Only a director login can do that.',no_event:'That race was not found.',name_needed:'Please enter a name.',bad_date:'Please use a real date.',bad_distance:'Distance must be between 1 and 100 km.',bad_status:'That status is not allowed.',
   role_needed:'Please enter a role name.',bad_time:'Times must look like 05:30 and end after they start.',bad_need:'Please enter a number of people.',need_below_taken:'More people are already on this shift than that.',no_shift:'That shift was not found.',shift_has_checkins:'Some people already checked in to this shift.',
   shift_full:'That shift is full.',shifts_overlap:'Those shifts overlap in time.',no_volunteer:'Volunteer not found.',already_assigned:'Already on that shift.',volunteer_declined:'This volunteer was declined.',bad_phone:'Please enter a 10-digit mobile number.',already_signed_up:'That mobile number is already registered.',
@@ -195,9 +195,9 @@ async function loadEvents(){
 async function loadTab(){
   if(S.tab==='setup'&&man()&&!S.expoRaces){try{S.expoRaces=(await api('expoRaces')).races}catch(x){S.expoRaces=[]}}
   if(!S.ev){render();return}
-  var t=S.tab;
+  var t=S.tab;S.loadErr='';
   try{
-    if(t==='overview'){var oa=await Promise.all([api('overview'),api('dashboard'),api('racesSummary')]);S.ov=oa[0];S.dash=oa[1];S.races=oa[2].races}
+    if(t==='overview'){var ev0=S.ev,pd=api('dashboard'),pr=api('racesSummary');S.ov=await api('overview');pd.then(function(r){if(S.ev===ev0){S.dash=r;if(S.tab==='overview')render()}},function(){});pr.then(function(r){S.races=r.races;if(S.tab==='overview')render()},function(){})}
     else if(t==='volunteers'){var a=await Promise.all([api('listShifts'),api('listVolunteers')]);S.shifts=a[0].shifts;S.vols=a[1].volunteers}
     else if(t==='raceday'){var b=await Promise.all([api('listRun'),api('listLog')]);S.run=b[0].items;S.log=b[1].items}
     else if(t==='pacers')S.pace=await api('listPacers');
@@ -209,7 +209,7 @@ async function loadTab(){
     else if(t==='setup'&&man()){try{S.expoRaces=(await api('expoRaces')).races}catch(x){S.expoRaces=[]}}
     else if(t==='coaching'&&man()){var cc=await Promise.all([api('listAthletes',{},undefined,'train'),api('listCoaches',{},undefined,'train')]);S.coachL=cc[0];S.coaches=cc[1].coaches}
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
-  }catch(e){toast(msg(e.message),true)}
+  }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
 }
 async function afterLogin(){
@@ -307,7 +307,7 @@ function dashTop(){
 function bibPlanText(e){return ((e&&e.bibs)||[]).map(function(b){return [b.cat,b.from,b.to].join(' | ')}).join('\n')}
 function textToBibs(t){return t.split('\n').map(function(l){return l.trim()}).filter(Boolean).map(function(l){var p=l.split('|').map(function(x){return x.trim()});return {cat:p[0],from:p[1],to:p[2]}})}
 function bibsView(){
-  var x=S.bx;if(!x)return '<p class="muted">Loading…</p>';
+  var x=S.bx;if(!x)return waiting();
   var ev=S.events.find(function(e){return e.id===S.ev})||{};
   var t=x.totals,sy=x.sync;
   var head=x.linked?'<div class="alert"><span>Linked to Expo race <b>'+esc(x.expoName)+'</b>. The Expo desk shows runners from this list the moment you send them.</span>'+(man()&&EXPO_SRC?'<button class="btn sm" data-act="tab" data-tab="expo">Open the desk</button>':'')+'</div>'
@@ -333,7 +333,7 @@ function bibsView(){
 var DRAFT_KINDS=[['runner_update','Update to registered runners'],['pickup_info','Bib and T-shirt pickup details'],['volunteer_call','Call for volunteers'],['volunteer_thanks','Thank you to volunteers'],['sponsor_pitch','Sponsorship pitch'],['sponsor_thanks','Thank you to a sponsor','s'],['sponsor_report','Post-race sponsor report','s'],['social_post','Social media post']];
 var ASK_CHIPS=['What should I do first today?','Are we on track for registrations?','Which volunteer shifts are weakest?','Is anything overdue?','Will we break even?'];
 function aiView(){
-  var b=S.brief;if(!b)return '<p class="muted">Loading…</p>';
+  var b=S.brief;if(!b)return waiting();
   var pr=b.priorities.length?b.priorities.map(function(p){return '<div class="alert '+(p.level==='bad'?'bad':p.level==='warn'?'warn':'')+'"><span>'+esc(p.text)+'</span>'+(p.go?'<button class="btn sm" data-act="tab" data-tab="'+esc(p.go)+'">Open</button>':'')+'</div>'}).join(''):'<p class="muted">Nothing needs you right now.</p>';
   var f=b.forecast,r=f.registrations,v=f.volunteers,bg=f.budget;
   var regCard=r.state==='ok'?'<div class="card kpi"><div class="l">Registrations by race day</div><div class="n">'+r.expected.toLocaleString('en-IN')+' <small>expected</small></div><small>Range '+r.low+' to '+r.high+' · now '+r.perDay+' a day'+(r.sellOutDate?' · full around '+esc(fdate(r.sellOutDate)):'')+'</small></div>':'<div class="card kpi"><div class="l">Registrations by race day</div><div class="n">–</div><small>'+(r.state==='too_early'?'Not enough sign-ups yet to forecast.':r.state==='finished'?'The race has finished.':'Set the race date.')+'</small></div>';
@@ -358,8 +358,9 @@ function aiView(){
    +(S.draftOut?'<div style="margin-top:12px"><div class="row between"><small class="muted">'+(S.draftOut.ai?'Written by AI':'From a template')+'</small><button class="btn sm" data-act="copyDraft">Copy</button></div>'+(S.draftOut.subject?'<label class="f" style="margin-top:6px">Subject<input id="dSubject" value="'+esc(S.draftOut.subject)+'"></label>':'')+'<label class="f" style="margin-top:6px">Message<textarea id="dBody" rows="9" style="width:100%">'+esc(S.draftOut.body)+'</textarea></label></div>':'')+'</div>':'';
   return '<div class="stack">'+brief+fc+ask+draft+'</div>';
 }
+function waiting(){return S.loadErr?'<div class="card"><h3>This page did not load</h3><p class="muted" style="margin:6px 0">'+esc(S.loadErr)+'</p><button class="btn pri" data-act="retry">Try again</button></div>':'<p class="muted">Loading…</p>'}
 function overviewView(){
-  var o=S.ov;if(!o)return '<p class="muted">Loading…</p>';
+  var o=S.ov;if(!o)return waiting();
   var v=o.volunteers,x=o.expo,al=o.alerts;
   var hev=S.events.find(function(e){return e.id===S.ev})||{};
   var hero='<div class="hero"'+(hev.bannerUrl?' style="background-image:linear-gradient(100deg,rgba(10,31,79,.9),rgba(10,31,79,.25)),url(\''+esc(hev.bannerUrl).replace(/\'/g,'')+'\')"':'')+'><span class="tag">'+(hev.status==='open'?'Active event':hev.status==='closed'?'Closed':'Event')+'</span><h2>'+esc(hev.name||'')+'</h2><small>'+esc(fdate(hev.date))+(hev.venue?' \u00b7 '+esc(hev.venue):'')+(hev.daysToGo!==null&&hev.daysToGo!==undefined?' \u00b7 '+(hev.daysToGo>0?hev.daysToGo+' days to go':hev.daysToGo===0?'race day':'finished'):'')+'</small></div>';
@@ -699,6 +700,7 @@ document.addEventListener('click',function(e){
   else if(act==='pedit'){var k1=b.getAttribute('data-kind'),it1=((S.plan&&S.plan.items[k1])||[]).find(function(x){return x.id===id});if(it1){S.pedit={kind:k1,id:id,vals:Object.assign({},it1)};render();var f1=$('#planForm');if(f1&&f1.scrollIntoView)f1.scrollIntoView({block:'center'})}}
   else if(act==='cstop')run(async function(){await api('stopCoaching',{enroll:id},undefined,'train');toast('Back to the free plan');await reload()});
   else if(act==='cdecline')run(async function(){await api('declineCoaching',{enroll:id},undefined,'train');toast('Request declined');await reload()});
+  else if(act==='retry'){loadTab()}
   else if(act==='assignBibs')run(async function(){var r=await api('assignBibs');var m='Numbered '+r.assigned+' runner'+(r.assigned===1?'':'s')+'.';var nr=Object.keys(r.noRange),fl=Object.keys(r.full);if(nr.length)m+=' No range for: '+nr.join(', ')+'.';if(fl.length)m+=' Range full for: '+fl.join(', ')+'.';if(r.unpaid)m+=' '+r.unpaid+' unpaid runner'+(r.unpaid===1?' is':'s are')+' waiting.';S.bxMsg=m;S.bx=await api('expoSummary');render()});
   else if(act==='sendExpo')run(async function(){var r=await api('sendToExpo');var m='Sent '+r.added+' new runner'+(r.added===1?'':'s')+' to the Expo desk.';if(r.filled)m+=' Filled empty details for '+r.filled+'.';if(r.locked)m+=' '+r.locked+' already handed over, left alone.';if(r.conflicts.length)m+=' Check bib '+r.conflicts.join(', ')+': the desk has a different person on that number.';if(r.noBib)m+=' '+r.noBib+' paid runner'+(r.noBib===1?' has':'s have')+' no bib yet.';if(r.unpaid)m+=' '+r.unpaid+' numbered runner'+(r.unpaid===1?' has':'s have')+' not paid.';S.bxMsg=m;S.bx=await api('expoSummary');render()});
   else if(act==='aiChip'){S.aiQ=ASK_CHIPS[parseInt(id,10)]||'';askAi()}
