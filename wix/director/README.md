@@ -104,3 +104,9 @@ Five tabs hold everything a race director tracks, all in one collection, **RDPla
 A new race starts with a starter list for tasks, budget, supplies, approvals, ceremonies and contacts. On older races, press **Load the starter list** in an empty section.
 Who can do what: directors read and write everything and delete; leads read money and write everything except money; viewers read everything except money and contacts (phone numbers). Overview shows overdue items, permits not approved, race-day sign-offs due, short supplies and overspend. Each list downloads as CSV.
 
+
+## AI and Expo integration (new)
+- `ai-core.js` talks to the Anthropic API; the key lives in Wix Secrets Manager as `ANTHROPIC_API_KEY`. Everything has a rule-based fallback.
+- Director methods: `aiStatus`, `aiBriefing` (rule-based, or `write:true` for AI), `aiForecastNow`, `aiAsk`, `aiDraftKinds`, `aiDraft`. Training methods: `coachInsight`, `myInsight`.
+- Expo methods: `expoRaces`, `saveBibPlan`, `assignBibs`, `setBib`, `sendToExpo`, `expoSummary`. Rules are described in docs/SETUP.md.
+- Tests: `ai.mjs`, `expo-int.mjs`, `bibs-ai-ui.mjs`, `training-ai.mjs`.

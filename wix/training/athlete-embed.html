@@ -55,6 +55,7 @@ h1{font-weight:700}h2{font-size:22px;font-weight:700}h3{font-size:16px;font-weig
 th{font:600 11px var(--f-display);letter-spacing:.07em;color:var(--ink-2)}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:0;border-color:var(--primary)}
 .tab[aria-selected=true]{border-bottom-color:var(--primary)}
+.wkchart{display:flex;gap:10px;align-items:flex-end;margin-top:10px}.wkcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.wkbars{height:90px;width:100%;display:flex;gap:4px;align-items:flex-end;justify-content:center}.wkbars i{width:34%;border-radius:5px 5px 0 0;min-height:2px}.pl{background:#c3cfe6}.dn{background:var(--primary)}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}.flag{border-radius:10px;padding:8px 12px;margin:6px 0;background:var(--surface-2);border-left:4px solid var(--primary)}.flag.warn{border-color:#f59f00}.flag.bad{border-color:#e03131}.flag.good{border-color:#12b886}
 </style><style>
 .nav{display:flex;gap:6px;margin-top:14px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}
 .nav button{flex:1;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:700 16px var(--f-display);letter-spacing:.04em;cursor:pointer}
@@ -96,7 +97,7 @@ async function run(fn){if(S.busy)return;S.busy=true;try{await fn()}catch(e){S.er
 var booted=false;
 async function boot(){if(booted)return;booted=true;try{var p=await api('openPlans',{token:''});S.plans=p.plans;S.settings=p.settings}catch(x){S.err=msg(x.message)}
   if(S.tok){try{await loadHome()}catch(x){S.tok='';S.home=null}}render()}
-async function loadHome(){S.home=await api('myHome');S.settings=S.home.settings}
+async function loadHome(){S.home=await api('myHome');S.settings=S.home.settings;try{S.ins=S.home.enrollment?(await api('myInsight')).insight:null}catch(x){S.ins=null}}
 function fdate(d){var x=new Date(d+'T00:00:00');return isNaN(x)?d:x.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
 function nextMonday(){var d=new Date();var k=(8-d.getDay())%7||7;d.setDate(d.getDate()+k);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 var TYPEL={easy:'Easy',long:'Long run',tempo:'Tempo',interval:'Intervals',rest:'Rest',cross:'Cross-train',strength:'Strength',race:'Race',other:'Other'};
@@ -133,6 +134,14 @@ function pickPlan(){
    +'<button class="btn alt" data-act="logout">Log out</button>';
 }
 function bar(a,b){return '<div class="bar"><i style="width:'+(b?Math.min(100,Math.round(a/b*100)):0)+'%"></i></div>'}
+function myWeeks(){
+  var ins=S.ins;if(!ins)return '';
+  var mx=Math.max.apply(null,ins.weeks.map(function(w){return Math.max(w.plannedKm,w.doneKm)}).concat([1]));
+  return '<div class="card"><h2>Planned and done</h2><div class="wkchart" role="img" aria-label="Planned against done kilometres for the last four weeks">'+ins.weeks.map(function(w){var label=fdate(w.start).replace(/^[A-Za-z]+,?\s*/,'');
+    return '<div class="wkcol"><div class="wkbars"><i class="pl" style="height:'+Math.round(w.plannedKm*100/mx)+'%"></i><i class="dn" style="height:'+Math.round(w.doneKm*100/mx)+'%"></i></div><small>'+esc(label)+(w.current?' (now)':'')+'</small><b>'+w.doneKm+'<span class="muted"> / '+w.plannedKm+' km</span></b></div>'}).join('')+'</div>'
+   +'<div class="row" style="gap:14px;margin-top:6px"><small><i class="dot pl"></i> Planned</small><small><i class="dot dn"></i> Done</small></div>'
+   +ins.flags.map(function(f){return '<div class="flag '+f.level+'">'+esc(f.text)+'</div>'}).join('')+'</div>';
+}
 function todayView(){
   var h=S.home,st=h.stats;
   var td=h.todays.length?h.todays.map(function(s){return sessionRow(s,false)}).join(''):'<p class="muted">Nothing planned today.</p>';
@@ -146,7 +155,7 @@ function planView(){
   var by={};S.sessions.forEach(function(s){var k=s.week||0;(by[k]=by[k]||[]).push(s)});
   var keys=Object.keys(by).map(Number).sort(function(a,b){return a-b});
   var addf=S.addRun?'<form id="addRun" class="card"><h2>Add my own run</h2><div class="grid2"><label class="f">Date<input type="date" name="date" value="'+S.home.today+'" required></label><label class="f">Type<select name="type"><option value="easy">Easy</option><option value="long">Long run</option><option value="tempo">Tempo</option><option value="interval">Intervals</option><option value="cross">Cross-train</option><option value="strength">Strength</option></select></label></div><label class="f">Name<input name="title" placeholder="My run"></label><div class="grid2"><label class="f">km<input name="km" type="number" step="0.1" min="0"></label><label class="f">Minutes<input name="minutes" type="number" min="0"></label></div><button class="btn" type="submit">Add</button></form>':'<button class="btn alt" data-act="addRun">+ Add my own run</button>';
-  return addf+keys.map(function(k){return '<div class="wk">'+(k?'Week '+k:'My extra runs')+'</div><div class="card" style="margin-top:6px">'+by[k].map(function(s){return sessionRow(s,true)}).join('')+'</div>'}).join('');
+  return myWeeks()+addf+keys.map(function(k){return '<div class="wk">'+(k?'Week '+k:'My extra runs')+'</div><div class="card" style="margin-top:6px">'+by[k].map(function(s){return sessionRow(s,true)}).join('')+'</div>'}).join('');
 }
 function coachView(){
   var h=S.home,e=h.enrollment;

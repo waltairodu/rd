@@ -9,7 +9,7 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log('  FAIL', m); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const athHtml = fs.readFileSync('../wix/training/athlete-embed.html', 'utf8');
 const coachHtml = fs.readFileSync('../wix/training/coach-embed.html', 'utf8');
-const ATH_ALLOWED = ['openPlans', 'athleteSignup', 'athleteLogin', 'athleteLogout', 'changePin', 'enrollPlan', 'endPlan', 'myHome', 'mySessions', 'logSession', 'addMySession', 'requestCoaching', 'cancelCoachingRequest', 'myMessages', 'sendMyMessage'];
+const ATH_ALLOWED = ['openPlans', 'athleteSignup', 'athleteLogin', 'athleteLogout', 'changePin', 'enrollPlan', 'endPlan', 'myHome', 'mySessions', 'logSession', 'addMySession', 'requestCoaching', 'cancelCoachingRequest', 'myMessages', 'sendMyMessage', 'myInsight'];
 const pageCode = (f) => fs.readFileSync('../wix/training/' + f, 'utf8');
 for (const [f, id] of [['athlete-page-code.js', 'trainFrame'], ['coach-page-code.js', 'coachFrame']]) {
   const src = pageCode(f);

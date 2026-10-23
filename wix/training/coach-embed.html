@@ -55,6 +55,7 @@ h1{font-weight:700}h2{font-size:22px;font-weight:700}h3{font-size:16px;font-weig
 th{font:600 11px var(--f-display);letter-spacing:.07em;color:var(--ink-2)}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:0;border-color:var(--primary)}
 .tab[aria-selected=true]{border-bottom-color:var(--primary)}
+.wkchart{display:flex;gap:10px;align-items:flex-end;margin-top:10px}.wkcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.wkbars{height:90px;width:100%;display:flex;gap:4px;align-items:flex-end;justify-content:center}.wkbars i{width:34%;border-radius:5px 5px 0 0;min-height:2px}.pl{background:#c3cfe6}.dn{background:var(--primary)}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}.flag{border-radius:10px;padding:8px 12px;margin:6px 0;background:var(--surface-2);border-left:4px solid var(--primary)}.flag.warn{border-color:#f59f00}.flag.bad{border-color:#e03131}.flag.good{border-color:#12b886}.aibox{background:var(--info-bg,#eaf1ff);border-radius:12px;padding:12px 14px;margin-top:10px;line-height:1.5}
 </style><style>
 
 
@@ -116,7 +117,7 @@ select,textarea,input{border:1px solid var(--line);border-radius:8px;background:
 'use strict';
 var $=function(s,r){return (r||document).querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-var ERR={bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for coaching. Ask for a coach or director role.',not_logged_in:'Your session ended. Please log in again.',director_only:'Only the director can do that.',not_yours:'That athlete is not assigned to you.',not_coached:'This athlete is on the free plan. Coaching tools open when you assign a coach.',already_done:'The athlete has already done this workout.',bad_session:'Check the date and the workout type.',text_needed:'Please write something.',name_needed:'Please enter a plan name.',bad_weeks:'Weeks must be between 1 and 52.',bad_workouts:'Check the workout lines: week, day (1 to 7), type, name, km, minutes. One workout per day, inside the weeks.',plan_in_use:'Athletes are using this plan. Set it to draft instead of deleting.',no_coach_user:'Pick a coach from the list.',setup_needed:'The training service is not set up yet.',timeout:'No answer from the server. Try again.'};
+var ERR={no_ai_key:'AI is not connected yet. Add the ANTHROPIC_API_KEY secret in Wix.',ai_busy:'The AI service is busy. Try again in a minute.',ai_failed:'The AI could not answer just now.',ai_key_rejected:'The AI key was rejected.',busy_try_later:'Too many AI requests this hour. Try later.',bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for coaching. Ask for a coach or director role.',not_logged_in:'Your session ended. Please log in again.',director_only:'Only the director can do that.',not_yours:'That athlete is not assigned to you.',not_coached:'This athlete is on the free plan. Coaching tools open when you assign a coach.',already_done:'The athlete has already done this workout.',bad_session:'Check the date and the workout type.',text_needed:'Please write something.',name_needed:'Please enter a plan name.',bad_weeks:'Weeks must be between 1 and 52.',bad_workouts:'Check the workout lines: week, day (1 to 7), type, name, km, minutes. One workout per day, inside the weeks.',plan_in_use:'Athletes are using this plan. Set it to draft instead of deleting.',no_coach_user:'Pick a coach from the list.',setup_needed:'The training service is not set up yet.',timeout:'No answer from the server. Try again.'};
 var msg=function(e){return ERR[e]||'Something went wrong. Please try again.'};
 var S={tok:'',me:null,tab:'athletes',list:null,sel:'',detail:null,coaches:null,plans:null,plan:null,planW:'',settings:null,busy:false,err:'',armed:'',wk:{}};
 var pending={},seq=0;
@@ -134,7 +135,7 @@ async function loadTab(){
   else if(S.tab==='settings')S.settings=await api('getTrainSettings',{token:''});
   render();
 }
-async function openAthlete(id,quiet){S.sel=id;S.detail=await api('athleteDetail',{enroll:id});if(!quiet)render()}
+async function openAthlete(id,quiet){S.sel=id;S.detail=await api('athleteDetail',{enroll:id});try{S.ins=await api('coachInsight',{enroll:id})}catch(x){S.ins=null}if(!quiet)render()}
 function loginView(){return '<div class="eyebrow">VTRA</div><h1>Coach desk</h1><div class="card" style="max-width:420px"><form id="loginForm"><label class="f">Username<input name="username" autocomplete="username" required></label><label class="f">Password<input name="password" type="password" autocomplete="current-password" required></label><button class="btn" style="margin-top:14px" type="submit">Log in</button></form>'+(S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'')+'</div>'}
 function statCell(s){return s.adherence===null?'<span class="muted">not started</span>':'<b>'+s.adherence+'%</b> <span class="muted">('+s.done+'/'+s.due+')</span>'}
 function athletesView(){
@@ -145,6 +146,20 @@ function athletesView(){
     return '<tr><td><b>'+esc(a.name)+'</b><br><small>'+esc(a.phone)+' · '+esc(a.level)+'</small>'+(a.reqNote?'<br><small>“'+esc(a.reqNote)+'”</small>':'')+'</td><td>'+esc(a.planName)+'<br>'+(a.coachStatus==='active'?pill('Coached · '+a.coach,'good'):a.coachStatus==='requested'?pill('Wants a coach','warn'):pill('Free plan'))+'</td><td>'+statCell(a.stats)+'<br><small>This week '+esc(a.stats.weekDoneKm)+' / '+esc(a.stats.weekPlannedKm)+' km</small></td><td>'+(a.stats.lastDone?esc(fdate(a.stats.lastDone)):'–')+'</td><td>'+(a.unread?pill(a.unread+' new','warn'):'')+'</td><td>'+act+'</td></tr>'}).join('');
   var head='<div class="card"><div class="row"><h2>Athletes</h2><span class="muted">'+L.totals.athletes+' signed up · '+L.totals.active+' on a plan'+(L.totals.requests?' · <b>'+L.totals.requests+' want a coach</b>':'')+'</span></div><div class="scroll"><table><tr><th>Athlete</th><th>Plan</th><th>Done so far</th><th>Last run</th><th></th><th></th></tr>'+(rows||'<tr><td colspan="6" class="muted">No athletes here yet.</td></tr>')+'</table></div></div>';
   return head+(S.detail?detailView():'');
+}
+function weeksChart(ins){
+  var mx=Math.max.apply(null,ins.weeks.map(function(w){return Math.max(w.plannedKm,w.doneKm)}).concat([1]));
+  return '<div class="wkchart" role="img" aria-label="Planned against done kilometres for the last four weeks">'+ins.weeks.map(function(w){
+    var label=fdate(w.start).replace(/^[A-Za-z]+,?\s*/,'');
+    return '<div class="wkcol"><div class="wkbars"><i class="pl" style="height:'+Math.round(w.plannedKm*100/mx)+'%" title="Planned '+w.plannedKm+' km"></i><i class="dn" style="height:'+Math.round(w.doneKm*100/mx)+'%" title="Done '+w.doneKm+' km"></i></div><small>'+esc(label)+(w.current?' (now)':'')+'</small><b>'+w.doneKm+'<span class="muted"> / '+w.plannedKm+' km</span></b>'+(w.pct!==null?'<small>'+w.pct+'%</small>':'')+'</div>'}).join('')+'</div><div class="row" style="gap:14px;margin-top:6px"><small><i class="dot pl"></i> Planned</small><small><i class="dot dn"></i> Done</small></div>';
+}
+function flagList(ins){return ins.flags.length?ins.flags.map(function(f){return '<div class="flag '+f.level+'">'+esc(f.text)+'</div>'}).join(''):'<p class="muted">Nothing to flag.</p>'}
+function insightCard(){
+  var x=S.ins;if(!x)return '';var ins=x.insight;
+  return '<div class="card"><div class="row"><h3 style="margin:0">Plan against actual</h3>'+(ins.adherence!==null?'<span class="pill">'+ins.adherence+'% of sessions done</span>':'')+'</div>'+weeksChart(ins)+'<div style="margin-top:8px">'+flagList(ins)+'</div>'
+   +'<h4 style="margin:10px 0 4px">Suggestions</h4><ul style="margin:0 0 8px 18px">'+ins.suggestions.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>'
+   +(x.enabled?'<button class="btn sm" data-act="aiInsight"'+(S.insBusy?' disabled':'')+'>'+(S.insBusy?'Writing…':'Write with AI')+'</button>':'<small class="muted">Connect the AI key to get written suggestions and a draft note.</small>')
+   +(x.ai?'<div class="aibox"><b>For the coach</b><br>'+esc(x.text).replace(/\n/g,'<br>')+(x.message?'<br><br><b>Draft note to the athlete</b> <button class="btn sm" data-act="copyNote">Copy</button><br><span id="noteText">'+esc(x.message).replace(/\n/g,'<br>')+'</span>':'')+'</div>':'')+'</div>';
 }
 function detailView(){
   var d=S.detail,e=d.enrollment;
@@ -159,7 +174,7 @@ function detailView(){
      +(d.canCoach&&!d2?'<div style="margin-top:6px"><button class="btn sm" data-act="editSes" data-id="'+esc(s.id)+'">Edit</button> '+arm('rm'+s.id,'Remove','rmSes','data-id="'+esc(s.id)+'"')+'</div>':'')+'</div>'}).join('')}).join('');
   var edit=S.wk.edit,addForm=d.canCoach?'<form id="sesForm" class="card"><h3 style="margin:0">'+(edit?'Edit workout':'Add a workout')+'</h3><div class="form" style="margin-top:8px"><label class="f">Date<input type="date" name="date" value="'+esc(edit?edit.date:'')+'" required></label><label class="f">Type<select name="type">'+['easy','long','tempo','interval','rest','cross','strength','race','other'].map(function(t){return '<option'+(edit&&edit.type===t?' selected':'')+'>'+t+'</option>'}).join('')+'</select></label><label class="f">Name<input name="title" value="'+esc(edit?edit.title:'')+'" required></label><label class="f">km<input name="km" type="number" step="0.1" min="0" value="'+esc(edit?edit.km:'')+'"></label><label class="f">Minutes<input name="minutes" type="number" min="0" value="'+esc(edit?edit.minutes:'')+'"></label></div><label class="f">Notes<input name="notes" value="'+esc(edit?edit.notes:'')+'"></label><div class="row" style="margin-top:8px"><button class="btn" type="submit">Save workout</button>'+(edit?'<button class="btn alt" type="button" data-act="cancelEdit">Cancel</button>':'')+'</div></form>':'<div class="card muted">This athlete is on the free plan, so the schedule is fixed and there are no messages or feedback. Assign a coach to start coaching.</div>';
   var msgs=d.canCoach?'<div class="card"><h3 style="margin:0">Messages with '+esc(d.athlete.name)+'</h3>'+(d.messages.length?d.messages.map(function(m){return '<div class="msg '+(m.from==='coach'?'me':'')+'">'+esc(m.text)+'</div>'}).join(''):'<p class="muted">No messages yet.</p>')+'<form id="coachMsg" style="margin-top:10px"><textarea name="text" rows="2" required placeholder="Write to the athlete"></textarea><button class="btn" style="margin-top:8px" type="submit">Send</button></form></div>':'';
-  return '<div class="cols" style="margin-top:16px"><div><div class="card"><div class="row"><h2>'+esc(d.athlete?d.athlete.name:'')+'</h2><button class="btn alt sm" data-act="close">Close</button></div><p class="muted">'+esc(e.planName)+' · started '+esc(fdate(e.start))+' · '+statCell(d.stats)+(d.stats.missed?' · '+d.stats.missed+' not logged':'')+'</p>'+(man()&&e.coachStatus==='active'?arm('stop','Stop coaching (back to free plan)','stop','data-id="'+esc(e.id)+'"'):'')+'</div><div class="card">'+sess+'</div></div><div>'+addForm+msgs+'</div></div>';
+  return '<div class="cols" style="margin-top:16px"><div><div class="card"><div class="row"><h2>'+esc(d.athlete?d.athlete.name:'')+'</h2><button class="btn alt sm" data-act="close">Close</button></div><p class="muted">'+esc(e.planName)+' · started '+esc(fdate(e.start))+' · '+statCell(d.stats)+(d.stats.missed?' · '+d.stats.missed+' not logged':'')+'</p>'+(man()&&e.coachStatus==='active'?arm('stop','Stop coaching (back to free plan)','stop','data-id="'+esc(e.id)+'"'):'')+'</div>'+insightCard()+'<div class="card">'+sess+'</div></div><div>'+addForm+msgs+'</div></div>';
 }
 function plansView(){
   if(!S.plans)return '<div class="card muted">Loading…</div>';
@@ -186,6 +201,8 @@ document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT')return;var act=b.getAttribute('data-act'),id=b.getAttribute('data-id'),ak=b.getAttribute('data-arm');
   if(ak){if(S.armed!==ak){S.armed=ak;render();return}S.armed=''}
   if(act==='tab'){S.tab=b.getAttribute('data-tab');S.armed='';S.detail=null;S.sel='';S.plan=null;run(loadTab);render()}
+  else if(act==='aiInsight')run(async function(){S.insBusy=true;render();try{S.ins=await api('coachInsight',{enroll:S.sel,write:true})}finally{S.insBusy=false}render()});
+  else if(act==='copyNote'){var nt=$('#noteText');var tx=nt?nt.innerText:'';try{navigator.clipboard.writeText(tx).then(function(){toast('Copied')},function(){toast('Select the text and copy it')})}catch(x){toast('Select the text and copy it')}}
   else if(act==='logout'){api('tLogout').catch(function(){});S.tok='';S.me=null;S.list=null;S.detail=null;render()}
   else if(act==='open')run(async function(){S.wk={};await openAthlete(id)});
   else if(act==='close'){S.detail=null;S.sel='';render()}

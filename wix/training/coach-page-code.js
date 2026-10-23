@@ -12,7 +12,7 @@ function pickFrame(byId) {
 }
 
 
-const ALLOWED = ['tLogin', 'tLogout', 'tWhoami', 'getTrainSettings', 'saveTrainSettings', 'listPlans', 'getPlan', 'savePlan', 'removePlan', 'listCoaches', 'listAthletes', 'athleteDetail', 'assignCoach', 'stopCoaching', 'declineCoaching', 'coachSaveSession', 'coachRemoveSession', 'coachFeedback', 'coachMessage'];
+const ALLOWED = ['tLogin', 'tLogout', 'tWhoami', 'getTrainSettings', 'saveTrainSettings', 'listPlans', 'getPlan', 'savePlan', 'removePlan', 'listCoaches', 'listAthletes', 'athleteDetail', 'assignCoach', 'stopCoaching', 'declineCoaching', 'coachSaveSession', 'coachRemoveSession', 'coachFeedback', 'coachMessage', 'coachInsight'];
 
 $w.onReady(function () {
   const frame = pickFrame($w('#coachFrame'));

@@ -9,6 +9,7 @@
 | 1-backend/exposoft.web.js | exposoft.web.js | yes |
 | 1-backend/racedir.web.js | racedir.web.js | yes |
 | 1-backend/training.web.js | training.web.js | yes |
+| 1-backend/ai-core.js | **ai-core.js** (a plain backend file, not .web.js; racedir.web.js and training.web.js import it) | no |
 
 **Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code)
 
@@ -42,3 +43,18 @@ Optional: the stand-alone Expo desk page (also still works). Embed 2-pages/expo-
 ## Planning tabs
 After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.
 
+
+## AI features (optional, work without a key)
+Without a key, Ask RaceOS shows a rule-based daily briefing, forecasts (registrations, volunteers, budget) and template drafts. The coach and athlete screens show planned against actual with flags. With a key, the same facts are written up by Claude: the briefing, Ask RaceOS, drafts for runners, volunteers and sponsors, and coach suggestions with a draft note to the athlete.
+
+1. Backend: make sure `ai-core.js` exists next to `racedir.web.js` and `training.web.js` (file name exactly `ai-core.js`).
+2. Wix dashboard > Developer Tools > Secrets Manager > add a secret named `ANTHROPIC_API_KEY` with your key. Optional: `ANTHROPIC_MODEL` to choose a model (default `claude-sonnet-5-5`).
+3. Publish. Open /rd > Ask RaceOS: it should say "AI connected".
+
+What is sent to the model: counts, dates, item titles and what you typed. Never names, phone numbers or e-mail addresses (typed text is also scrubbed). Viewers' questions get no money figures. Each person is limited to 40 AI requests an hour.
+
+## Bibs and Expo desk (Race > Bibs and sync)
+1. Settings: pick the Expo race for the race (a dropdown of the Expo races).
+2. Bibs and sync: enter bib ranges per category (`21.1K | 1001 | 1999`), press **Assign bib numbers**, then **Send to Expo desk**.
+3. The Expo desk gets new runners only. A bib already handed over, a T-shirt size already issued and everything the desk recorded are never changed, and nobody is removed from the desk list.
+4. The tab shows live desk figures: checked in, bibs, shirts, per category, T-shirt needed against stock, per-desk activity and the latest handovers (names shortened, no phones). Alerts appear on the dashboard for runners without a bib, runners not sent, short T-shirt sizes and more runners than printed bibs.

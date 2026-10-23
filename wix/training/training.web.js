@@ -13,6 +13,7 @@ import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
+import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -714,6 +715,93 @@ export const coachMessage = webMethod(Permissions.Anyone, async (arg) => {
 
 /* ---------- one-time setup ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });
+/* ---------- plan against actual: weekly load, flags, coaching suggestions ---------- */
+// Same ideas the big training sites use: weekly planned against done volume, adherence, sudden jumps in load,
+// missed key sessions, hard-effort streaks. Everything is plain arithmetic; the AI (if the key is set) only words
+// the suggestions and drafts a note for the athlete. It never sees the athlete's name, phone or free-text notes.
+const doneKm = (s) => (s.aKm === '' || s.aKm === undefined || s.aKm === null ? num(s.km) : num(s.aKm));
+function insightOf(sessions, today, ath) {
+  const counted2 = sessions.filter(counted);
+  const ws = weekStart(today);
+  const weeks = [];
+  for (let k = 3; k >= 0; k--) {
+    const start = addDays(ws, -7 * k);
+    const end = addDays(start, 7);
+    const inWeek = counted2.filter((s) => s.date >= start && s.date < end);
+    const upto = k === 0 ? inWeek.filter((s) => s.date <= today) : inWeek;
+    const planned = upto.reduce((t, s) => t + num(s.km), 0);
+    const done = inWeek.filter((s) => s.status === 'done').reduce((t, s) => t + doneKm(s), 0);
+    weeks.push({ start, plannedKm: Math.round(planned * 10) / 10, doneKm: Math.round(done * 10) / 10, pct: planned > 0 ? Math.round((done / planned) * 100) : null, current: k === 0 });
+  }
+  const due = counted2.filter((s) => s.date < today).sort((a, b) => a.date.localeCompare(b.date));
+  const recent = due.slice(-8);
+  const missed = recent.filter((s) => s.status === 'planned').length;
+  const flags = [];
+  const add = (id, level, text) => flags.push({ id, level, text });
+  const full = weeks.filter((w) => !w.current);
+  const last = full[full.length - 1];
+  const prev = full[full.length - 2];
+  if (last && prev && prev.doneKm >= 5 && last.doneKm > prev.doneKm * 1.15) add('ramp', 'warn', 'Weekly distance jumped ' + Math.round(((last.doneKm - prev.doneKm) / prev.doneKm) * 100) + '% (' + prev.doneKm + ' to ' + last.doneKm + ' km). Sudden jumps raise injury risk; keep rises under about 10 to 15%.');
+  if (recent.length >= 4 && missed >= 3) add('missed', 'bad', missed + ' of the last ' + recent.length + ' planned sessions were not logged or done.');
+  const lastLong = [...due].reverse().find((s) => s.type === 'long');
+  if (lastLong && lastLong.status !== 'done' && lastLong.date >= addDays(today, -10)) add('long', 'warn', 'The last long run (' + lastLong.date + ') was ' + (lastLong.status === 'skipped' ? 'skipped' : 'not logged') + '. It is the key session of the week.');
+  const rated = due.filter((s) => s.status === 'done' && s.rpe).slice(-4);
+  if (rated.length >= 3 && rated.reduce((t, s) => t + int(s.rpe), 0) / rated.length >= 8) add('hard', 'warn', 'Recent sessions felt very hard (average effort ' + (Math.round((rated.reduce((t, s) => t + int(s.rpe), 0) / rated.length) * 10) / 10) + ' out of 10). Consider an easier week.');
+  const lastDone = sessions.filter((s) => s.status === 'done').map((s) => s.date).sort().pop() || '';
+  if (due.length >= 3 && (!lastDone || lastDone < addDays(today, -7))) add('quiet', 'bad', 'Nothing logged in the last 7 days.');
+  if (last && last.pct !== null && last.pct < 60 && !flags.some((f) => f.id === 'missed' || f.id === 'quiet')) add('under', 'warn', 'Last week only ' + last.pct + '% of the planned distance was done.');
+  if (full.length >= 2 && full.slice(-2).every((w) => w.pct !== null && w.pct >= 90) && !flags.length) add('strong', 'good', 'Two weeks in a row at 90% or more of the plan. Well done.');
+  const suggest = [];
+  if (flags.some((f) => f.id === 'ramp')) suggest.push('Hold next week at the same distance, or cut the long run by about 20%.');
+  if (flags.some((f) => f.id === 'missed' || f.id === 'quiet')) suggest.push('Check in with the athlete: illness, work, travel or motivation? Offer a lighter restart week instead of catching up on missed sessions.');
+  if (flags.some((f) => f.id === 'long')) suggest.push('Move the long run to a day that works, rather than dropping it.');
+  if (flags.some((f) => f.id === 'hard')) suggest.push('Swap one quality session for an easy run and check sleep and recovery.');
+  if (flags.some((f) => f.id === 'under')) suggest.push('Ask what got in the way, and trim the plan to a volume the athlete can keep.');
+  if (flags.some((f) => f.id === 'strong')) suggest.push('Consistent training. You can add a little: extra strides or a few more minutes on the long run.');
+  if (!suggest.length) suggest.push('On plan. Keep the routine and send a short word of encouragement.');
+  const dueAll = counted2.filter((s) => s.date < today);
+  const doneAll = dueAll.filter((s) => s.status === 'done').length;
+  return { weeks, flags, suggestions: suggest, adherence: dueAll.length ? Math.round((doneAll / dueAll.length) * 100) : null, level: ath && ath.level ? ath.level : '', goal: ath && ath.goal ? ath.goal : '' };
+}
+async function aiGateT(who) {
+  const key = 'ai|' + lc(who) + '|' + nowIso().slice(0, 13);
+  const row = await wixData.get(RATE, key, SA).catch(() => null);
+  const n = row ? int(row.n) : 0;
+  if (n >= 40) throw new Error('busy_try_later');
+  await wixData.save(RATE, { _id: key, n: String(n + 1) }, SA);
+}
+// For the athlete themselves: their own weeks and flags, no AI.
+export const myInsight = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await aauth(arg);
+  const cur = await activeEnr(a._id);
+  if (!cur) return { insight: null };
+  return { insight: insightOf(await sessionsOf(cur._id), todayIst(), a) };
+});
+// For the coach (own athletes) and directors (anyone). arg.write = true adds AI wording and a draft note to the athlete.
+export const coachInsight = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await sauth(arg);
+  const e = await staffEnroll(a, arg.enroll);
+  const ath = await wixData.get(ATH, e.athlete, SA).catch(() => null);
+  const ins = insightOf(await sessionsOf(e._id), todayIst(), ath);
+  const out = { insight: ins, enabled: await aiEnabled(), ai: false, text: '', message: '' };
+  if (arg.write) {
+    await aiGateT(a.username);
+    const table = ins.weeks.map((w) => 'Week of ' + w.start + ': planned ' + w.plannedKm + ' km, done ' + w.doneKm + ' km' + (w.pct === null ? '' : ' (' + w.pct + '%)') + (w.current ? ' [week in progress]' : '')).join('\n');
+    const facts = table + '\nOverall adherence: ' + (ins.adherence === null ? 'not enough data' : ins.adherence + '%') + '\nLevel: ' + (ins.level || 'unknown') + '\nGoal: ' + (scrub(ins.goal, 120) || 'not set') + '\nFlags: ' + (ins.flags.map((f) => f.text).join(' | ') || 'none');
+    const raw = await askClaude(
+      GROUND_RULES + ' You assist a running coach. Reply in exactly two parts. Part 1 begins "For the coach:" and gives at most three short suggestions for next week, based only on the facts. Part 2 begins "Note to the athlete:" and is a warm, specific message of at most 70 words that starts with "Hi {name}," and makes no medical claims.',
+      '<data>\n' + facts + '\n</data>\nWrite the two parts.',
+      600
+    );
+    const m = raw.match(/note to the athlete:\s*([\s\S]*)$/i);
+    out.text = raw.replace(/note to the athlete:[\s\S]*$/i, '').replace(/^\s*for the coach:\s*/i, '').trim();
+    const first = String((ath && ath.name) || '').trim().split(/\s+/)[0] || 'there';
+    out.message = m ? m[1].trim().replace(/\{name\}/g, first) : '';
+    out.ai = true;
+  }
+  return out;
+});
+
 const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };
 function collectionDefs() {
   const def = (id, fields) => ({ _id: id, displayName: id, permissions: LOCKED, fields: fields.map(textField) });

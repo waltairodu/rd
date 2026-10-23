@@ -13,6 +13,7 @@ import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
 import { wixEventsV2, guests } from 'wix-events.v2';
+import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -221,6 +222,7 @@ function eventOut(it) {
     wixEventId: j.wixEventId || '',
     bannerUrl: j.bannerUrl || '',
     cats: Array.isArray(j.cats) ? j.cats : [],
+    bibs: Array.isArray(j.bibs) ? j.bibs : [],
     wixMap: j.wixMap && typeof j.wixMap === 'object' ? j.wixMap : {},
     daysToGo: Number.isFinite(t) ? Math.ceil((t - Date.now()) / 86400000) : null,
   };
@@ -937,7 +939,7 @@ export const listRegs = webMethod(Permissions.Anyone, async (arg) => {
     if (inExpo === false) c.missingInExpo++;
     if (!r.size) c.noSize++;
     cats.set(r.cat, c);
-    return { id: r._id, ticket: r.ticketNumber, name: r.name, email: r.email, phone: r.phone, cat: r.cat, size: r.size, bibName: r.bibName, unpaid: r.status === 'unpaid', inExpo };
+    return { id: r._id, ticket: r.ticketNumber, name: r.name, email: r.email, phone: r.phone, cat: r.cat, size: r.size, bibName: r.bibName, bib: r.bib || '', unpaid: r.status === 'unpaid', inExpo };
   });
   list.sort((a, b) => a.name.localeCompare(b.name));
   return { linked: !!e.wixEventId, wixEventId: e.wixEventId, map: e.wixMap, total: list.length, expoCount: expo ? expo.count : null, cats: Array.from(cats.values()).sort((a, b) => a.cat.localeCompare(b.cat)), rows: list.slice(0, 2000) };
@@ -1116,6 +1118,7 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
   const me = await auth(arg);
   const plan = planSummary(planRows, me.role, e);
   alerts.push(...planAlerts(plan, e, me.role));
+  alerts.push(...(await expoAlerts(e, it)));
   return {
     event: e,
     expo,
@@ -1592,6 +1595,577 @@ export const racesSummary = webMethod(Permissions.Anyone, async (arg) => {
   return { races: out };
 });
 
+/* ---------- BIB and Expo desk: bib numbers, sending runners to the Expo desk, live desk figures ---------- */
+// The Race Director owns the registration list and the bib plan. The Expo desk owns what happens at handover.
+// Rules that protect the desk:
+//   - a bib number, once given, is never changed here if the runner is already in the Expo list
+//   - runners are sent as NEW rows; a row the Expo desk already has is never replaced, only its empty fields are filled
+//   - a row whose bib was handed over is left completely alone, and so is its T-shirt size once the shirt is issued
+//   - nothing is ever deleted from the Expo list from here
+const EXPO_CONFIG = 'ExpoConfig';
+const XSIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const expoDocId = (b) => {
+  const s = String(b).trim().replace(/[^A-Za-z0-9_\-.~:@+]/g, '-').slice(0, 100);
+  return s === '.' || s === '..' || !s ? 'x' + s : s;
+};
+const normSize = (v) => {
+  const s = String(v || '').trim().toUpperCase().replace(/[\s\-_]/g, '');
+  const map = { SMALL: 'S', MEDIUM: 'M', LARGE: 'L', XLARGE: 'XL', EXTRALARGE: 'XL', '2XL': 'XXL', XXLARGE: 'XXL', XSMALL: 'XS', EXTRASMALL: 'XS' };
+  const t = map[s] || s;
+  return XSIZES.includes(t) ? t : '';
+};
+const nameKey = (n) => lc(n).replace(/[^a-z0-9]/g, '');
+const maskName = (n) => {
+  const p = String(n || '').trim().split(/\s+/).filter(Boolean);
+  return p.length ? p[0] + (p[1] ? ' ' + p[1][0] + '.' : '') : '';
+};
+async function expoConfigOf(expoId) {
+  const it = expoId ? await wixData.get(EXPO_CONFIG, expoId, SA).catch(() => null) : null;
+  if (!it) return null;
+  let c = {};
+  try {
+    c = it.json ? JSON.parse(it.json) : {};
+  } catch (e) {
+    c = {};
+  }
+  const lot = {};
+  XSIZES.forEach((z) => (lot[z] = Math.max(0, parseInt(c.shirtLot && c.shirtLot[z], 10) || 0)));
+  return { name: String(it.name || c.name || expoId), bibLot: Math.max(0, parseInt(c.bibLot, 10) || 0), shirtLot: lot };
+}
+export const expoRaces = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const list = await all(() => wixData.query(EXPO_CONFIG).ascending('_id')).catch(() => []);
+  return { races: list.map((r) => ({ id: r._id, name: String(r.name || r._id) })).sort((a, b) => a.name.localeCompare(b.name)) };
+});
+
+function cleanBibRanges(list) {
+  if (!Array.isArray(list) || list.length > 20) throw new Error('bad_bibs');
+  const out = list.map((r) => {
+    const cat = clean(r && r.cat, 40);
+    const from = Number(r && r.from);
+    const to = Number(r && r.to);
+    if (cat.length < 2 || !Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > 99999 || from > to) throw new Error('bad_bibs');
+    return { cat, from, to };
+  });
+  const seen = new Set();
+  for (const r of out) {
+    if (seen.has(catKey(r.cat))) throw new Error('bad_bibs');
+    seen.add(catKey(r.cat));
+  }
+  const sorted = out.slice().sort((a, b) => a.from - b.from);
+  for (let i = 1; i < sorted.length; i++) if (sorted[i].from <= sorted[i - 1].to) throw new Error('bad_bibs');
+  return out;
+}
+function bibRangesOf(it) {
+  try {
+    const j = it.json ? JSON.parse(it.json) : {};
+    return Array.isArray(j.bibs) ? j.bibs : [];
+  } catch (e) {
+    return [];
+  }
+}
+export const saveBibPlan = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const old = await getEvent(arg.ev);
+  const bibs = cleanBibRanges(arg.bibs);
+  let j = {};
+  try {
+    j = old.json ? JSON.parse(old.json) : {};
+  } catch (e) {
+    j = {};
+  }
+  j.bibs = bibs;
+  await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
+  return { bibs };
+});
+
+const rangeFor = (ranges, cat) => ranges.find((r) => sameCat(r.cat, cat)) || null;
+async function expoRunners(e) {
+  return e.expoId ? await rows(RUNNERS, e.expoId).catch(() => []) : [];
+}
+// Gives the next free number in the category's range to every paid registration that has no bib yet. Never changes a bib.
+export const assignBibs = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const it = await getEvent(arg.ev);
+  const e = eventOut(it);
+  const ranges = bibRangesOf(it);
+  if (!ranges.length) throw new Error('no_bib_plan');
+  const regs = await rows(REGS, e.id).catch(() => []);
+  const runners = await expoRunners(e);
+  const used = new Set(regs.filter((r) => r.bib).map((r) => String(r.bib)));
+  runners.forEach((r) => used.add(String(r.bib || '')));
+  const todo = regs.filter((r) => r.status === 'ok' && !r.bib).sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')) || String(a.ticketNumber).localeCompare(String(b.ticketNumber)));
+  const next = new Map();
+  const out = { assigned: 0, alreadyHad: regs.filter((r) => r.bib).length, noRange: {}, full: {}, unpaid: regs.filter((r) => r.status !== 'ok' && !r.bib).length };
+  const upd = [];
+  for (const r of todo) {
+    const rg = rangeFor(ranges, r.cat);
+    if (!rg) {
+      const k = r.cat || '(no ticket name)';
+      out.noRange[k] = (out.noRange[k] || 0) + 1;
+      continue;
+    }
+    let n = next.get(rg.cat) || rg.from;
+    while (n <= rg.to && used.has(String(n))) n++;
+    if (n > rg.to) {
+      out.full[rg.cat] = (out.full[rg.cat] || 0) + 1;
+      next.set(rg.cat, n);
+      continue;
+    }
+    used.add(String(n));
+    next.set(rg.cat, n + 1);
+    upd.push(Object.assign({}, r, { bib: String(n) }));
+    out.assigned++;
+  }
+  for (let i = 0; i < upd.length; i += 200) await wixData.bulkUpdate(REGS, upd.slice(i, i + 200), SA);
+  return out;
+});
+// One exception: give a runner a particular number. Refused if taken, or if the runner is already in the Expo list.
+export const setBib = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const e = eventOut(await getEvent(arg.ev));
+  const r = await wixData.get(REGS, String(arg.id || ''), SA).catch(() => null);
+  if (!r || r.event !== e.id) throw new Error('no_registration');
+  const bib = clean(arg.bib, 12).replace(/\s+/g, '');
+  if (!/^[A-Za-z0-9-]{1,12}$/.test(bib)) throw new Error('bad_bib');
+  if (r.bib && String(r.bib) === bib) return { bib };
+  if (e.expoId && r.bib) {
+    const inExpo = await wixData.get(RUNNERS, e.expoId + '~' + expoDocId(r.bib), SA).catch(() => null);
+    if (inExpo) throw new Error('bib_in_expo');
+  }
+  const regs = await rows(REGS, e.id).catch(() => []);
+  if (regs.some((x) => x._id !== r._id && String(x.bib) === bib)) throw new Error('bib_taken');
+  if (e.expoId) {
+    const clash = await wixData.get(RUNNERS, e.expoId + '~' + expoDocId(bib), SA).catch(() => null);
+    if (clash) throw new Error('bib_taken');
+  }
+  await wixData.update(REGS, Object.assign({}, r, { bib }), SA);
+  return { bib };
+});
+
+// Sends paid, numbered registrations to the Expo desk as new runners.
+export const sendToExpo = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const e = eventOut(await getEvent(arg.ev));
+  if (!e.expoId) throw new Error('no_expo_link');
+  if (!(await expoConfigOf(e.expoId))) throw new Error('expo_race_missing');
+  const regs = await rows(REGS, e.id).catch(() => []);
+  const runners = await expoRunners(e);
+  const byId = new Map(runners.map((r) => [r._id, r]));
+  const out = { added: 0, filled: 0, same: 0, locked: 0, conflicts: [], unpaid: 0, noBib: 0 };
+  const ins = [];
+  const upd = [];
+  const seen = new Set();
+  for (const r of regs) {
+    if (r.status !== 'ok') {
+      if (r.bib) out.unpaid++;
+      continue;
+    }
+    if (!r.bib) {
+      out.noBib++;
+      continue;
+    }
+    const id = e.expoId + '~' + expoDocId(r.bib);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const old = byId.get(id);
+    if (!old) {
+      ins.push({ _id: id, event: e.expoId, bib: String(r.bib), name: clean(r.name, 60), bibName: clean(r.bibName, 40), cat: clean(r.cat, 20), size: normSize(r.size), phone: clean(r.phone, 20), email: clean(r.email, 80), example: '', checkedInAt: '', checkedInDesk: '', bibAt: '', bibDesk: '', shirtSize: '', shirtAt: '', shirtDesk: '' });
+      continue;
+    }
+    if (old.name && nameKey(old.name) !== nameKey(r.name)) {
+      out.conflicts.push(String(r.bib));
+      continue;
+    }
+    if (old.bibAt) {
+      out.locked++;
+      continue;
+    }
+    const fill = {};
+    if (!old.size && normSize(r.size) && !old.shirtAt) fill.size = normSize(r.size);
+    if (!old.phone && r.phone) fill.phone = clean(r.phone, 20);
+    if (!old.email && r.email) fill.email = clean(r.email, 80);
+    if (!old.bibName && r.bibName) fill.bibName = clean(r.bibName, 40);
+    if (!old.cat && r.cat) fill.cat = clean(r.cat, 20);
+    if (Object.keys(fill).length) {
+      upd.push(Object.assign({}, old, fill));
+      out.filled++;
+    } else out.same++;
+  }
+  for (let i = 0; i < ins.length; i += 200) await wixData.bulkInsert(RUNNERS, ins.slice(i, i + 200), SA);
+  for (let i = 0; i < upd.length; i += 200) await wixData.bulkUpdate(RUNNERS, upd.slice(i, i + 200), SA);
+  out.added = ins.length;
+  out.conflicts = out.conflicts.slice(0, 20);
+  expoCache.delete(e.expoId);
+  return out;
+});
+
+function expoStats(e, regs, runners, cfg, ranges) {
+  const cats = new Map();
+  const row = (c) => {
+    const k = c || '(no category)';
+    if (!cats.has(k)) cats.set(k, { cat: k, total: 0, checkedIn: 0, bibs: 0, shirts: 0 });
+    return cats.get(k);
+  };
+  const desks = new Map();
+  const dk = (d) => {
+    const k = d || 'unknown';
+    if (!desks.has(k)) desks.set(k, { desk: k, checkIns: 0, bibs: 0, shirts: 0, last: '' });
+    return desks.get(k);
+  };
+  const events = [];
+  for (const r of runners) {
+    const c = row(r.cat);
+    c.total++;
+    if (r.checkedInAt) {
+      c.checkedIn++;
+      const d = dk(r.checkedInDesk);
+      d.checkIns++;
+      if (r.checkedInAt > d.last) d.last = r.checkedInAt;
+      events.push({ at: r.checkedInAt, what: 'checked in', who: maskName(r.name), bib: r.bib, desk: r.checkedInDesk || '' });
+    }
+    if (r.bibAt) {
+      c.bibs++;
+      const d = dk(r.bibDesk);
+      d.bibs++;
+      if (r.bibAt > d.last) d.last = r.bibAt;
+      events.push({ at: r.bibAt, what: 'bib given', who: maskName(r.name), bib: r.bib, desk: r.bibDesk || '' });
+    }
+    if (r.shirtAt) {
+      c.shirts++;
+      const d = dk(r.shirtDesk);
+      d.shirts++;
+      if (r.shirtAt > d.last) d.last = r.shirtAt;
+      events.push({ at: r.shirtAt, what: 'T-shirt ' + (r.shirtSize || '') + ' given', who: maskName(r.name), bib: r.bib, desk: r.shirtDesk || '' });
+    }
+  }
+  const sizes = XSIZES.map((z) => {
+    const demand = runners.filter((r) => normSize(r.size) === z).length;
+    const given = runners.filter((r) => r.shirtAt && r.shirtSize === z).length;
+    const stock = cfg ? cfg.shirtLot[z] : 0;
+    return { size: z, demand, given, stock, short: stock > 0 && demand > stock };
+  });
+  const noSize = runners.filter((r) => !normSize(r.size) && !r.shirtAt).length;
+  const paid = regs.filter((r) => r.status === 'ok');
+  const have = new Set(runners.map((r) => r._id));
+  const sync = {
+    paid: paid.length,
+    withBib: paid.filter((r) => r.bib).length,
+    noBib: paid.filter((r) => !r.bib).length,
+    notSent: paid.filter((r) => r.bib && !have.has(e.expoId + '~' + expoDocId(r.bib))).length,
+    unpaidWithBib: regs.filter((r) => r.status !== 'ok' && r.bib).length,
+  };
+  const plan = ranges.map((rg) => ({ cat: rg.cat, from: rg.from, to: rg.to, size: rg.to - rg.from + 1, used: regs.filter((r) => r.bib && sameCat(rg.cat, r.cat)).length }));
+  events.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  return {
+    linked: !!e.expoId && !!cfg,
+    expoId: e.expoId,
+    expoName: cfg ? cfg.name : '',
+    totals: { runners: runners.length, checkedIn: runners.filter((r) => r.checkedInAt).length, bibs: runners.filter((r) => r.bibAt).length, shirts: runners.filter((r) => r.shirtAt).length },
+    bibLot: cfg ? cfg.bibLot : 0,
+    byCat: Array.from(cats.values()).sort((a, b) => a.cat.localeCompare(b.cat)),
+    sizes,
+    noSize,
+    desks: Array.from(desks.values()).sort((a, b) => a.desk.localeCompare(b.desk)),
+    recent: events.slice(0, 10),
+    sync,
+    plan,
+  };
+}
+// Live figures from the Expo desk for this race. No phone numbers or e-mails; names are shortened ("Anil K.").
+export const expoSummary = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg);
+  const it = await getEvent(arg.ev);
+  const e = eventOut(it);
+  const [regs, runners, cfg] = await Promise.all([rows(REGS, e.id).catch(() => []), expoRunners(e), expoConfigOf(e.expoId)]);
+  return expoStats(e, regs, runners, cfg, bibRangesOf(it));
+});
+// The few alerts the Expo side adds to the overview.
+async function expoAlerts(e, it) {
+  if (!e.expoId || e.daysToGo === null || e.daysToGo > 30 || e.daysToGo < -1) return [];
+  const [regs, runners, cfg] = await Promise.all([rows(REGS, e.id).catch(() => []), expoRunners(e), expoConfigOf(e.expoId)]);
+  if (!cfg) return [{ level: 'warn', text: 'The linked Expo race "' + e.expoId + '" was not found. Ask a director to check the Expo race in Settings.', go: 'bibs' }];
+  const s = expoStats(e, regs, runners, cfg, bibRangesOf(it));
+  const al = [];
+  const near = e.daysToGo <= 7;
+  if (s.sync.noBib) al.push({ level: near ? 'warn' : 'info', text: s.sync.noBib + ' paid runner' + (s.sync.noBib > 1 ? 's' : '') + ' without a bib number', go: 'bibs' });
+  if (s.sync.notSent) al.push({ level: near ? 'warn' : 'info', text: s.sync.notSent + ' numbered runner' + (s.sync.notSent > 1 ? 's' : '') + ' not sent to the Expo desk yet', go: 'bibs' });
+  const short = s.sizes.filter((z) => z.short);
+  if (short.length) al.push({ level: 'warn', text: 'T-shirt stock is short for size ' + short.map((z) => z.size + ' (' + z.demand + ' needed, ' + z.stock + ' in stock)').join(', '), go: 'bibs' });
+  if (s.bibLot && s.totals.runners > s.bibLot) al.push({ level: 'warn', text: 'More runners (' + s.totals.runners + ') than printed bibs (' + s.bibLot + ')', go: 'bibs' });
+  return al;
+}
+
+/* ---------- RaceOS AI: briefing, forecasts, Ask, drafts ---------- */
+// Everything here works without an AI key (rule-based figures and template drafts). With the secret ANTHROPIC_API_KEY
+// set, the same facts are written up by the model. What is sent to the model is only counts, dates, item titles and
+// the director's own typed question: never names, phone numbers or e-mail addresses of runners, volunteers or contacts.
+// Money figures are only added for roles that may see money.
+const AI_PER_HOUR = 40;
+async function aiGate(a) {
+  const key = 'ai|' + lc(a.username) + '|' + nowIso().slice(0, 13);
+  const row = await wixData.get(RATE, key, SA).catch(() => null);
+  const n = row ? int(row.n) : 0;
+  if (n >= AI_PER_HOUR) throw new Error('busy_try_later');
+  await wixData.save(RATE, { _id: key, n: String(n + 1) }, SA);
+}
+const longDate = (d) => (validDate(d) ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '');
+const rs = (n) => '₹' + Math.round(num(n)).toLocaleString('en-IN');
+
+async function aiSnapshot(a, arg) {
+  const e = eventOut(await getEvent(arg.ev));
+  const money = a.role !== 'viewer';
+  const [ov, regs, planRows] = await Promise.all([overview({ token: arg.token, ev: e.id }), rows(REGS, e.id).catch(() => []), rows(PLAN, e.id)]);
+  const d = dashOut(e, regs, money);
+  const today = istToday();
+  const visible = (r) => r.kind !== 'contact' && !(a.role === 'viewer' && isSecret(r.kind));
+  const brief = (r) => ({ kind: r.kind, title: clean(r.title, 80), due: r.due || '', status: r.status });
+  const overdue = planRows.filter((r) => visible(r) && planOverdue(r, today)).sort(planSort).slice(0, 8).map(brief);
+  const soon = planRows.filter((r) => visible(r) && r.due && r.due >= today && r.due <= istShift(today, 3) && !planDone(r)).sort(planSort).slice(0, 8).map(brief);
+  const shifts = await rows(SHIFTS, e.id);
+  const c = await shiftCounts(e.id);
+  const unfilled = shifts.map((s) => ({ role: clean(s.role, 60), date: s.date, need: int(s.need), taken: (c.get(s._id) || { taken: 0 }).taken })).filter((s) => s.need > s.taken).slice(0, 8);
+  return { e, ov, d, overdue, soon, unfilled, money, today };
+}
+
+// Simple trend forecasts. Plain arithmetic on the numbers above; they are estimates, not promises.
+function aiForecast(s) {
+  const { e, d, ov } = s;
+  const days = e.daysToGo;
+  const out = { daysToGo: days, notes: [] };
+  const ser = d.series;
+  const reg = { total: d.total, capacity: d.capacity };
+  if (days === null || days < 0) {
+    reg.state = days === null ? 'no_date' : 'finished';
+  } else if (ser.length < 3 || d.total < 5) {
+    reg.state = 'too_early';
+  } else {
+    const back = Math.min(14, ser.length - 1);
+    const rate = Math.max(0, (ser[ser.length - 1][1] - ser[ser.length - 1 - back][1]) / back);
+    const room = d.capacity === null ? Infinity : Math.max(0, d.capacity - d.total);
+    const proj = (f) => Math.round(d.total + Math.min(room, rate * f * days));
+    reg.state = 'ok';
+    reg.perDay = Math.round(rate * 10) / 10;
+    reg.low = proj(0.6);
+    reg.expected = proj(1);
+    reg.high = proj(1.5);
+    reg.basis = back;
+    reg.sellOutDate = null;
+    if (d.capacity !== null && room > 0 && rate > 0) {
+      const when = Math.ceil(room / rate);
+      if (when <= days) reg.sellOutDate = istShift(s.today, when);
+    }
+    reg.unfilled = d.capacity === null ? null : Math.max(0, d.capacity - reg.expected);
+    out.notes.push('Registration forecast continues the last ' + back + ' days at the same pace. Sign-ups usually speed up in the final fortnight, so the high figure is not unrealistic.');
+  }
+  out.registrations = reg;
+  const v = ov.volunteers;
+  const gap = Math.max(0, v.need - v.taken);
+  out.volunteers = { need: v.need, taken: v.taken, gap, waiting: v.applied, couldClose: Math.min(v.applied, gap), remaining: Math.max(0, gap - v.applied), perDayNeeded: days && days > 0 ? Math.round((Math.max(0, gap - v.applied) / days) * 10) / 10 : null };
+  if (s.money && ov.plan && ov.plan.budget) {
+    const b = ov.plan.budget;
+    const paid = d.byCat.reduce((t, r) => t + r.paid, 0);
+    const avgFee = paid > 0 ? d.revenue / paid : (d.byCat.filter((r) => r.price > 0).reduce((t, r) => t + r.price, 0) / (d.byCat.filter((r) => r.price > 0).length || 1)) || 0;
+    const extra = reg.state === 'ok' ? Math.max(0, reg.expected - d.total) : 0;
+    const regRev = d.revenue + extra * avgFee;
+    const sponsorCash = ov.plan.sponsors ? ov.plan.sponsors.cashPromised : 0;
+    const spend = Math.max(b.expPlanned, b.expActual);
+    out.budget = {
+      avgFee: Math.round(avgFee),
+      registrationRevenueNow: Math.round(d.revenue),
+      registrationRevenueExpected: Math.round(regRev),
+      sponsorCash,
+      expectedSpend: Math.round(spend),
+      expectedNet: Math.round(regRev + sponsorCash - spend),
+      breakEvenRegistrations: avgFee > 0 ? Math.ceil(Math.max(0, spend - sponsorCash) / avgFee) : null,
+    };
+    out.notes.push('Budget forecast = registration revenue at the average fee + confirmed sponsor cash − the larger of planned and actual expenses. Budget income lines are not added, to avoid counting registrations twice.');
+  }
+  return out;
+}
+
+function aiFacts(s, fc) {
+  const { e, d, ov, money } = s;
+  const f = [];
+  const reg = fc.registrations;
+  f.push('Race: ' + e.name + (e.date ? ', ' + e.date : '') + (e.venue ? ', ' + e.venue : '') + (e.daysToGo !== null ? ' (' + (e.daysToGo > 0 ? e.daysToGo + ' days to go' : e.daysToGo === 0 ? 'race day' : 'finished') + ')' : ''));
+  f.push('Registrations: ' + d.total + (d.capacity ? ' of ' + d.capacity + ' capacity' : '') + ', ' + d.week.thisWeek + ' this week, ' + d.week.prevWeek + ' the week before, ' + d.unpaid + ' payment pending.');
+  if (d.byCat.length) f.push('By category: ' + d.byCat.map((c) => c.name + ' ' + c.count + (c.cap ? '/' + c.cap : '')).join('; ') + '.');
+  if (reg.state === 'ok') f.push('Forecast at the current pace: about ' + reg.expected + ' by race day (range ' + reg.low + ' to ' + reg.high + ')' + (reg.sellOutDate ? '; capacity could be reached around ' + reg.sellOutDate : '') + '.');
+  if (money) f.push('Revenue so far ' + rs(d.revenue) + (d.pending ? ', ' + rs(d.pending) + ' awaiting payment' : '') + '.');
+  const v = fc.volunteers;
+  f.push('Volunteers: ' + v.taken + ' of ' + v.need + ' spots filled, ' + v.waiting + ' applications waiting' + (v.gap ? '; ' + v.remaining + ' spots still unfilled even if all waiting applicants are approved' : '') + '.');
+  if (s.unfilled.length) f.push('Shifts not full: ' + s.unfilled.map((x) => x.role + ' ' + x.date + ' (' + x.taken + '/' + x.need + ')').join('; ') + '.');
+  f.push('Pacers ' + ov.pacers.have + ' of ' + ov.pacers.need + ' needed. Safety checklist ' + ov.checklist.done + ' of ' + ov.checklist.total + '. Run of show ' + ov.run.done + ' of ' + ov.run.total + '. Open incidents ' + ov.log.open + '.');
+  if (ov.plan) {
+    f.push('Plan tasks done ' + ov.plan.tasks.done + ' of ' + ov.plan.tasks.total + ', ' + ov.plan.tasks.blocked + ' blocked, ' + ov.plan.overdue + ' items overdue. Permits approved ' + ov.plan.approvals.permits.approved + ' of ' + ov.plan.approvals.permits.total + '.');
+    if (money && ov.plan.budget) {
+      const b = ov.plan.budget;
+      f.push('Budget: expenses planned ' + rs(b.expPlanned) + ', spent ' + rs(b.expActual) + ', committed but unpaid ' + rs(b.committedUnpaid) + '.');
+      if (ov.plan.sponsors) f.push('Sponsors: cash promised ' + rs(ov.plan.sponsors.cashPromised) + ', received ' + rs(ov.plan.sponsors.cashReceived) + ', still in pipeline ' + rs(ov.plan.sponsors.pipeline) + '.');
+      if (fc.budget) f.push('Projected result: ' + rs(fc.budget.expectedNet) + (fc.budget.breakEvenRegistrations ? '; break-even needs about ' + fc.budget.breakEvenRegistrations + ' registrations' : '') + '.');
+    }
+  }
+  if (s.overdue.length) f.push('Overdue: ' + s.overdue.map((x) => x.title + ' (due ' + x.due + ')').join('; ') + '.');
+  if (s.soon.length) f.push('Due in the next 3 days: ' + s.soon.map((x) => x.title + ' (' + x.due + ')').join('; ') + '.');
+  if (ov.alerts.length) f.push('Alerts: ' + ov.alerts.map((x) => x.text).join('; ') + '.');
+  return f;
+}
+
+// Ordered list of what needs the director's attention today, from the figures alone.
+function aiPriorities(s, fc) {
+  const { e, d, ov, money } = s;
+  const out = [];
+  const add = (level, text, go) => out.push({ level, text, go });
+  for (const x of ov.alerts) if (x.level === 'bad') add('bad', x.text, x.go);
+  for (const x of ov.alerts) if (x.level === 'warn') add('warn', x.text, x.go);
+  const reg = fc.registrations;
+  if (reg.state === 'ok') {
+    if (d.capacity && reg.sellOutDate) add('info', 'At this pace the race fills up around ' + longDate(reg.sellOutDate) + '. Decide now whether to open more places.', 'regs');
+    else if (reg.unfilled > 0 && e.daysToGo <= 30) add('warn', 'About ' + reg.unfilled + ' places may stay empty at the current pace. A push on social media and club groups could help.', 'regs');
+    if (d.week.prevWeek >= 5 && d.week.thisWeek < d.week.prevWeek * 0.6) add('warn', 'Sign-ups slowed: ' + d.week.thisWeek + ' this week against ' + d.week.prevWeek + ' last week.', 'regs');
+  }
+  if (fc.volunteers.remaining > 0) add(e.daysToGo !== null && e.daysToGo <= 14 ? 'warn' : 'info', 'Volunteers: ' + fc.volunteers.remaining + ' spots will stay open even after approving everyone waiting. Send a call for volunteers.', 'volunteers');
+  if (fc.budget && fc.budget.expectedNet < 0) add('warn', 'At the current pace the race ends about ' + rs(-fc.budget.expectedNet) + ' short. Break-even needs about ' + fc.budget.breakEvenRegistrations + ' registrations or more sponsor cash.', 'money');
+  if (money && ov.plan && ov.plan.sponsors && ov.plan.sponsors.outstanding > 0) add('info', rs(ov.plan.sponsors.outstanding) + ' of promised sponsor cash is not received yet.', 'money');
+  for (const x of s.soon.slice(0, 3)) add('info', 'Due soon: ' + x.title + ' (' + x.due + ')', 'plan');
+  for (const x of ov.alerts) if (x.level === 'info') add('info', x.text, x.go);
+  const seen = new Set();
+  return out.filter((x) => (seen.has(x.text) ? false : seen.add(x.text))).slice(0, 10);
+}
+
+function aiBriefText(s, fc) {
+  const { e, d } = s;
+  const parts = [];
+  parts.push(e.name + (e.daysToGo !== null ? (e.daysToGo > 0 ? ' is ' + e.daysToGo + ' day' + (e.daysToGo > 1 ? 's' : '') + ' away.' : e.daysToGo === 0 ? ' is today.' : ' has finished.') : '.'));
+  parts.push(d.total + ' registered' + (d.capacity ? ' of ' + d.capacity : '') + (d.week.thisWeek ? ', ' + d.week.thisWeek + ' of them this week' : '') + '.');
+  parts.push('Volunteers: ' + fc.volunteers.taken + ' of ' + fc.volunteers.need + ' spots filled' + (fc.volunteers.waiting ? ', ' + fc.volunteers.waiting + ' applications waiting' : '') + '.');
+  return parts.join(' ');
+}
+
+async function aiBuild(a, arg) {
+  const s = await aiSnapshot(a, arg);
+  const fc = aiForecast(s);
+  return { s, fc, facts: aiFacts(s, fc) };
+}
+
+export const aiStatus = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg);
+  return { enabled: await aiEnabled() };
+});
+
+export const aiForecastNow = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg);
+  const s = await aiSnapshot(a, arg);
+  return { forecast: aiForecast(s), money: s.money };
+});
+
+// The daily briefing. Rule-based by default; with arg.write = true and a key, the model writes it up from the same facts.
+export const aiBriefing = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg);
+  const { s, fc, facts } = await aiBuild(a, arg);
+  const out = { summary: aiBriefText(s, fc), priorities: aiPriorities(s, fc), forecast: fc, money: s.money, ai: false, text: '', enabled: await aiEnabled() };
+  if (arg.write) {
+    await aiGate(a);
+    out.text = await askClaude(
+      GROUND_RULES + ' Write a morning briefing for the race director: first one sentence on where the race stands, then at most five short bullet lines on what to do today, most urgent first, each naming a concrete action. Under 160 words.',
+      '<data>\n' + facts.join('\n') + '\n</data>\nWrite today\'s briefing.',
+      500
+    );
+    out.ai = true;
+  }
+  return out;
+});
+
+export const aiAsk = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg);
+  const q = scrub(arg.q, 400);
+  if (q.length < 3) throw new Error('question_needed');
+  if (!(await aiEnabled())) throw new Error('no_ai_key');
+  const { facts } = await aiBuild(a, arg);
+  await aiGate(a);
+  const answer = await askClaude(
+    GROUND_RULES + ' Answer the director\'s question in under 120 words using only the facts. Offer one suggested next step when it is useful. If the money facts are absent, say the person\'s role does not include money figures.',
+    '<data>\n' + facts.join('\n') + '\n</data>\nQuestion: ' + q,
+    450
+  );
+  return { answer, q };
+});
+
+const DRAFTS = {
+  runner_update: { who: 'runners', label: 'Update to registered runners' },
+  pickup_info: { who: 'runners', label: 'Bib and T-shirt pickup details' },
+  volunteer_call: { who: 'volunteers', label: 'Call for volunteers' },
+  volunteer_thanks: { who: 'volunteers', label: 'Thank you to volunteers' },
+  sponsor_pitch: { who: 'sponsor', label: 'Sponsorship pitch' },
+  sponsor_thanks: { who: 'sponsor', label: 'Thank you to a sponsor', needSponsor: true },
+  sponsor_report: { who: 'sponsor', label: 'Post-race sponsor report', needSponsor: true },
+  social_post: { who: 'public', label: 'Social media post' },
+};
+function aiTemplate(kind, ch, s, fc, sp, notes, me) {
+  const { e, d } = s;
+  const when = longDate(e.date) || 'the race day';
+  const at = e.venue ? ' at ' + e.venue : '';
+  const extra = notes ? '\n\n' + notes : '';
+  const sign = '\n\nWarm regards,\n' + me + '\nVisakha Trail Running Association';
+  const T = {
+    runner_update: ['Important details for ' + e.name, 'Hello runner,\n\n' + e.name + ' is on ' + when + at + '. ' + d.total + ' runners have registered so far.' + extra + '\n\nPlease read the race-day instructions, reach early, and carry your bib and a valid ID. See you at the start line!'],
+    pickup_info: ['Bib and T-shirt pickup for ' + e.name, 'Hello runner,\n\nYour bib and T-shirt will be handed over at the expo desk before ' + e.name + ' on ' + when + '.' + extra + '\n\nPlease carry a photo ID and your registration confirmation. T-shirt size is final once it is handed over.'],
+    volunteer_call: ['Volunteers needed for ' + e.name, 'Hello,\n\nWe still need ' + fc.volunteers.remaining + ' volunteers for ' + e.name + ' on ' + when + at + '. Roles include aid stations, marshalling, expo desk and finish line.' + extra + '\n\nIf you can give a few hours, please sign up using the volunteer link and we will confirm your shift.'],
+    volunteer_thanks: ['Thank you from ' + e.name, 'Hello,\n\nThank you for giving your time to ' + e.name + '. The race could not happen without you.' + extra + '\n\nWe hope to see you again at the next one.'],
+    sponsor_pitch: ['Partnering with ' + e.name, 'Dear ' + (sp.party || 'Sir or Madam') + ',\n\nThe Visakha Trail Running Association is organising ' + e.name + ' on ' + when + at + ', with about ' + (d.capacity || d.total) + ' runners.' + extra + '\n\nWe would be glad to share sponsorship options, including branding at the start, finish and expo, and mentions across our channels. May we set up a short call?'],
+    sponsor_thanks: ['Thank you for supporting ' + e.name, 'Dear ' + (sp.party || 'partner') + ',\n\nThank you for supporting ' + e.name + '. Your help made it possible to bring ' + d.total + ' runners to ' + (e.venue || 'the start line') + '.' + extra + '\n\nWe will share a full report after the race.'],
+    sponsor_report: ['Report: ' + e.name, 'Dear ' + (sp.party || 'partner') + ',\n\n' + e.name + ' took place on ' + when + at + ' with ' + d.total + ' registered runners.' + extra + '\n\nThank you again for your support. We would value your feedback and hope to work together again.'],
+    social_post: ['', e.name + ' is on ' + when + at + '! ' + d.total + ' runners are in' + (d.capacity && d.capacity - d.total > 0 ? ', ' + (d.capacity - d.total) + ' places left' : '') + '.' + (notes ? ' ' + notes : '') + ' Register now and run with us.'],
+  };
+  const t = T[kind];
+  if (ch === 'whatsapp') return { subject: '', body: (t[1].replace(/\n\n/g, '\n') + '\n- ' + me + ', VTRA').slice(0, 1200) };
+  return { subject: t[0], body: t[1] + (kind === 'social_post' ? '' : sign) };
+}
+export const aiDraftKinds = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg);
+  return { kinds: Object.keys(DRAFTS).map((k) => ({ id: k, label: DRAFTS[k].label, who: DRAFTS[k].who, needSponsor: !!DRAFTS[k].needSponsor })) };
+});
+export const aiDraft = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'write');
+  const kind = String(arg.kind || '');
+  const def = DRAFTS[kind];
+  if (!def) throw new Error('bad_draft');
+  const ch = arg.channel === 'whatsapp' ? 'whatsapp' : 'email';
+  const notes = scrub(arg.notes, 500);
+  let sp = { party: scrub(arg.party, 80) };
+  if (def.who === 'sponsor') {
+    await planAuth(arg, 'sponsor', false);
+    if (arg.sponsor) {
+      const r = await wixData.get(PLAN, String(arg.sponsor), SA).catch(() => null);
+      if (!r || r.kind !== 'sponsor' || r.event !== String(arg.ev)) throw new Error('no_sponsor');
+      sp = { party: clean(r.party || r.title, 80), amount: num(r.amount), phase: r.phase, status: r.status };
+    } else if (def.needSponsor) throw new Error('no_sponsor');
+  }
+  const { s, fc, facts } = await aiBuild(a, arg);
+  const base = aiTemplate(kind, ch, s, fc, sp, notes, a.name);
+  const wantAi = arg.useAi !== false && (await aiEnabled());
+  if (!wantAi) return Object.assign(base, { ai: false, kind, channel: ch });
+  await aiGate(a);
+  const spLine = def.who === 'sponsor' ? 'Sponsor organisation: ' + (sp.party || 'not named') + (sp.phase ? '; type ' + sp.phase : '') + (a.role !== 'viewer' && sp.amount ? '; support ' + rs(sp.amount) : '') + '.\n' : '';
+  const form = ch === 'whatsapp' ? 'a WhatsApp message under 90 words, no subject, at most one emoji' : 'an e-mail: first line "Subject: ...", then a blank line, then the body under 170 words';
+  const text = await askClaude(
+    GROUND_RULES + ' You write messages for the organisers to send, signed with their name. Do not promise anything that is not in the facts or the director\'s notes. Use a warm, direct tone.',
+    '<data>\n' + facts.join('\n') + '\n' + spLine + 'Director notes: ' + (notes || 'none') + '\n</data>\nWrite ' + form + '. Purpose: ' + def.label + '. Sign as ' + a.name + ', Visakha Trail Running Association.',
+    700
+  );
+  let subject = '';
+  let body = text;
+  if (ch === 'email') {
+    const m = text.match(/^\s*subject:\s*(.+)\n+([\s\S]*)$/i);
+    if (m) {
+      subject = clean(m[1], 140);
+      body = m[2].trim();
+    } else subject = base.subject;
+  }
+  return { subject, body, ai: true, kind, channel: ch };
+});
+
 /* ---------- one-time database setup ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });
 const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };
@@ -1609,7 +2183,7 @@ function collectionDefs() {
     def(RUN, ['event', 'time', 'what', 'owner', 'status']),
     def(PACERS, ['event', 'name', 'phone', 'group', 'status', 'trial', 'briefing', 'kit', 'notes']),
     def(CHECK, ['event', 'section', 'item', 'done', 'doneBy', 'doneAt', 'order']),
-    def(REGS, ['event', 'ticketNumber', 'orderNumber', 'guestId', 'name', 'email', 'phone', 'cat', 'size', 'bibName', 'status', 'form', 'at']),
+    def(REGS, ['event', 'ticketNumber', 'orderNumber', 'guestId', 'name', 'email', 'phone', 'cat', 'size', 'bibName', 'status', 'form', 'at', 'bib']),
     def(QUALS, ['event', 'runnerId', 'name', 'cat', 'claim', 'claimKm', 'claimSec', 'link', 'status', 'note', 'by', 'at']),
     def(PLAN, ['event', 'kind', 'title', 'cat', 'phase', 'status', 'owner', 'party', 'contact', 'due', 'time', 'amount', 'amount2', 'ref', 'link', 'notes', 'order', 'by', 'at']),
     def(RATE, ['n']),
