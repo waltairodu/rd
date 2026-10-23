@@ -220,6 +220,7 @@ function eventOut(it) {
     quals: Array.isArray(j.quals) ? j.quals : [],
     wixEventId: j.wixEventId || '',
     bannerUrl: j.bannerUrl || '',
+    cats: Array.isArray(j.cats) ? j.cats : [],
     wixMap: j.wixMap && typeof j.wixMap === 'object' ? j.wixMap : {},
     daysToGo: Number.isFinite(t) ? Math.ceil((t - Date.now()) / 86400000) : null,
   };
@@ -901,12 +902,16 @@ export const importRegs = webMethod(Permissions.Anyone, async (arg) => {
       bibName: clean(pick(inputs, e.wixMap.bibName), 40),
       status: PAID_OK.includes(st) ? 'ok' : 'unpaid',
       form: JSON.stringify(inputs.slice(0, 40)).slice(0, 4000),
-      at: nowIso(),
+      at: g.createdDate || g._createdDate ? new Date(g.createdDate || g._createdDate).toISOString() : '',
     });
   });
   const ids = Array.from(byId.keys());
   const old = ids.length ? (await wixData.query(REGS).hasSome('_id', ids).limit(1000).find(SA)).items : [];
   const have = new Set(old.map((o) => o._id));
+  const oldAt = new Map(old.map((o) => [o._id, o.at || '']));
+  byId.forEach((r, id) => {
+    if (!r.at || isNaN(Date.parse(r.at))) r.at = oldAt.get(id) || nowIso();
+  });
   const add = ids.filter((i) => !have.has(i)).map((i) => byId.get(i));
   const upd = ids.filter((i) => have.has(i)).map((i) => byId.get(i));
   if (add.length) await wixData.bulkInsert(REGS, add, SA);
@@ -1478,6 +1483,113 @@ export const seedPlanLists = webMethod(Permissions.Anyone, async (arg) => {
   await getEvent(arg.ev);
   const kinds = (Array.isArray(arg.kinds) && arg.kinds.length ? arg.kinds : Object.keys(PLAN_DEFAULTS)).map(kindOf).filter((k) => PLAN_DEFAULTS[k]);
   return { added: await seedPlan(arg.ev, kinds) };
+});
+
+
+/* ---------- categories, fees and the dashboard figures ---------- */
+function cleanCats(list) {
+  if (!Array.isArray(list) || list.length > 20) throw new Error('bad_cats');
+  const seen = new Set();
+  return list.map((c) => {
+    const name = clean(c && c.name, 40);
+    const k = catKey(name);
+    if (name.length < 2 || seen.has(k)) throw new Error('bad_cats');
+    seen.add(k);
+    const n = (v) => (v === '' || v === undefined || v === null ? 0 : Number(v));
+    const km = n(c.km), price = n(c.price), cap = n(c.cap);
+    if (![km, price, cap].every(Number.isFinite) || km < 0 || km > 1000 || price < 0 || price > 1e7 || cap < 0 || cap > 1e6 || Math.floor(cap) !== cap) throw new Error('bad_cats');
+    return { name, km: Math.round(km * 1000) / 1000, price: Math.round(price * 100) / 100, cap };
+  });
+}
+export const saveCats = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const old = await getEvent(arg.ev);
+  const cats = cleanCats(arg.cats);
+  let j = {};
+  try {
+    j = old.json ? JSON.parse(old.json) : {};
+  } catch (e) {
+    j = {};
+  }
+  j.cats = cats;
+  await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
+  return { cats };
+});
+function catIndex(cats, name) {
+  const k = catKey(name);
+  let i = cats.findIndex((c) => catKey(c.name) === k);
+  if (i < 0) i = cats.findIndex((c) => sameCat(c.name, name));
+  return i;
+}
+function dashOut(e, regs, money) {
+  const today = istToday();
+  const rowsBy = e.cats.map((c) => ({ name: c.name, km: c.km, price: c.price, cap: c.cap, count: 0, paid: 0, unpaid: 0 }));
+  const extra = new Map();
+  for (const r of regs) {
+    const i = catIndex(e.cats, r.cat);
+    let row = i >= 0 ? rowsBy[i] : null;
+    if (!row) {
+      const nm = r.cat || 'No ticket name';
+      row = extra.get(nm) || { name: nm, km: 0, price: 0, cap: 0, count: 0, paid: 0, unpaid: 0, unlisted: true };
+      extra.set(nm, row);
+    }
+    row.count++;
+    if (r.status === 'ok') row.paid++;
+    else row.unpaid++;
+  }
+  const byCat = rowsBy.concat([...extra.values()]).map((r) => Object.assign(r, money ? { revenue: r.paid * r.price, pending: r.unpaid * r.price } : { price: null }));
+  const total = regs.length;
+  const capRows = byCat.filter((r) => r.cap > 0);
+  const day = (iso) => String(iso || '').slice(0, 10);
+  const perDay = new Map();
+  regs.forEach((r) => {
+    const d = day(r.at);
+    if (validDate(d)) perDay.set(d, (perDay.get(d) || 0) + 1);
+  });
+  const dates = [...perDay.keys()].sort();
+  const series = [];
+  if (dates.length) {
+    const start = dates[0] < istShift(today, -119) ? istShift(today, -119) : dates[0];
+    let run = 0;
+    dates.forEach((d) => {
+      if (d < start) run += perDay.get(d);
+    });
+    for (let d = start; d <= today; d = istShift(d, 1)) {
+      run += perDay.get(d) || 0;
+      series.push([d, run]);
+    }
+  }
+  const wk = (from, to) => [...perDay.entries()].filter(([d]) => d >= istShift(today, from) && d <= istShift(today, to)).reduce((s, [, n]) => s + n, 0);
+  return {
+    total,
+    paid: regs.filter((r) => r.status === 'ok').length,
+    unpaid: regs.filter((r) => r.status !== 'ok').length,
+    capacity: capRows.length ? capRows.reduce((s, r) => s + r.cap, 0) : null,
+    revenue: money ? byCat.reduce((s, r) => s + r.revenue, 0) : null,
+    pending: money ? byCat.reduce((s, r) => s + r.pending, 0) : null,
+    byCat,
+    series,
+    week: { thisWeek: wk(-6, 0), prevWeek: wk(-13, -7) },
+    hasCats: e.cats.length > 0,
+  };
+}
+const istShift = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+export const dashboard = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg);
+  const e = eventOut(await getEvent(arg.ev));
+  return dashOut(e, await rows(REGS, e.id).catch(() => []), a.role !== 'viewer');
+});
+// One card per race for the dashboard: when, where, how many registered, how many categories, takings.
+export const racesSummary = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg);
+  const evs = (await all(() => wixData.query(EVENTS).ascending('_id'))).filter((x) => (x.status || 'open') !== 'archived').map(eventOut);
+  const out = [];
+  for (const e of evs) {
+    const d = dashOut(e, await rows(REGS, e.id).catch(() => []), a.role !== 'viewer');
+    out.push({ id: e.id, name: e.name, date: e.date, venue: e.venue, status: e.status, daysToGo: e.daysToGo, bannerUrl: e.bannerUrl, total: d.total, capacity: d.capacity, revenue: d.revenue, cats: d.byCat.map((r) => ({ name: r.name, count: r.count, cap: r.cap })) });
+  }
+  out.sort((x, y) => String(x.date || '9999').localeCompare(String(y.date || '9999')));
+  return { races: out };
 });
 
 /* ---------- one-time database setup ---------- */
