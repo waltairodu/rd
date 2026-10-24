@@ -14,6 +14,7 @@ import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
 import { wixEventsV2, guests } from 'wix-events.v2';
 import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
+import { SCOPES, LEGACY_TITLES, cleanScope, suggest, planRows as templateRows, follow, itemByKey, permitByKey, renderLetter, editionLabel } from './rd-approvals.js';
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -219,6 +220,8 @@ function eventOut(it) {
     distanceKm: Number(j.distanceKm) || 21.0975,
     groups: Array.isArray(j.groups) ? j.groups : DEFAULT_GROUPS,
     quals: Array.isArray(j.quals) ? j.quals : [],
+    edition: clean(j.info && j.info.edition, 20),
+    editionText: editionLabel(clean(j.info && j.info.edition, 20)),
     wixEventId: j.wixEventId || '',
     bannerUrl: j.bannerUrl || '',
     cats: Array.isArray(j.cats) ? j.cats : [],
@@ -262,6 +265,7 @@ export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
     expoId: has('expoId') || !old ? clean(arg.expoId, 100) : old.expoId || '',
     status,
   };
+  const edition = has('edition') ? clean(arg.edition, 20) : null;
   if (old) {
     let j = {};
     try {
@@ -271,13 +275,18 @@ export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
     }
     if (has('distanceKm')) j.distanceKm = dist;
     if (has('bannerUrl')) j.bannerUrl = banner;
+    if (edition !== null) j.info = Object.assign({}, j.info && typeof j.info === 'object' ? j.info : {}, { edition });
     const saved = await wixData.update(EVENTS, Object.assign({}, old, base, { json: JSON.stringify(j) }), SA);
-    return { event: eventOut(saved), by: a.username };
+    // Approval lines that came from the template move with a new race date.
+    const start = infoOf(old).startTime;
+    const moved = await followRace(old._id, { date: old.date || '', start }, { date: base.date, start });
+    return { event: eventOut(saved), by: a.username, moved };
   }
-  const saved = await wixData.insert(EVENTS, Object.assign(base, { json: JSON.stringify({ distanceKm: has('distanceKm') ? dist : 21.0975, groups: DEFAULT_GROUPS, bannerUrl: banner }) }), SA);
+  const info = Object.assign({}, await inheritedInfo(), edition !== null ? { edition } : {});
+  const saved = await wixData.insert(EVENTS, Object.assign(base, { json: JSON.stringify({ distanceKm: has('distanceKm') ? dist : 21.0975, groups: DEFAULT_GROUPS, bannerUrl: banner, info }) }), SA);
   await wixData.bulkInsert(CHECK, DEFAULT_CHECKLIST.map(([section, item], k) => ({ event: saved._id, section, item, done: '', doneBy: '', doneAt: '', order: String(k).padStart(3, '0') })), SA);
   await wixData.bulkInsert(RUN, DEFAULT_RUN.map(([time, what, owner]) => ({ event: saved._id, time, what, owner, status: 'todo' })), SA);
-  await seedPlan(saved._id, Object.keys(PLAN_DEFAULTS));
+  await seedPlan(saved._id, Object.keys(PLAN_DEFAULTS), saved);
   return { event: eventOut(saved), by: a.username };
 });
 
@@ -1178,7 +1187,7 @@ const num = (v) => {
 const planDone = (r) => PKINDS[r.kind] && PKINDS[r.kind].done.includes(r.status);
 const planOverdue = (r, today) => !!(r.due && r.due < today && !planDone(r) && !(r.kind === 'budget' || r.kind === 'sponsor' ? ['cancelled', 'declined'].includes(r.status) : false));
 function planOut(r, today) {
-  return {
+  const out = {
     id: r._id,
     kind: r.kind,
     title: r.title || '',
@@ -1199,6 +1208,14 @@ function planOut(r, today) {
     at: r.at || '',
     overdue: planOverdue(r, today),
   };
+  if (r.kind === 'approval') {
+    const p = permitByKey(r.tpl);
+    out.tpl = r.tpl || '';
+    out.docsTotal = p ? p.docs.length : 0;
+    out.docsDone = p ? doneIdx(r).filter((n) => n < p.docs.length) : [];
+    out.lead = r.lead === undefined || r.lead === '' ? null : num(r.lead);
+  }
+  return out;
 }
 const planSort = (a, b) => String(a.due || '9999').localeCompare(String(b.due || '9999')) || String(a.order || '999').localeCompare(String(b.order || '999')) || String(a.title).localeCompare(String(b.title));
 
@@ -1431,27 +1448,7 @@ const PLAN_DEFAULTS = {
     ['Kit', 'Bibs and safety pins', 'sets'], ['Kit', 'Finisher medals', 'pcs'], ['Kit', 'Finisher T-shirts', 'pcs'], ['Kit', 'Goodie bags', 'pcs'], ['Kit', 'Volunteer T-shirts', 'pcs'], ['Kit', 'Pacer flags and bibs', 'sets'],
     ['General', 'Tents, tables and chairs', 'sets'], ['General', 'Dustbins and bags', 'pcs'], ['General', 'Portable toilets', 'pcs'], ['General', 'Rope, cable ties and tape', 'sets'], ['General', 'Trophies', 'pcs'],
   ].map(([cat, title, ref]) => ({ kind: 'supply', cat, title, ref })),
-  approval: [].concat(
-    [
-      ['Police permission for road use and traffic diversion', 'Police and traffic'],
-      ['Municipal corporation permission for the route and venue', 'Municipal corporation'],
-      ['Forest department permission (trail routes)', 'Forest department'],
-      ['Fire safety clearance for the expo, stage and tents', 'Fire services'],
-      ['Ambulance and hospital tie-up letter', 'Hospital'],
-      ['Event insurance policy', 'Insurer'],
-      ['Loudspeaker and sound permission', 'Police'],
-      ['Drone permission (if drones are used)', 'Police or aviation'],
-      ['Land or beach owner permission', 'Owner'],
-      ['Food safety registration for aid-station food', 'Food safety'],
-      ['Electricity and generator permission', 'Power utility'],
-      ['Banner and hoarding permission', 'Municipal corporation'],
-    ].map(([title, party]) => ({ kind: 'approval', phase: 'permit', cat: 'Permit', title, party })),
-    [
-      ['Weather go or no-go', 'Race Director'], ['Course cleared and marked', 'Route lead'], ['Medical team in position', 'Medical lead'],
-      ['Police and traffic in position', 'Operations'], ['Start, timing and finish ready', 'Timing lead'], ['Aid stations stocked and staffed', 'Aid-station lead'],
-      ['Volunteers and pacers briefed', 'Volunteer lead'], ['Final flag-off approval', 'Race Director'],
-    ].map(([title, owner]) => ({ kind: 'approval', phase: 'raceday', cat: 'Sign-off', title, owner }))
-  ),
+  approval: [], // built from the template in rd-approvals.js (see seedPlan)
   ceremony: [
     ['pre', 'Runner briefing (course, cut-offs, rules)'], ['pre', 'Expo opening and bib collection'], ['pre', 'Volunteer and pacer briefing'], ['pre', 'Guest and sponsor welcome, VIP list ready'],
     ['pre', 'Inauguration or lamp lighting (if planned)'], ['pre', 'Warm-up and pledge'], ['pre', 'Announcer script and MC ready'],
@@ -1466,12 +1463,21 @@ const PLAN_DEFAULTS = {
     ['Vendor', 'Water and catering supplier'], ['Vendor', 'Medal and T-shirt vendor'], ['Media', 'Photographer'], ['Media', 'Press and local media'],
   ].map(([cat, title]) => ({ kind: 'contact', cat, title })),
 };
-async function seedPlan(ev, kinds) {
+async function seedPlan(ev, kinds, evRow) {
   const have = await rows(PLAN, ev);
   const made = {};
   const list = [];
   for (const k of kinds) {
     if (have.some((r) => r.kind === k)) continue;
+    if (k === 'approval') {
+      // The approvals come from the template, with dates worked out from the race date when there is one.
+      const it = evRow || (await getEvent(ev));
+      const info = infoOf(it);
+      const specs = templateRows(eventOut(it), info, info.scope, null);
+      specs.forEach((s) => list.push(approvalRow(ev, s, '')));
+      made[k] = specs.length;
+      continue;
+    }
     (PLAN_DEFAULTS[k] || []).forEach((d, i) => {
       const K = PKINDS[d.kind];
       list.push({ event: ev, kind: d.kind, title: d.title, cat: d.cat || '', phase: d.phase || K.phases[0], status: K.statuses[0], owner: d.owner || '', party: d.party || '', contact: '', due: '', time: '', amount: '', amount2: '', ref: d.ref || '', link: '', notes: '', order: String(i).padStart(3, '0'), by: '', at: '' });
@@ -1488,6 +1494,319 @@ export const seedPlanLists = webMethod(Permissions.Anyone, async (arg) => {
   return { added: await seedPlan(arg.ev, kinds) };
 });
 
+
+/* ---------- approvals template: race details, suggested approvals, application letters ---------- */
+// The race details that letters and suggested approvals need live in the event's json column under "info".
+// They are entered by the race director; nothing about a race is fixed in the code.
+const INFO_TEXT = { edition: 20, place: 60, localBody: 80, organiser: 100, regNo: 60, signatory: 60, role: 60, address: 200, route: 400, expoVenue: 120 };
+const INFO_ORG = ['place', 'localBody', 'organiser', 'regNo', 'signatory', 'role', 'phone', 'email', 'address'];
+const emailOk = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const phoneOk = (s) => /^[0-9+()\-\s]{5,30}$/.test(s);
+function rawInfo(it) {
+  let j = {};
+  try {
+    j = it && it.json ? JSON.parse(it.json) : {};
+  } catch (e) {
+    j = {};
+  }
+  return j.info && typeof j.info === 'object' ? j.info : {};
+}
+function infoOf(it) {
+  const r = rawInfo(it);
+  const o = {};
+  for (const k of Object.keys(INFO_TEXT)) o[k] = clean(r[k], INFO_TEXT[k]);
+  o.phone = clean(r.phone, 30);
+  o.email = clean(r.email, 80);
+  o.participants = int(r.participants, 0) > 0 ? String(int(r.participants, 0)) : '';
+  o.volunteers = int(r.volunteers, 0) > 0 ? String(int(r.volunteers, 0)) : '';
+  o.startTime = validTime(String(r.startTime || '')) ? r.startTime : '';
+  o.endTime = validTime(String(r.endTime || '')) ? r.endTime : '';
+  o.expoDate = validDate(String(r.expoDate || '')) ? r.expoDate : '';
+  o.scope = cleanScope(r.scope);
+  return o;
+}
+// Applies the fields that were sent over the current details; the rest are kept. Bad values are refused.
+function mergeInfo(cur, inp) {
+  const next = Object.assign({}, cur);
+  const has = (k) => inp[k] !== undefined;
+  for (const k of Object.keys(INFO_TEXT)) if (has(k)) next[k] = clean(inp[k], INFO_TEXT[k]);
+  if (has('phone')) {
+    const v = clean(inp.phone, 30);
+    if (v && !phoneOk(v)) throw new Error('bad_phone');
+    next.phone = v;
+  }
+  if (has('email')) {
+    const v = clean(inp.email, 80);
+    if (v && !emailOk(v)) throw new Error('bad_email');
+    next.email = v;
+  }
+  for (const k of ['participants', 'volunteers']) {
+    if (!has(k)) continue;
+    const raw = String(inp[k] === null ? '' : inp[k]).replace(/[,\s]/g, '');
+    const n = raw === '' ? 0 : Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > 500000) throw new Error('bad_number');
+    next[k] = n ? String(n) : '';
+  }
+  for (const k of ['startTime', 'endTime']) {
+    if (!has(k)) continue;
+    const v = clean(inp[k], 5);
+    if (v && !validTime(v)) throw new Error('bad_time');
+    next[k] = v;
+  }
+  if (has('expoDate')) {
+    const v = clean(inp.expoDate, 10);
+    if (v && !validDate(v)) throw new Error('bad_date');
+    next.expoDate = v;
+  }
+  if (has('scope')) {
+    if (!inp.scope || typeof inp.scope !== 'object') throw new Error('bad_scope');
+    next.scope = cleanScope(inp.scope, cur.scope);
+  }
+  return next;
+}
+function withInfo(it, info) {
+  let j = {};
+  try {
+    j = it.json ? JSON.parse(it.json) : {};
+  } catch (e) {
+    j = {};
+  }
+  j.info = info;
+  return JSON.stringify(j);
+}
+// A new race starts with the organiser details of the race that was edited last, so they are typed once.
+async function inheritedInfo() {
+  const list = (await all(() => wixData.query(EVENTS).ascending('_id'))).sort((a, b) => new Date(b._updatedDate || 0) - new Date(a._updatedDate || 0));
+  for (const it of list) {
+    const r = rawInfo(it);
+    if (INFO_ORG.some((k) => r[k])) {
+      const o = {};
+      INFO_ORG.forEach((k) => {
+        if (r[k]) o[k] = r[k];
+      });
+      return o;
+    }
+  }
+  return {};
+}
+const doneIdx = (r) =>
+  String((r && r.docsDone) || '')
+    .split(',')
+    .filter((x) => x !== '')
+    .map(Number)
+    .filter((n) => Number.isInteger(n) && n >= 0);
+// The line stored for a suggested approval. Hidden columns: tpl (which suggestion), lead or offset (so dates can follow the race), docsDone.
+function approvalRow(ev, s, by) {
+  return {
+    event: ev, kind: 'approval', title: s.title, cat: s.cat, phase: s.phase, status: 'todo', owner: s.owner || '', party: s.party || '', contact: '', due: s.due || '', time: s.time || '',
+    amount: '', amount2: '', ref: '', link: '', notes: s.notes || '', order: s.order, by: by || '', at: by ? nowIso() : '', tpl: s.tpl,
+    lead: s.lead === '' || s.lead === undefined ? '' : String(s.lead), offset: s.offset === '' || s.offset === undefined ? '' : String(s.offset), docsDone: '',
+  };
+}
+// The lines that earlier versions loaded for every race. One that is still exactly as loaded is only a placeholder.
+const LEGACY_LINES = {
+  'Police permission for road use and traffic diversion': ['permit', 'Police and traffic', ''],
+  'Municipal corporation permission for the route and venue': ['permit', 'Municipal corporation', ''],
+  'Forest department permission (trail routes)': ['permit', 'Forest department', ''],
+  'Fire safety clearance for the expo, stage and tents': ['permit', 'Fire services', ''],
+  'Ambulance and hospital tie-up letter': ['permit', 'Hospital', ''],
+  'Event insurance policy': ['permit', 'Insurer', ''],
+  'Loudspeaker and sound permission': ['permit', 'Police', ''],
+  'Drone permission (if drones are used)': ['permit', 'Police or aviation', ''],
+  'Land or beach owner permission': ['permit', 'Owner', ''],
+  'Food safety registration for aid-station food': ['permit', 'Food safety', ''],
+  'Electricity and generator permission': ['permit', 'Power utility', ''],
+  'Banner and hoarding permission': ['permit', 'Municipal corporation', ''],
+  'Weather go or no-go': ['raceday', '', 'Race Director'],
+  'Course cleared and marked': ['raceday', '', 'Route lead'],
+  'Medical team in position': ['raceday', '', 'Medical lead'],
+  'Police and traffic in position': ['raceday', '', 'Operations'],
+  'Start, timing and finish ready': ['raceday', '', 'Timing lead'],
+  'Aid stations stocked and staffed': ['raceday', '', 'Aid-station lead'],
+  'Volunteers and pacers briefed': ['raceday', '', 'Volunteer lead'],
+  'Final flag-off approval': ['raceday', '', 'Race Director'],
+};
+function legacyOf(r) {
+  return !r.tpl && Object.prototype.hasOwnProperty.call(LEGACY_LINES, r.title) && LEGACY_TITLES[r.title] ? LEGACY_TITLES[r.title] : '';
+}
+function untouchedLegacy(r) {
+  const L = LEGACY_LINES[r.title];
+  return !!L && !r.tpl && r.phase === L[0] && (r.party || '') === L[1] && (r.owner || '') === L[2] && (r.status || 'todo') === 'todo' && !r.due && !r.time && !r.contact && !r.ref && !r.link && !r.notes && !r.by;
+}
+// Lines that came from the template move with the race date and the start time, unless someone changed their date by hand.
+async function followRace(ev, before, after) {
+  if ((before.date || '') === (after.date || '') && (before.start || '') === (after.start || '')) return 0;
+  const list = (await rows(PLAN, ev)).filter((r) => r.kind === 'approval' && r.tpl);
+  const changed = [];
+  for (const r of list) {
+    const f = follow(r, before, after);
+    if (f) changed.push(Object.assign({}, r, f));
+  }
+  if (changed.length) await wixData.bulkUpdate(PLAN, changed, SA);
+  return changed.length;
+}
+function cleanPicks(raw) {
+  if (raw === undefined || raw === null) return {};
+  if (typeof raw !== 'object' || Array.isArray(raw)) throw new Error('bad_picks');
+  const out = {};
+  for (const k of Object.keys(raw)) {
+    if (!itemByKey(k)) throw new Error('bad_item');
+    const o = raw[k];
+    if (!o || typeof o !== 'object') throw new Error('bad_picks');
+    const c = {};
+    if (o.on !== undefined) c.on = o.on === true || o.on === 'true' || o.on === 'on';
+    if (o.party !== undefined) c.party = clean(o.party, 80);
+    if (o.owner !== undefined) c.owner = clean(o.owner, 60);
+    for (const [f, max, err] of [['lead', 365, 'bad_lead'], ['offset', 600, 'bad_offset']]) {
+      if (o[f] === undefined || o[f] === '' || o[f] === null) continue;
+      const n = Number(o[f]);
+      if (!Number.isInteger(n) || n < 0 || n > max) throw new Error(err);
+      c[f] = n;
+    }
+    if (o.due !== undefined) {
+      const d = clean(o.due, 10);
+      if (d && !validDate(d)) throw new Error('bad_date');
+      c.due = d;
+    }
+    if (o.time !== undefined) {
+      const t = clean(o.time, 5);
+      if (t && !validTime(t)) throw new Error('bad_time');
+      c.time = t;
+    }
+    out[k] = c;
+  }
+  return out;
+}
+
+// Race details for letters and the template. Leads can read them; only directors change them.
+export const eventInfo = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'write');
+  const it = await getEvent(arg.ev);
+  return { event: eventOut(it), info: infoOf(it), scopes: SCOPES.map((s) => ({ key: s.key, label: s.label })) };
+});
+// Saves the race name, date and venue together with the details (edition, place, organiser, expected runners, times...).
+// Template lines whose dates were never edited by hand move with the new date or start time.
+export const saveEventInfo = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'manage');
+  const old = await getEvent(arg.ev);
+  const has = (k) => arg[k] !== undefined;
+  const name = has('name') ? clean(arg.name, 80) : old.name || '';
+  if (name.length < 2) throw new Error('name_needed');
+  const date = has('date') ? clean(arg.date, 10) : old.date || '';
+  if (date && !validDate(date)) throw new Error('bad_date');
+  const venue = has('venue') ? clean(arg.venue, 120) : old.venue || '';
+  const cur = infoOf(old);
+  const inp = arg.info === undefined ? {} : arg.info;
+  if (!inp || typeof inp !== 'object' || Array.isArray(inp)) throw new Error('bad_info');
+  const next = mergeInfo(cur, inp);
+  const saved = await wixData.update(EVENTS, Object.assign({}, old, { name, date, venue, json: withInfo(old, next) }), SA);
+  const moved = await followRace(old._id, { date: old.date || '', start: cur.startTime }, { date, start: next.startTime });
+  return { event: eventOut(saved), info: infoOf(saved), moved };
+});
+
+// What the template suggests for this race, and which suggestions are already on the Approvals list.
+export const approvalTemplate = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'write');
+  const it = await getEvent(arg.ev);
+  const e = eventOut(it);
+  const info = infoOf(it);
+  const s = suggest(e, info, info.scope);
+  const have = (await rows(PLAN, e.id)).filter((r) => r.kind === 'approval');
+  const byTpl = new Map(have.filter((r) => r.tpl).map((r) => [r.tpl, r]));
+  const mark = (x) => Object.assign({}, x, { added: byTpl.has(x.key), rowId: byTpl.has(x.key) ? byTpl.get(x.key)._id : '' });
+  return {
+    event: e,
+    info,
+    scopes: SCOPES.map((x) => ({ key: x.key, label: x.label })),
+    permits: s.permits.map(mark),
+    signoffs: s.signoffs.map(mark),
+    starter: have.filter((r) => legacyOf(r) && untouchedLegacy(r)).length,
+    started: byTpl.size > 0,
+  };
+});
+// Adds the chosen suggestions to the Approvals list. It never overwrites a line that is already there:
+// lines from the template are skipped, starter lines nobody touched are replaced, and edited starter lines are linked to the template.
+export const applyApprovalTemplate = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'manage');
+  const it = await getEvent(arg.ev);
+  const e = eventOut(it);
+  const cur = infoOf(it);
+  let scope = cur.scope;
+  if (arg.scope !== undefined) {
+    if (!arg.scope || typeof arg.scope !== 'object' || Array.isArray(arg.scope)) throw new Error('bad_scope');
+    scope = cleanScope(arg.scope, cur.scope);
+  }
+  const picks = cleanPicks(arg.picks);
+  const specs = templateRows(e, cur, scope, picks);
+  const have = (await rows(PLAN, e.id)).filter((r) => r.kind === 'approval');
+  const byTpl = new Map(have.filter((r) => r.tpl).map((r) => [r.tpl, r]));
+  const starters = have.filter((r) => legacyOf(r) && untouchedLegacy(r));
+  const edited = have.filter((r) => legacyOf(r) && !untouchedLegacy(r));
+  const res = { added: 0, replaced: 0, linked: 0, kept: 0, removed: 0 };
+  const inserts = [];
+  const updates = [];
+  const used = new Set();
+  for (const s of specs) {
+    if (byTpl.has(s.tpl)) {
+      res.kept++;
+      continue;
+    }
+    const st = starters.find((r) => legacyOf(r) === s.tpl && !used.has(r._id));
+    if (st) {
+      used.add(st._id);
+      updates.push(Object.assign({}, st, approvalRow(e.id, s, ''), { _id: st._id }));
+      res.replaced++;
+      continue;
+    }
+    const ed = edited.find((r) => legacyOf(r) === s.tpl && !used.has(r._id));
+    if (ed) {
+      used.add(ed._id);
+      updates.push(Object.assign({}, ed, { tpl: s.tpl, lead: s.lead === '' ? '' : String(s.lead), offset: s.offset === '' ? '' : String(s.offset), due: ed.due || s.due, time: ed.time || s.time }));
+      res.linked++;
+      continue;
+    }
+    inserts.push(approvalRow(e.id, s, a.name));
+    res.added++;
+  }
+  const drop = starters.filter((r) => !used.has(r._id)).map((r) => r._id);
+  res.removed = drop.length;
+  if (inserts.length) await wixData.bulkInsert(PLAN, inserts, SA);
+  if (updates.length) await wixData.bulkUpdate(PLAN, updates, SA);
+  if (drop.length) await wixData.bulkRemove(PLAN, drop, SA);
+  if (arg.scope !== undefined) await wixData.update(EVENTS, Object.assign({}, it, { json: withInfo(it, Object.assign({}, rawInfo(it), { scope })) }), SA);
+  return res;
+});
+// The application letter for one permit, filled from the race details. Nothing is stored: the director edits the text and sends it.
+export const approvalLetter = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'write');
+  const it = await getEvent(arg.ev);
+  const row = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
+  if (!row || row.event !== arg.ev || row.kind !== 'approval') throw new Error('no_item');
+  if (row.phase !== 'permit') throw new Error('no_letter');
+  const day = arg.date === undefined || arg.date === null || arg.date === '' ? istToday() : String(arg.date);
+  if (!validDate(day)) throw new Error('bad_date');
+  const info = infoOf(it);
+  const L = renderLetter({ title: row.title, party: row.party, tpl: row.tpl }, eventOut(it), info, { today: day, scope: info.scope });
+  const p = permitByKey(row.tpl);
+  const done = doneIdx(row);
+  return { id: row._id, title: row.title, subject: L.subject, to: L.to, text: L.text, missing: L.missing, docs: L.docs.map((t, i) => ({ text: t, done: done.includes(i) })), tips: p ? p.tips : '', day };
+});
+// Ticks or unticks one document on the "what to attach" list of a permit.
+export const setApprovalDoc = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg, 'write');
+  const row = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
+  if (!row || row.event !== arg.ev || row.kind !== 'approval') throw new Error('no_item');
+  const p = permitByKey(row.tpl);
+  if (!p) throw new Error('no_docs');
+  const i = Number(arg.index);
+  if (!Number.isInteger(i) || i < 0 || i >= p.docs.length) throw new Error('bad_index');
+  const set = new Set(doneIdx(row));
+  if (arg.done) set.add(i);
+  else set.delete(i);
+  const list = [...set].filter((n) => n < p.docs.length).sort((x, y) => x - y);
+  await wixData.update(PLAN, Object.assign({}, row, { docsDone: list.join(',') }), SA);
+  return { id: row._id, done: list, total: p.docs.length };
+});
 
 /* ---------- categories, fees and the dashboard figures ---------- */
 function cleanCats(list) {
@@ -2187,7 +2506,7 @@ function collectionDefs() {
     def(CHECK, ['event', 'section', 'item', 'done', 'doneBy', 'doneAt', 'order']),
     def(REGS, ['event', 'ticketNumber', 'orderNumber', 'guestId', 'name', 'email', 'phone', 'cat', 'size', 'bibName', 'status', 'form', 'at', 'bib']),
     def(QUALS, ['event', 'runnerId', 'name', 'cat', 'claim', 'claimKm', 'claimSec', 'link', 'status', 'note', 'by', 'at']),
-    def(PLAN, ['event', 'kind', 'title', 'cat', 'phase', 'status', 'owner', 'party', 'contact', 'due', 'time', 'amount', 'amount2', 'ref', 'link', 'notes', 'order', 'by', 'at']),
+    def(PLAN, ['event', 'kind', 'title', 'cat', 'phase', 'status', 'owner', 'party', 'contact', 'due', 'time', 'amount', 'amount2', 'ref', 'link', 'notes', 'order', 'by', 'at', 'tpl', 'lead', 'offset', 'docsDone']),
     def(RATE, ['n']),
   ];
 }

@@ -18,6 +18,8 @@ Logins are the rows you already keep in the CMS collection **ExpoStaff** (userna
 | File | Where it goes |
 | --- | --- |
 | `racedir.web.js` | Code panel, Backend, a web module named `racedir.web.js` |
+| `rd-approvals.js` | Code panel, Backend, a plain file named `rd-approvals.js` (not .web.js). Approvals library and letter writer; `racedir.web.js` imports it |
+| `ai-core.js` | Code panel, Backend, a plain file named `ai-core.js`; `racedir.web.js` imports it |
 | `director-embed.html` | HTML embed on the **Director** page, element ID `dirFrame` |
 | `director-page-code.js` | That page's code panel |
 | `volunteer-embed.html` | HTML embed on the **Volunteer** page, element ID `volFrame` |
@@ -63,7 +65,7 @@ Your Expo files and the findmybib files are not changed.
 
 ## Tests
 
-From the repository root: `tests/all.sh`. It runs the Expo checks and the Director checks (152 backend scenarios and 55 screen checks), including cases such as two people taking the last spot, a lead trying to delete, a viewer trying to change something, and a volunteer name containing HTML.
+From the repository root: `tests/all.sh`. It runs every suite (19 files, about 1,370 checks): Expo, Director backend and screens, planning, dashboard, AI, Expo integration, training, page code and the approvals template. Cases include two people taking the last spot, a lead trying to delete, a viewer trying to change something, a volunteer name containing HTML, and a race moved to a new date.
 
 ## Qualification checks (new)
 - Tab **Qualification**. The director sets rules per category in one text box, one line each:
@@ -91,7 +93,7 @@ The /rd page now holds the Expo desk too, behind the same login.
 - The stand-alone Expo page keeps working, so you can keep it as a fallback, or if Wix refuses a page that large, keep using `director-embed.html` on /rd and the stand-alone Expo page.
 
 ## Planning: tasks, money, approvals, ceremonies, logistics (new)
-Five tabs hold everything a race director tracks, all in one collection, **RDPlan** (created automatically at the first login after you publish; if you prefer to make it by hand, give it these text columns: event, kind, title, cat, phase, status, owner, party, contact, due, time, amount, amount2, ref, link, notes, order, by, at, and make it Admin-only).
+Five tabs hold everything a race director tracks, all in one collection, **RDPlan** (created automatically at the first login after you publish; if you prefer to make it by hand, give it these text columns: event, kind, title, cat, phase, status, owner, party, contact, due, time, amount, amount2, ref, link, notes, order, by, at, tpl, lead, offset, docsDone, and make it Admin-only; the last four are optional hidden columns used by the approvals template).
 
 | Tab | What it holds |
 |---|---|
@@ -103,6 +105,17 @@ Five tabs hold everything a race director tracks, all in one collection, **RDPla
 
 A new race starts with a starter list for tasks, budget, supplies, approvals, ceremonies and contacts. On older races, press **Load the starter list** in an empty section.
 Who can do what: directors read and write everything and delete; leads read money and write everything except money; viewers read everything except money and contacts (phone numbers). Overview shows overdue items, permits not approved, race-day sign-offs due, short supplies and overspend. Each list downloads as CSV.
+
+
+## Approvals template (new)
+Approvals tab > **Approvals template** (directors). One screen sets the race details (edition, name, date, venue, organiser, signatory, times, route, expo date), asks eleven yes/no questions about what the race involves, and lists the approvals that follow, each with its authority, days before the race and due date, all editable. **Add selected approvals** writes them to the list.
+- **Library** (`rd-approvals.js`, no Wix imports): 16 permits (police, municipal, venue, fire, medical, insurance, sound, music licences, drone, food safety, power, banners, forest, village consent, highway or defence land, AIMS certificate) and 9 race-day sign-offs. Ten permits and eight sign-offs are on by default. Each permit has its authority, lead time in days, documents to attach, tips, and a letter.
+- **Dates follow the race.** A line keeps its lead (days) or offset (minutes before the flag-off). Changing the race date or start time moves every line whose date was never typed by hand (`follow`). Saving the race from Setup does the same.
+- **Letters.** `renderLetter` is a pure function: tokens such as `{event}`, `{when}`, `{venue}`, `{distances}`, `{participants}`, `{start}`, `{end}`, `{route}`, `{expoDate}`, `{organiser}`; a required token with no value becomes a `[bracketed blank]` and is listed in `missing`; paragraphs can depend on the answers (roads, early start before 06:00). Dates read "7 February 2027", times are 12-hour, numbers use Indian grouping, and the edition reads "6th".
+- **Organiser details** (place, local body, organiser, registration number, signatory, role, phone, e-mail, address) are stored once per race inside the event's `json` column and copied from the most recently updated race that has any. Contact details are returned only to write roles.
+- **Older races.** Starter lines made by earlier versions are replaced when nobody edited them, linked to the template when they were edited, and removed when untouched and not wanted. Nothing the team wrote is overwritten.
+- **Methods:** `eventInfo` (write), `saveEventInfo` (manage), `approvalTemplate` (write), `applyApprovalTemplate` (manage), `approvalLetter` (write, permits only), `setApprovalDoc` (write). Viewers get `read_only`; leads get `director_only` on manage methods.
+- **Tests:** `approvals.mjs` (228 checks: library, letters for all 16 permits, seeding, validation, permissions, date following, legacy conversion) and `approvals-ui.mjs` (60 checks: the screen, letters, documents, copy, Word file, print, old backend).
 
 
 ## AI and Expo integration (new)

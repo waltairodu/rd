@@ -203,7 +203,7 @@ const A = await login('boss');
   const t = txt(d.querySelector('#app'));
   ok(/Supplies/.test(t) && !/Contacts and vendors/.test(t) && !/Traffic police contact/.test(t), 'viewer: supplies yes, contacts hidden');
   await tab(w, d, 'approvals');
-  ok(rows(d).length >= 20 && !d.querySelector('[data-act="pnew"]'), 'viewer: approvals visible, read only');
+  ok(rows(d).length >= 18 && !d.querySelector('[data-act="pnew"]'), 'viewer: approvals visible, read only');
 }
 
 // ---- every page reports its content height to the Wix page

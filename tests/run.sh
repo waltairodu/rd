@@ -4,8 +4,9 @@
 cd "$(dirname "$0")"
 sed "s/^const SETUP_KEY = 'change-this-key'/const SETUP_KEY = 'k-test'/" ../wix/expo/exposoft.web.js > exposoft.test.mjs
 cp ../wix/director/ai-core.js ai-core.test.mjs
+cp ../wix/director/rd-approvals.js rd-approvals.test.mjs
 if [ -f ../wix/director/racedir.web.js ]; then
-  sed "s/^const SETUP_KEY = 'change-this-key'/const SETUP_KEY = 'k-test'/; s#'./ai-core.js'#'./ai-core.test.mjs'#" ../wix/director/racedir.web.js > racedir.test.mjs
+  sed "s/^const SETUP_KEY = 'change-this-key'/const SETUP_KEY = 'k-test'/; s#'./ai-core.js'#'./ai-core.test.mjs'#; s#'./rd-approvals.js'#'./rd-approvals.test.mjs'#" ../wix/director/racedir.web.js > racedir.test.mjs
 fi
 if [ -f ../wix/training/training.web.js ]; then
   sed "s/^const SETUP_KEY = 'change-this-key'/const SETUP_KEY = 'k-test'/; s#'./ai-core.js'#'./ai-core.test.mjs'#" ../wix/training/training.web.js > training.test.mjs

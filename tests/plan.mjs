@@ -21,7 +21,7 @@ const one = async (t, e, k) => (await list(t, e, k)).items[k];
 {
   const r = await list(B, E, 'task', 'approval', 'ceremony', 'supply', 'budget', 'contact', 'sponsor', 'doc', 'lesson');
   ok(r.items.task.length === 32, 'starter tasks: ' + r.items.task.length);
-  ok(r.items.approval.filter((x) => x.phase === 'permit').length === 12 && r.items.approval.filter((x) => x.phase === 'raceday').length === 8, 'starter approvals: 12 permits and 8 race-day sign-offs');
+  ok(r.items.approval.filter((x) => x.phase === 'permit').length === 10 && r.items.approval.filter((x) => x.phase === 'raceday').length === 8, 'starter approvals: 10 permits and 8 race-day sign-offs');
   ok(r.items.ceremony.length === 22 && ['pre', 'during', 'post'].every((p) => r.items.ceremony.some((x) => x.phase === p)), 'starter ceremonies cover pre, during and post');
   ok(r.items.supply.length >= 30 && r.items.budget.some((x) => x.phase === 'income') && r.items.budget.some((x) => x.phase === 'expense'), 'starter supplies and budget lines (costs and income)');
   ok(r.items.contact.length === 14, 'starter contacts');
@@ -36,7 +36,7 @@ const one = async (t, e, k) => (await list(t, e, k)).items[k];
   ok((await err(list(V, E, 'sponsor'))) === 'not_allowed', 'viewer cannot read sponsors');
   ok((await err(list(V, E, 'contact'))) === 'not_allowed', 'viewer cannot read contacts (phone numbers)');
   ok((await err(list(V, E, 'task', 'budget'))) === 'not_allowed', 'one forbidden kind blocks the request');
-  ok((await one(V, E, 'approval')).length === 20, 'viewer can read approvals');
+  ok((await one(V, E, 'approval')).length === 18, 'viewer can read approvals');
   ok((await one(V, E, 'ceremony')).length === 22 && (await one(V, E, 'supply')).length >= 30, 'viewer can read ceremonies and supplies');
   ok((await err(D.savePlanItem({ token: V, ev: E, kind: 'task', title: 'Hack' }))) === 'read_only', 'viewer cannot write');
   ok((await err(D.savePlanItem({ token: LD, ev: E, kind: 'budget', title: 'Banner', amount: 100 }))) === 'director_only', 'lead cannot write money');

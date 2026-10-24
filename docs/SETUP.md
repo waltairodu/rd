@@ -10,6 +10,7 @@
 | 1-backend/racedir.web.js | racedir.web.js | yes |
 | 1-backend/training.web.js | training.web.js | yes |
 | 1-backend/ai-core.js | **ai-core.js** (a plain backend file, not .web.js; racedir.web.js and training.web.js import it) | no |
+| 1-backend/rd-approvals.js | **rd-approvals.js** (a plain backend file, not .web.js; racedir.web.js imports it. It holds the approvals library and the letter writer) | no |
 
 **Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code)
 
@@ -25,7 +26,7 @@ Optional: the stand-alone Expo desk page (also still works). Embed 2-pages/expo-
 ## B. Steps
 
 1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets).
-2. **Backend.** Add the three backend files. In each, change `const SETUP_KEY = 'change-this-key'` to your own secret.
+2. **Backend.** Add the three `.web.js` files, then the two plain files `ai-core.js` and `rd-approvals.js` (exact names). In each `.web.js` file, change `const SETUP_KEY = 'change-this-key'` to your own secret.
 3. **Pages.** Create /rd, /volunteer, /train, /coach. On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code in the page's code panel.
    - If Wix refuses the large /rd embed, use `director-embed.html` (from the repo, wix/director) on /rd instead and keep the stand-alone Expo page. Nothing else changes.
 4. **Publish** the site.
@@ -42,6 +43,17 @@ Optional: the stand-alone Expo desk page (also still works). Embed 2-pages/expo-
 
 ## Planning tabs
 After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.
+
+
+## Approvals template (/rd > Approvals)
+Open **Approvals**, then **Approvals template > Open** (directors only). It opens by itself on a race that has no template lines yet.
+1. **Race details.** Edition (type 6 and it reads "6th edition" everywhere), race name, date and venue. Then the organiser details, once: city, local body (for example GVMC), organiser, registration number, who signs the letters and their role, phone, e-mail, address. Also expected runners and volunteers, flag-off and finish times, the route in a line and the expo date. A new race copies these from the race you edited last. Saving moves the dates of every line you did not set by hand.
+2. **What does this race involve?** Eleven yes/no questions: roads closed or diverted, forest or village land, expo and tents, loudspeakers, music, food, power, banners, drone, highway or defence land, AIMS certification. The answers switch the matching approvals on or off.
+3. **The list.** Each suggested approval shows its authority, "days before the race" and the date it must be applied by. All three can be edited. A date follows the race date until you type one yourself. Race-day sign-offs (weather go or no-go, course, medical, police, timing, aid stations, volunteers, kit check, final flag-off) are set in minutes before the flag-off and follow the start time.
+4. **Add selected approvals.** Adds them to the Approvals list. Nothing you already wrote is overwritten. Starter lines from earlier versions that nobody touched are replaced by the template ones, and untouched unused ones are removed.
+
+Every permit has a **Letter** button: a formal application letter filled from the race details, the documents to attach (tick each as you collect it, the list shows "3/8 ready") and tips on where and how to apply. Whatever is missing shows as a [bracketed blank], with a list above the letter of what to fill in. Edit the text, then **Copy**, **Download for Word** or **Print**. Leads can open letters and tick documents; viewers see neither the letters nor the template.
+The authorities, documents and lead times are a sound starting point, not legal advice. Offices differ by city and state, so check each one's current rules and forms before you apply.
 
 
 ## AI features (optional, work without a key)

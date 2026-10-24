@@ -141,13 +141,13 @@ var ROLES=['Aid station / hydration','Course marshal','Start line crew','Finish 
 var ERR={page_code_old:'This page\'s code is out of date. Paste the latest page-code.js for this page, then publish.',backend_old:'The backend file is out of date. Paste the latest backend files, then publish.',timeout:'No answer from the server in time. Try again.',not_logged_in:'Your session ended. Please log in again.',bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for the Director. Ask for a director, lead or viewer role.',setup_needed:'Setup is not finished. Run the one-time setup first.',
   read_only:'Your login can only look, not change.',director_only:'Only a director login can do that.',no_event:'That race was not found.',name_needed:'Please enter a name.',bad_date:'Please use a real date.',bad_distance:'Distance must be between 1 and 100 km.',bad_status:'That status is not allowed.',
   role_needed:'Please enter a role name.',bad_time:'Times must look like 05:30 and end after they start.',bad_need:'Please enter a number of people.',need_below_taken:'More people are already on this shift than that.',no_shift:'That shift was not found.',shift_has_checkins:'Some people already checked in to this shift.',
-  shift_full:'That shift is full.',shifts_overlap:'Those shifts overlap in time.',no_volunteer:'Volunteer not found.',already_assigned:'Already on that shift.',volunteer_declined:'This volunteer was declined.',bad_phone:'Please enter a 10-digit mobile number.',already_signed_up:'That mobile number is already registered.',
+  shift_full:'That shift is full.',shifts_overlap:'Those shifts overlap in time.',no_volunteer:'Volunteer not found.',already_assigned:'Already on that shift.',volunteer_declined:'This volunteer was declined.',bad_phone:'Please enter a valid phone number.',already_signed_up:'That mobile number is already registered.',
   not_found:'No volunteer with that code.',not_approved:'This volunteer is not approved yet.',no_confirmed_shift:'No confirmed shift for this volunteer.',nothing_to_check:'Nothing to check in or out.',already_in:'Already checked in.',not_checked_in:'Not checked in yet.',already_out:'Already checked out.',already_checked_in:'They already checked in, so this cannot change.',no_assignment:'Shift assignment not found.',
-  text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',wix_event_not_linked:'Link this race to its Wix event first.',wix_events_unavailable:'Wix Events did not answer. Try again in a minute.',wix_events_denied:'Wix Events refused access. Check that the Events app is installed on this site.',bad_quals:'Check the rules: each line needs a different category and at least one way to qualify (distance, time or both). Times look like 3:00.',no_runner:'That runner was not found.',no_rule:'This category has no qualification rule.',bad_claim:'Check the distance and the time (for example 21.1 and 2:45:10).',bad_link:'The proof link must start with http.',note_needed:'Please write a short reason.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',no_enroll:'That runner is not on a plan.',no_coach_user:'That coach login was not found.',no_request:'There is no request to decline.',no_bib_plan:'Save bib number ranges first.',bad_bibs:'Check the ranges: each category once, first and last are whole numbers (1 to 99999), first not above last, and no overlaps.',bad_bib:'A bib number is letters, digits or dashes, up to 12 characters.',bib_taken:'That number is already used by another runner or in the Expo list.',bib_in_expo:'This runner is already in the Expo list. Change the number at the Expo desk.',no_expo_link:'Link this race to an Expo race in Settings first.',expo_race_missing:'The linked Expo race was not found. Pick it again in Settings.',no_registration:'Registration not found.',no_ai_key:'AI is not connected yet. Add the ANTHROPIC_API_KEY secret in Wix.',ai_busy:'The AI service is busy. Try again in a minute.',ai_failed:'The AI could not answer just now. Try again.',ai_key_rejected:'The AI key was rejected. Check the ANTHROPIC_API_KEY secret.',question_needed:'Type a question first.',bad_draft:'Choose what to draft.',no_sponsor:'Choose a sponsor from the plan.',bad_cats:'Check the categories: each needs a different name, and distance, fee and limit must be whole, positive numbers (limit a whole number).',title_needed:'Please give it a name (2 or more letters).',bad_phase:'Pick a valid group.',bad_amount:'Amounts must be a number, zero or more.',link_needed:'Please paste the link.',timeout:'No answer from the server. Try again.'};
+  text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',wix_event_not_linked:'Link this race to its Wix event first.',wix_events_unavailable:'Wix Events did not answer. Try again in a minute.',wix_events_denied:'Wix Events refused access. Check that the Events app is installed on this site.',bad_quals:'Check the rules: each line needs a different category and at least one way to qualify (distance, time or both). Times look like 3:00.',no_runner:'That runner was not found.',no_rule:'This category has no qualification rule.',bad_claim:'Check the distance and the time (for example 21.1 and 2:45:10).',bad_link:'The proof link must start with http.',note_needed:'Please write a short reason.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',no_enroll:'That runner is not on a plan.',no_coach_user:'That coach login was not found.',no_request:'There is no request to decline.',no_bib_plan:'Save bib number ranges first.',bad_bibs:'Check the ranges: each category once, first and last are whole numbers (1 to 99999), first not above last, and no overlaps.',bad_bib:'A bib number is letters, digits or dashes, up to 12 characters.',bib_taken:'That number is already used by another runner or in the Expo list.',bib_in_expo:'This runner is already in the Expo list. Change the number at the Expo desk.',no_expo_link:'Link this race to an Expo race in Settings first.',expo_race_missing:'The linked Expo race was not found. Pick it again in Settings.',no_registration:'Registration not found.',no_ai_key:'AI is not connected yet. Add the ANTHROPIC_API_KEY secret in Wix.',ai_busy:'The AI service is busy. Try again in a minute.',ai_failed:'The AI could not answer just now. Try again.',ai_key_rejected:'The AI key was rejected. Check the ANTHROPIC_API_KEY secret.',question_needed:'Type a question first.',bad_draft:'Choose what to draft.',no_sponsor:'Choose a sponsor from the plan.',bad_cats:'Check the categories: each needs a different name, and distance, fee and limit must be whole, positive numbers (limit a whole number).',title_needed:'Please give it a name (2 or more letters).',bad_phase:'Pick a valid group.',bad_amount:'Amounts must be a number, zero or more.',link_needed:'Please paste the link.',bad_email:'Please enter a valid email address.',bad_number:'Please enter a whole number, zero or more.',bad_scope:'Those answers could not be read. Try again.',bad_picks:'Those choices could not be read. Try again.',bad_item:'One of the approvals is not in the template. Reload the page and try again.',bad_lead:'Days before the race must be a whole number from 0 to 365.',bad_offset:'Minutes before the flag-off must be a whole number from 0 to 600.',bad_info:'Those details could not be read. Try again.',no_letter:'Only permits have an application letter.',no_docs:'This line has no list of documents.',bad_index:'That document is not on the list.',timeout:'No answer from the server. Try again.'};
 var msg=function(e){return ERR[e]||('Something went wrong ('+e+')')};
 
 var EXPO_SRC=null; /* filled in by tools/build_rd.py: the Expo desk page, shown in the Expo desk tab */
-var S={cred:null,expoOnly:false,token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',plan:null,pedit:null,dash:null,races:null,bx:null,bxMsg:'',brief:null,aiQ:'',aiAnswer:null,aiBusy:'',draft:null,draftOut:null,sponsors:null,expoRaces:null,coachL:null,coaches:[],regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:''};
+var S={cred:null,expoOnly:false,token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',plan:null,pedit:null,dash:null,races:null,bx:null,bxMsg:'',brief:null,aiQ:'',aiAnswer:null,aiBusy:'',draft:null,draftOut:null,sponsors:null,expoRaces:null,coachL:null,coaches:[],regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:'',tpl:null,tplOpen:undefined,tplErr:'',letter:null};
 try{var b=localStorage.getItem('rd.base');if(b)S.base=b}catch(e){}
 var pending={},seq=0;
 var xmap={},xseq=0;
@@ -208,6 +208,7 @@ async function loadTab(){
     else if(t==='ai'){S.brief=await api('aiBriefing');if(S.me&&S.me.role!=='viewer'&&!S.sponsors){try{S.sponsors=(await api('listPlan',{kinds:['sponsor']})).items.sponsor}catch(x){S.sponsors=[]}}}
     else if(t==='setup'&&man()){try{S.expoRaces=(await api('expoRaces')).races}catch(x){S.expoRaces=[]}}
     else if(t==='coaching'&&man()){var cc=await Promise.all([api('listAthletes',{},undefined,'train'),api('listCoaches',{},undefined,'train')]);S.coachL=cc[0];S.coaches=cc[1].coaches}
+    else if(t==='approvals'){S.tplErr='';var ap=await Promise.all([api('listPlan',{kinds:planKindsFor(t)}),man()?api('approvalTemplate').catch(function(x){S.tplErr=x.message;return null}):Promise.resolve(null)]);S.plan=ap[0];S.tpl=ap[1]}
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -246,7 +247,7 @@ function topbar(){
   var ev=S.events.find(function(e){return e.id===S.ev});
   var n=S.ov&&S.ov.alerts?S.ov.alerts.length:0;
   return '<div class="topbar"><div><div class="eyebrow">Race Director</div><h1>'+esc(ev?ev.name:'No race yet')+'</h1>'
-   +(ev?'<small>'+esc(fdate(ev.date))+(ev.venue?' · '+esc(ev.venue):'')+(ev.daysToGo!==null?' · '+(ev.daysToGo>0?ev.daysToGo+' days to go':ev.daysToGo===0?'race day':'finished'):'')+'</small>':'')+'</div>'
+   +(ev?'<small>'+(ev.editionText?esc(ev.editionText)+' edition · ':'')+esc(fdate(ev.date))+(ev.venue?' · '+esc(ev.venue):'')+(ev.daysToGo!==null?' · '+(ev.daysToGo>0?ev.daysToGo+' days to go':ev.daysToGo===0?'race day':'finished'):'')+'</small>':'')+'</div>'
    +'<div class="row">'+(S.events.length>1?'<select id="evPick" aria-label="Race">'+S.events.map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===S.ev?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>':'')
    +'<button class="bell" data-act="tab" data-tab="overview" aria-label="Needs attention">'+ico('bell')+(n?'<b>'+n+'</b>':'')+'</button>'
    +'<div class="userchip"><span class="avatar" aria-hidden="true">'+esc(String(S.me.name||'?').charAt(0).toUpperCase())+'</span><span class="who">'+esc(S.me.name)+'<small class="muted">'+esc(S.me.role)+'</small></span></div>'
@@ -508,7 +509,7 @@ function setupView(){
   e=e||{id:'',name:'',date:'',venue:'',expoId:'',status:'open',distanceKm:21.0975};
   return '<div class="stack"><div class="card"><h3>Races</h3><div class="scroll"><table><tr><th>Name</th><th>Date</th><th>Expo race</th><th>Status</th><th></th></tr>'+(list||'<tr><td colspan="5" class="muted">No race yet.</td></tr>')+'</table></div></div>'
    +'<form id="eventForm" class="card"><h3>'+(e.id?'Edit race':'New race')+'</h3><p class="muted" style="margin:4px 0 8px">A new race starts with a standard safety checklist, run of show and pace groups that you can change.</p><div class="form">'
-   +'<label class="f">Race name<input name="name" value="'+esc(e.name)+'" required></label><label class="f">Date<input name="date" type="date" value="'+esc(e.date)+'"></label><label class="f">Venue<input name="venue" value="'+esc(e.venue)+'"></label>'
+   +'<label class="f">Race name<input name="name" value="'+esc(e.name)+'" required></label><label class="f">Edition (for example 6 or 6th)<input name="edition" value="'+esc(e.edition||'')+'" maxlength="20"></label><label class="f">Date<input name="date" type="date" value="'+esc(e.date)+'"></label><label class="f">Venue<input name="venue" value="'+esc(e.venue)+'"></label>'
    +'<label class="f">Expo race (the BIB and T-shirt desk)'+expoPick(e.expoId)+'</label><label class="f">Banner image link (https, optional)<input name="bannerUrl" type="url" value="'+esc(e.bannerUrl||'')+'" placeholder="https://..."></label><label class="f">Distance (km)<input name="distanceKm" type="number" step="0.0001" min="1" max="100" value="'+esc(e.distanceKm)+'"></label>'
    +'<label class="f">Status<select name="status">'+[['open','Open (volunteers can sign up)'],['closed','Closed'],['archived','Archived (hidden)']].map(function(s){return '<option value="'+s[0]+'"'+(e.status===s[0]?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></label></div>'
    +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save race</button>'+(e.id?'<button class="btn" type="button" data-act="evNew">New race instead</button>':'')+'</div></form>'
@@ -540,7 +541,7 @@ var CATS={task:['Operations','Approvals','Finance','Sponsors','Registration','Ma
  budget:['Permits and approvals','Venue and site','Timing and results','Medical and safety','Route and marking','Aid stations','Finisher items','Stage, sound and MC','Marketing and media','Volunteers','Logistics','Awards','Admin','Income'],
  sponsor:['Title','Gold','Silver','Bronze','In-kind','Partner'],supply:['Hydration','Nutrition','Medical','Tech','Signage','Kit','General'],
  contact:['Police','Medical','Government','Venue','Vendor','Media','Sponsor','Guest','Other'],doc:['Permit','Route map','Contract','Insurance','Results','Photos','Other'],
- lesson:['Operations','Safety','Volunteers','Registration','Sponsors','Finance','Media'],approval:['Permit','Sign-off'],ceremony:['Stage','Medals','Guests','Media','Volunteers']};
+ lesson:['Operations','Safety','Volunteers','Registration','Sponsors','Finance','Media'],approval:['Police','Local body','Venue','Fire and safety','Medical','Insurance','Sound and music','Aviation','Food safety','Power','Advertising','Forest','Community','Land','Certification','Sign-off','Permit'],ceremony:['Stage','Medals','Guests','Media','Volunteers']};
 var KD={
  task:{one:'task',many:'Tasks',group:'phase',ph:{d90:'90 days or more before',d30:'About 30 days before',d7:'About a week before',week:'Race week',day:'Race day',after:'After the race'},st:{todo:'To do',doing:'Doing',blocked:'Blocked',done:'Done'},
   f:[['title','Task','text',1],['cat','Area','cat'],['phase','When','phase'],['owner','Owner','text'],['due','Due date','date'],['status','Status','status'],['notes','Notes','area']],cols:[['Area','cat'],['Owner','owner'],['Due','due']]},
@@ -556,8 +557,8 @@ var KD={
   f:[['title','Item','text',1],['cat','Type','cat'],['amount','Needed','num'],['amount2','Have','num'],['ref','Unit','text'],['party','Supplier','text'],['contact','Supplier phone','text'],['owner','Owner','text'],['due','Needed by','date'],['status','Status','status'],['notes','Where it goes (aid station, expo, finish)','area']],
   cols:[['Needed',function(i){return i.amount===null?'':esc(i.amount+' '+i.ref)}],['Have',function(i){return i.amount2===null?'':'<span class="'+(i.amount!==null&&i.amount2<i.amount&&i.status!=='delivered'?'short':'')+'">'+esc(i.amount2)+'</span>'}],['Supplier','party'],['Needed by','due']]},
  approval:{one:'approval',many:'Approvals',group:'phase',ph:{permit:'Permits and permissions',raceday:'Race-day sign-offs'},st:{todo:'To do',applied:'Applied',approved:'Approved',rejected:'Rejected',expired:'Expired'},
-  f:[['title','Approval','text',1],['cat','Type','cat'],['phase','Kind','phase'],['party','Authority','text'],['contact','Contact','text'],['ref','Reference no.','text'],['owner','Responsible','text'],['due','Needed by','date'],['link','Document link','url'],['status','Status','status'],['notes','Notes','area']],
-  cols:[['Authority or owner',function(i){return esc(i.party||i.owner)}],['Ref','ref'],['Needed by','due'],['Signed off',function(i){return i.status==='approved'&&i.by?esc(i.by):''}]]},
+  f:[['title','Approval','text',1],['cat','Type','cat'],['phase','Kind','phase'],['party','Authority','text'],['contact','Contact','text'],['ref','Reference no.','text'],['owner','Responsible','text'],['due','Apply by (permits) or date','date'],['time','Time on the day (sign-offs)','time'],['link','Document link','url'],['status','Status','status'],['notes','Notes','area']],
+  cols:[['Authority or owner',function(i){return esc(i.party||i.owner)}],['Ref','ref'],['Due',function(i){return i.due?esc(fdate(i.due))+(i.time?' · '+esc(i.time):''):esc(i.time||'')}],['Papers',letterBtn],['Signed off',function(i){return i.status==='approved'&&i.by?esc(i.by):''}]]},
  ceremony:{one:'ceremony item',many:'Ceremonies and programme',group:'phase',ph:{pre:'Before the race',during:'During the race',post:'After the race'},st:{todo:'To do',ready:'Ready',done:'Done',skipped:'Skipped'},
   f:[['title','What','text',1],['phase','When','phase'],['time','Time','time'],['due','Date','date'],['owner','Owner','text'],['party','Who presents or hosts','text'],['status','Status','status'],['notes','Script, needs, notes','area']],
   cols:[['Time','time'],['Owner','owner'],['Presented by','party']]},
@@ -628,10 +629,93 @@ function moneyTabView(){
    +'<div class="grid g4">'+sumCard('Sponsor cash promised',z(sp.cashPromised),sp.coversPct===null?'':'covers '+sp.coversPct+'% of planned costs')+sumCard('Sponsor cash received',z(sp.cashReceived),'still to collect '+z(sp.outstanding))+sumCard('In the pipeline',z(sp.pipeline),'leads, pitched, negotiating')+sumCard('In-kind support',z(sp.inKind),'committed or received')+'</div>'
    +cats+planSection('budget',{note:'Planned is what you expect to spend or earn. Actual is what really happened. Marking a line Paid fills Actual with Planned if it is empty.'})+planSection('sponsor',{note:'Track each sponsor from lead to money received, and what you owe them (logo, banner, stall, speech).'})+'</div>';
 }
+/* ---------- approvals: race details, the template, application letters ---------- */
+var TPL_INFO=['edition','place','localBody','participants','volunteers','startTime','endTime','expoDate','expoVenue','route','organiser','regNo','signatory','role','phone','email','address'];
+function addDaysIso(iso,n){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return '';var d=new Date(iso+'T00:00:00Z');if(isNaN(d.getTime()))return '';d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+function minusMin(t,m){if(!/^\d\d:\d\d$/.test(t||''))return '';var x=Math.max(0,parseInt(t.slice(0,2),10)*60+parseInt(t.slice(3),10)-m);return ('0'+Math.floor(x/60)).slice(-2)+':'+('0'+(x%60)).slice(-2)}
+function tIn(label,name,val,o){o=o||{};return '<label class="f"'+(o.span?' style="grid-column:1/-1"':'')+'>'+label+'<input name="'+name+'"'+(o.type?' type="'+o.type+'"':'')+' value="'+esc(val==null?'':val)+'"'+(o.ph?' placeholder="'+esc(o.ph)+'"':'')+(o.max?' maxlength="'+o.max+'"':'')+(o.min!==undefined?' min="'+o.min+'"':'')+(o.req?' required':'')+'></label>'}
+function tplStarted(){return !!(S.plan&&S.plan.items.approval&&S.plan.items.approval.some(function(i){return i.tpl}))}
+function tplPermitRows(list){
+  return list.map(function(p){var k=esc(p.key);
+    if(p.added)return '<tr><td>'+pill('Added','good')+'</td><td><b>'+esc(p.title)+'</b><br><small class="muted">'+esc(p.cat)+'</small></td><td colspan="3" class="muted">Already on the list. Change it there.</td></tr>';
+    return '<tr data-key="'+k+'" data-scope="'+esc(p.scope)+'"><td><input type="checkbox" name="p.'+k+'.on" aria-label="Add '+esc(p.title)+'"'+(p.on?' checked':'')+'></td>'
+     +'<td><b>'+esc(p.title)+'</b><br><small class="muted">'+esc(p.cat)+' · '+p.docs+' documents to attach</small></td>'
+     +'<td><input name="p.'+k+'.party" value="'+esc(p.party)+'" maxlength="80" aria-label="Authority for '+esc(p.title)+'"></td>'
+     +'<td><input name="p.'+k+'.lead" type="number" min="0" max="365" value="'+esc(p.lead)+'" style="width:5.5em" aria-label="Days before the race"></td>'
+     +'<td><input name="p.'+k+'.due" type="date" value="'+esc(p.due)+'" data-auto="'+esc(p.due)+'" aria-label="Apply by"></td></tr>'}).join('');
+}
+function tplSignRows(list){
+  return list.map(function(s){var k=esc(s.key);
+    if(s.added)return '<tr><td>'+pill('Added','good')+'</td><td><b>'+esc(s.title)+'</b></td><td colspan="3" class="muted">Already on the list. Change it there.</td></tr>';
+    return '<tr data-key="'+k+'" data-scope="'+esc(s.scope)+'"><td><input type="checkbox" name="s.'+k+'.on" aria-label="Add '+esc(s.title)+'"'+(s.on?' checked':'')+'></td>'
+     +'<td><b>'+esc(s.title)+'</b></td>'
+     +'<td><input name="s.'+k+'.owner" value="'+esc(s.owner)+'" maxlength="60" aria-label="Who signs off '+esc(s.title)+'"></td>'
+     +'<td><input name="s.'+k+'.offset" type="number" min="0" max="600" value="'+esc(s.offset)+'" style="width:5.5em" aria-label="Minutes before the flag-off"></td>'
+     +'<td><input name="s.'+k+'.time" type="time" value="'+esc(s.time)+'" data-auto="'+esc(s.time)+'" aria-label="Time"></td></tr>'}).join('');
+}
+function tplPanel(){
+  if(!man())return '';
+  var T=S.tpl,open=S.tplOpen===undefined?!tplStarted():S.tplOpen;
+  var head='<div class="row between"><h3>Approvals template</h3><button class="btn sm" data-act="tplToggle">'+(open?'Hide':'Open')+'</button></div>';
+  if(!open)return '<div class="card">'+head+'<p class="muted" style="margin-top:4px">Race details, the approvals this race needs with their authorities, documents to attach and due dates, and the application letters. Open it to change the edition, date or venue, or to add more approvals.</p></div>';
+  if(!T)return '<div class="card">'+head+'<p class="muted" style="margin-top:6px">'+(S.tplErr?esc(msg(S.tplErr)):'Loading...')+'</p></div>';
+  var e=T.event,i=T.info;
+  var race='<div class="sec">The race</div><div class="form">'
+   +tIn('Race name','race.name',e.name,{req:1,max:80})+tIn('Edition (for example 6, 6th or Sixth)','info.edition',i.edition,{max:20})+tIn('Race date','race.date',e.date,{type:'date'})+tIn('Venue','race.venue',e.venue,{max:120})
+   +tIn('City or district','info.place',i.place,{max:60,ph:'for example Visakhapatnam'})+tIn('Local body (municipal corporation or panchayat)','info.localBody',i.localBody,{max:80})
+   +tIn('Expected runners','info.participants',i.participants,{type:'number',min:0})+tIn('Volunteers','info.volunteers',i.volunteers,{type:'number',min:0})
+   +tIn('Flag-off time','info.startTime',i.startTime,{type:'time'})+tIn('Event closes at','info.endTime',i.endTime,{type:'time'})
+   +tIn('Expo date','info.expoDate',i.expoDate,{type:'date'})+tIn('Expo venue','info.expoVenue',i.expoVenue,{max:120})
+   +tIn('Route in one line','info.route',i.route,{max:400,span:1})+'</div>';
+  var org='<div class="sec" style="margin-top:12px">Organiser (printed on the letters)</div><div class="form">'
+   +tIn('Organiser name','info.organiser',i.organiser,{max:100})+tIn('Registration (for example Reg. No. 429 of 2021)','info.regNo',i.regNo,{max:60})
+   +tIn('Signatory','info.signatory',i.signatory,{max:60})+tIn('Role of the signatory','info.role',i.role,{max:60})
+   +tIn('Phone','info.phone',i.phone,{max:30})+tIn('Email','info.email',i.email,{type:'email',max:80})+tIn('Address','info.address',i.address,{max:200,span:1})+'</div>';
+  var sc='<div class="sec" style="margin-top:12px">What does this race involve?</div><div>'+T.scopes.map(function(s){return '<label class="chk"><input type="checkbox" name="sc.'+s.key+'"'+(i.scope[s.key]?' checked':'')+'><span>'+esc(s.label)+'</span></label>'}).join('')+'</div>';
+  var pp='<div class="sec" style="margin-top:12px">Permits to add</div><p class="muted" style="margin:4px 0">Lead times are suggestions: ask each office how long it really takes. Change the authority, the days or the date before you add.</p><div class="scroll"><table><tr><th></th><th>Approval</th><th>Authority</th><th>Days before</th><th>Apply by</th></tr>'+tplPermitRows(T.permits)+'</table></div>';
+  var ss='<div class="sec" style="margin-top:12px">Race-day sign-offs to add</div><div class="scroll"><table><tr><th></th><th>Sign-off</th><th>Signed off by</th><th>Minutes before flag-off</th><th>Time</th></tr>'+tplSignRows(T.signoffs)+'</table></div>';
+  var note=T.starter>0?'<p class="muted" style="margin-top:8px">'+T.starter+' starter line'+(T.starter===1?'':'s')+' nobody has touched will be replaced by the matching lines above. Lines you edited are kept.</p>':'';
+  return '<form id="tplForm" class="card">'+head+'<p class="muted" style="margin:4px 0 10px">Fill in the race once. The approvals, their due dates and the letters use it. If you change the date or the flag-off time later, every date you have not edited by hand moves with it.</p>'+race+org
+   +'<div class="row" style="margin-top:10px"><button class="btn" type="button" data-act="tplSave">Save details</button></div>'+sc+pp+ss+note
+   +'<div class="row" style="margin-top:12px"><button class="btn pri" type="submit">Add selected approvals</button><span class="muted">Saves the details too. Lines already on the list are never changed.</span></div></form>';
+}
+function tplScope(d){var o={};Object.keys(d).forEach(function(n){if(n.indexOf('sc.')===0)o[n.slice(3)]=!!d[n]});return o}
+function tplArgs(d){var info={};TPL_INFO.forEach(function(k){var v=d['info.'+k];info[k]=v==null?'':v});info.scope=tplScope(d);return {name:d['race.name'],date:d['race.date'],venue:d['race.venue'],info:info}}
+function tplPicks(d){var p={};Object.keys(d).forEach(function(n){var m=/^[ps]\.([a-z-]+)\.(on|party|lead|due|owner|offset|time)$/.exec(n);if(!m)return;p[m[1]]=p[m[1]]||{};p[m[1]][m[2]]=m[2]==='on'?!!d[n]:d[n]});return p}
+function tplRecalc(f){
+  var date=f.elements['race.date'].value,st=f.elements['info.startTime'].value;
+  [].forEach.call(f.querySelectorAll('tr[data-key]'),function(tr){var k=tr.getAttribute('data-key');
+    var due=f.elements['p.'+k+'.due'],lead=f.elements['p.'+k+'.lead'];
+    if(due&&lead){var nv=date?addDaysIso(date,-(parseInt(lead.value,10)||0)):'';if(due.value===due.getAttribute('data-auto'))due.value=nv;due.setAttribute('data-auto',nv)}
+    var tm=f.elements['s.'+k+'.time'],off=f.elements['s.'+k+'.offset'];
+    if(tm&&off){var nt=st?minusMin(st,parseInt(off.value,10)||0):'';if(tm.value===tm.getAttribute('data-auto'))tm.value=nt;tm.setAttribute('data-auto',nt)}
+  })}
+function blankCount(t){return (String(t).match(/\[[^\]\n]+\]/g)||[]).length}
+function blankText(n){return n?n+' [bracketed] blank'+(n===1?'':'s')+' to fill in':'No blanks left'}
+function letterCard(){
+  var L=S.letter;if(!L)return '';
+  var close='<button class="btn sm" data-act="letterClose">Close</button>';
+  if(L.loading)return '<div class="card"><div class="row between"><h3>Letter</h3>'+close+'</div><p class="muted" style="margin-top:6px">Preparing the letter...</p></div>';
+  var miss=L.missing&&L.missing.length?'<div class="alert warn" role="status" style="margin-top:8px">Race details missing: '+esc(L.missing.join(', '))+'. '+(man()?'Add them in the Approvals template below, then press Reset text.':'Ask a director to add them.')+'</div>':'';
+  var ready=L.docs.filter(function(d){return d.done}).length;
+  var docs=L.docs.length?'<div class="sec" style="margin-top:14px">Documents to attach: '+ready+' of '+L.docs.length+' ready</div>'+L.docs.map(function(d,n){return '<label class="chk'+(d.done?' done':'')+'"><input type="checkbox" data-act="docTick" data-i="'+n+'"'+(d.done?' checked':'')+'><span>'+esc(d.text)+'</span></label>'}).join(''):'';
+  return '<div class="card" id="letterCard"><div class="row between"><h3>Letter: '+esc(L.title)+'</h3>'+close+'</div>'+(L.tips?'<p class="muted" style="margin-top:4px">'+esc(L.tips)+'</p>':'')+miss
+   +'<div class="row" style="margin-top:10px;align-items:end"><label class="f">Letter date<input id="letterDate" type="date" value="'+esc(L.day)+'"></label><button class="btn sm" data-act="letterReset">Reset text</button><span class="muted" id="letterBlanks">'+blankText(blankCount(L.text))+'</span></div>'
+   +'<textarea id="letterText" rows="24" style="width:100%;margin-top:8px;line-height:1.5" aria-label="Letter text">'+esc(L.text)+'</textarea>'
+   +'<div class="row" style="margin-top:8px"><button class="btn pri" data-act="letterCopy">Copy</button><button class="btn" data-act="letterWord">Download for Word</button><button class="btn" data-act="letterPrint">Print</button></div>'+docs+'</div>';
+}
+function letterBtn(i){if(i.phase!=='permit'||!can())return '';return '<button class="btn sm" data-act="letterOpen" data-id="'+esc(i.id)+'">Letter'+(i.docsTotal?' · '+i.docsDone.length+'/'+i.docsTotal+' ready':'')+'</button>'}
+function letterHtml(text){var paras=String(text).split('\n\n').map(function(p){return '<p style="margin:0 0 10pt">'+esc(p).replace(/\n/g,'<br>')+'</p>'}).join('');return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Letter</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.35}</style></head><body>'+paras+'</body></html>'}
+function printHtml(html){try{var f=document.createElement('iframe');f.setAttribute('style','position:fixed;right:0;bottom:0;width:0;height:0;border:0');f.setAttribute('aria-hidden','true');document.body.appendChild(f);var w=f.contentWindow,d=w.document;d.open();d.write(html);d.close();setTimeout(function(){try{w.focus();w.print()}catch(x){toast('Printing is blocked here. Use Download for Word.',true)}setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f)},3000)},150)}catch(x){toast('Printing is blocked here. Use Download for Word.',true)}}
+async function openLetter(id,date){
+  S.letter={loading:true};render();
+  try{var r=await api('approvalLetter',{id:id,date:date||undefined});r.orig=r.text;S.letter=r}catch(x){S.letter=null;toast(msg(x.message),true)}
+  render();var c=$('#letterCard');if(c&&c.scrollIntoView)c.scrollIntoView({block:'start'});
+}
 function approvalsTabView(){
   if(!S.plan)return planLoading();var a=S.plan.summary.approvals;
-  return '<div class="stack"><div class="grid g4">'+sumCard('Permits approved',a.permits.approved+' <small>/ '+a.permits.total+'</small>',bar(a.permits.approved,a.permits.total))+sumCard('Race-day sign-offs',a.raceday.approved+' <small>/ '+a.raceday.total+'</small>',bar(a.raceday.approved,a.raceday.total))+sumCard('Rejected or expired',a.problems,'needs action',a.problems>0)+'</div>'
-   +planSection('approval',{note:'Permits come from outside authorities. Race-day sign-offs are given by your leads on the morning; the name of whoever approves is recorded.'})+'</div>';
+  return '<div class="stack">'+letterCard()+'<div class="grid g4">'+sumCard('Permits approved',a.permits.approved+' <small>/ '+a.permits.total+'</small>',bar(a.permits.approved,a.permits.total))+sumCard('Race-day sign-offs',a.raceday.approved+' <small>/ '+a.raceday.total+'</small>',bar(a.raceday.approved,a.raceday.total))+sumCard('Rejected or expired',a.problems,'needs action',a.problems>0)+'</div>'
+   +tplPanel()+planSection('approval',{note:'Permits come from outside authorities: use the Letter button for the application and the list of documents to attach. Race-day sign-offs are given by your leads on the morning; the name of whoever approves is recorded.'})+'</div>';
 }
 function ceremoniesTabView(){
   if(!S.plan)return planLoading();var c=S.plan.summary.ceremonies;
@@ -660,9 +744,9 @@ function coachingView(){
 }
 /* ---------- actions ---------- */
 function formData(f){var o={};Array.prototype.forEach.call(f.elements,function(el){if(!el.name)return;o[el.name]=el.type==='checkbox'?el.checked:el.value});return o}
-function download(name,text){try{var b=new Blob([text],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
+function download(name,text,mime){try{var b=new Blob([text],{type:mime||'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
 function csvCell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
-async function doTab(t){S.tab=t;S.armed=null;S.pedit=null;S.plan=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
+async function doTab(t){S.tab=t;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||b.tagName==='INPUT')return;
   var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
@@ -701,6 +785,14 @@ document.addEventListener('click',function(e){
   else if(act==='cstop')run(async function(){await api('stopCoaching',{enroll:id},undefined,'train');toast('Back to the free plan');await reload()});
   else if(act==='cdecline')run(async function(){await api('declineCoaching',{enroll:id},undefined,'train');toast('Request declined');await reload()});
   else if(act==='retry'){loadTab()}
+  else if(act==='tplToggle'){S.tplOpen=!(S.tplOpen===undefined?!tplStarted():S.tplOpen);render()}
+  else if(act==='tplSave'){var tf=$('#tplForm');if(tf){var td=formData(tf);run(async function(){var r=await api('saveEventInfo',tplArgs(td));await loadEvents();toast('Race details saved'+(r.moved?'. '+r.moved+' date'+(r.moved===1?'':'s')+' moved with the race':''));await loadTab()})}}
+  else if(act==='letterOpen')openLetter(id);
+  else if(act==='letterClose'){S.letter=null;render()}
+  else if(act==='letterReset'){if(S.letter&&S.letter.id)openLetter(S.letter.id,($('#letterDate')||{}).value)}
+  else if(act==='letterCopy'){var lt=($('#letterText')||{}).value||'';try{navigator.clipboard.writeText(lt).then(function(){toast('Letter copied')},function(){toast('Select the text and copy it',true)})}catch(x){toast('Select the text and copy it',true)}}
+  else if(act==='letterWord'){var lw=($('#letterText')||{}).value||'';download((((S.letter&&S.letter.title)||'Letter').replace(/[^A-Za-z0-9 _-]+/g,'').trim().slice(0,60)||'Letter')+'.doc',letterHtml(lw),'application/msword')}
+  else if(act==='letterPrint'){printHtml(letterHtml(($('#letterText')||{}).value||''))}
   else if(act==='assignBibs')run(async function(){var r=await api('assignBibs');var m='Numbered '+r.assigned+' runner'+(r.assigned===1?'':'s')+'.';var nr=Object.keys(r.noRange),fl=Object.keys(r.full);if(nr.length)m+=' No range for: '+nr.join(', ')+'.';if(fl.length)m+=' Range full for: '+fl.join(', ')+'.';if(r.unpaid)m+=' '+r.unpaid+' unpaid runner'+(r.unpaid===1?' is':'s are')+' waiting.';S.bxMsg=m;S.bx=await api('expoSummary');render()});
   else if(act==='sendExpo')run(async function(){var r=await api('sendToExpo');var m='Sent '+r.added+' new runner'+(r.added===1?'':'s')+' to the Expo desk.';if(r.filled)m+=' Filled empty details for '+r.filled+'.';if(r.locked)m+=' '+r.locked+' already handed over, left alone.';if(r.conflicts.length)m+=' Check bib '+r.conflicts.join(', ')+': the desk has a different person on that number.';if(r.noBib)m+=' '+r.noBib+' paid runner'+(r.noBib===1?' has':'s have')+' no bib yet.';if(r.unpaid)m+=' '+r.unpaid+' numbered runner'+(r.unpaid===1?' has':'s have')+' not paid.';S.bxMsg=m;S.bx=await api('expoSummary');render()});
   else if(act==='aiChip'){S.aiQ=ASK_CHIPS[parseInt(id,10)]||'';askAi()}
@@ -726,7 +818,13 @@ document.addEventListener('change',function(e){
   else if(t.getAttribute('data-act')==='pstatus'){var pid=t.getAttribute('data-id'),pst=t.value;run(async function(){await api('setPlanStatus',{id:pid,status:pst});await loadTab()})}
   else if(t.getAttribute('data-act')==='assign'&&t.value){var sid=t.value,vid=t.getAttribute('data-vid');run(async function(){await api('assignShift',{volunteerId:vid,shiftId:sid});await loadTab()})}
   else if(t.getAttribute('data-act')==='tick'){var id=t.getAttribute('data-id'),on=t.checked;run(async function(){await api('toggleCheck',{id:id,done:on});S.checks=(await api('listChecklist')).items;render()}).then(function(){if(!S.busy)return});}
+  else if(t.getAttribute('data-act')==='docTick'&&S.letter&&S.letter.id){var di=parseInt(t.getAttribute('data-i'),10),dn=t.checked,lid=S.letter.id;run(async function(){var r=await api('setApprovalDoc',{id:lid,index:di,done:dn});if(S.letter&&S.letter.id===lid)S.letter.docs.forEach(function(d,n){d.done=r.done.indexOf(n)>=0});var row=((S.plan&&S.plan.items.approval)||[]).find(function(x){return x.id===lid});if(row)row.docsDone=r.done;render()})}
+  else if(t.id==='letterDate'&&S.letter&&S.letter.id&&t.value){var edited=S.letter.text!==S.letter.orig,was=S.letter.text,day=t.value;run(async function(){var r=await api('approvalLetter',{id:S.letter.id,date:day});var nl=(r.text.match(/^Date: .*$/m)||[''])[0],cur=(was.match(/^Date: .*$/m)||[''])[0];S.letter.text=edited&&nl&&cur?was.replace(cur,nl):r.text;S.letter.orig=r.text;S.letter.day=r.day;render()})}
 });
+document.addEventListener('change',function(e){var t=e.target,f=t&&t.form;if(!f||f.id!=='tplForm')return;var n=t.name||'';
+  if(n.indexOf('sc.')===0)[].forEach.call(f.querySelectorAll('tr[data-scope="'+n.slice(3)+'"] input[type=checkbox]'),function(c){c.checked=t.checked});
+  if(n==='race.date'||n==='info.startTime'||/^[ps]\.[a-z-]+\.(lead|offset)$/.test(n))tplRecalc(f)});
+document.addEventListener('input',function(e){var t=e.target;if(t&&t.id==='letterText'&&S.letter){S.letter.text=t.value;var b=$('#letterBlanks');if(b)b.textContent=blankText(blankCount(t.value))}});
 document.addEventListener('input',function(e){if(e.target.id==='regQ'){S.regQ=e.target.value;var p2=e.target.selectionStart;render();var e2=$('#regQ');if(e2){e2.focus();try{e2.setSelectionRange(p2,p2)}catch(x){}}}if(e.target.id==='volQ'){S.volQ=e.target.value;var pos=e.target.selectionStart;render();var el=$('#volQ');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(x){}}}});
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.form&&t.form.id==='draftForm'&&t.name==='kind'){var d=formData(t.form);S.draft={kind:d.kind,channel:d.channel,notes:d.notes||'',sponsor:'',party:d.party||''};render()}});
 document.addEventListener('submit',function(e){
@@ -755,6 +853,7 @@ document.addEventListener('submit',function(e){
   else if(id==='draftForm')run(async function(){S.draft={kind:d.kind,channel:d.channel,notes:d.notes||'',sponsor:d.sponsor||'',party:d.party||''};S.aiBusy='draft';render();try{var a=Object.assign({},S.draft);if(!a.sponsor)delete a.sponsor;S.draftOut=await api('aiDraft',a)}finally{S.aiBusy=''}render()});
   else if(id==='catForm')run(async function(){var r=await api('saveCats',{ev:S.editEvent&&S.editEvent.id||S.ev,cats:textToCats(d.cats)});toast('Saved '+r.cats.length+' categories');await loadEvents();S.dash=null;render()});
   else if(id==='checkForm')run(async function(){await api('addCheck',d);await loadTab()});
+  else if(id==='tplForm')run(async function(){await api('saveEventInfo',tplArgs(d));var r=await api('applyApprovalTemplate',{scope:tplScope(d),picks:tplPicks(d)});await loadEvents();S.tplOpen=false;var m=[];if(r.added)m.push('Added '+r.added);if(r.replaced)m.push('replaced '+r.replaced+' starter line'+(r.replaced===1?'':'s'));if(r.linked)m.push(r.linked+' linked to the template');if(r.removed)m.push('removed '+r.removed+' unused starter line'+(r.removed===1?'':'s'));toast(m.length?m.join(', '):'Nothing new to add');await loadTab()});
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
 render();
