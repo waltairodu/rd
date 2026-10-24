@@ -1,0 +1,489 @@
+<title>Race Approvals Template</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,600..800&family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;600&display=swap">
+<style>
+/* Layout: a sticky column of race details beside a ledger of approvals. Each approval opens its application letter in place. */
+:root{
+  --bg:#F2F4F0; --surface:#FFFFFF; --sunk:#E8ECE5; --ink:#16201B; --muted:#53635A; --line:#D5DCD3;
+  --accent:#0B6B57; --on-accent:#FFFFFF; --accent-soft:#DCEDE6;
+  --warn:#AE3A08; --warn-soft:#FBE5D8; --good:#1B7336;
+  --paper:#FFFFFF; --paper-ink:#1B1B19; --shadow:0 1px 0 rgba(20,32,27,.05),0 8px 28px rgba(20,32,27,.09);
+  --f-display:"Archivo","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-letter:"Source Serif 4",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1411; --surface:#171F1B; --sunk:#1F2924; --ink:#E6EDE8; --muted:#9BAAA2; --line:#2B3731;
+    --accent:#4CC4A2; --on-accent:#06231B; --accent-soft:#183B31;
+    --warn:#FF9A6B; --warn-soft:#3B2519; --good:#79D18B;
+    --paper:#1D2521; --paper-ink:#E8EEE9; --shadow:0 1px 0 rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.4);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1411; --surface:#171F1B; --sunk:#1F2924; --ink:#E6EDE8; --muted:#9BAAA2; --line:#2B3731;
+  --accent:#4CC4A2; --on-accent:#06231B; --accent-soft:#183B31;
+  --warn:#FF9A6B; --warn-soft:#3B2519; --good:#79D18B;
+  --paper:#1D2521; --paper-ink:#E8EEE9; --shadow:0 1px 0 rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);-webkit-text-size-adjust:100%}
+button,input,textarea{font:inherit;color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
+h1,h2,h3,h4,p{margin:0}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(28px,4vw,40px)/1.05 var(--f-display);font-stretch:85%;letter-spacing:-.01em;text-wrap:balance;margin-top:6px}
+h2{font:700 18px/1.25 var(--f-display);font-stretch:90%;letter-spacing:.005em}
+h3{font:700 17px/1.3 var(--f-display);font-stretch:90%}
+h4{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.top{display:flex;flex-wrap:wrap;gap:16px 24px;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.top .lede{max-width:62ch;margin-top:10px;color:var(--muted)}
+.top-actions{display:flex;flex-wrap:wrap;gap:8px}
+.racebar{display:flex;flex-wrap:wrap;gap:4px 20px;align-items:baseline;margin-top:16px;font-size:15px;color:var(--muted)}
+.racebar b{font:700 20px/1.2 var(--f-display);font-stretch:90%;color:var(--ink)}
+.racebar span{white-space:nowrap}
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
+@media (min-width:1040px){.grid{grid-template-columns:330px minmax(0,1fr);gap:24px}.side{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;padding-right:2px}}
+.side,.main{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;min-width:0}
+.card>.pad{padding:16px}
+.card-head{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;align-items:baseline;padding:14px 16px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px}
+.f{display:grid;gap:4px;min-width:0;font-size:12.5px;font-weight:600;color:var(--muted)}
+.f.wide{grid-column:1/-1}
+@media (min-width:620px) and (max-width:1039px){.fields{grid-template-columns:repeat(4,minmax(0,1fr))}.f.wide{grid-column:span 2}}
+input[type=text],input[type=date],input[type=time],input[type=number],input[type=email],input:not([type]){width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:400}
+input::placeholder{color:var(--muted);opacity:.75}
+input:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input:focus-visible{border-color:var(--accent)}
+input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.checks{display:grid;gap:2px;padding:6px 8px 12px}
+.check{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;padding:8px;border-radius:8px;font-size:14px;cursor:pointer}
+.check:hover{background:var(--sunk)}
+.check input{margin-top:2px}
+details.card>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 16px}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"+";font:600 20px/1 var(--f-body);color:var(--muted)}
+details.card[open]>summary::after{content:"\2013"}
+details.card>.pad{border-top:1px solid var(--line)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--sunk)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{min-height:36px;padding:6px 12px}
+.btn[aria-expanded="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.link{border:0;background:none;padding:0;color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;padding:0;overflow:hidden}
+.summary>div{padding:14px 16px;min-width:0}
+.summary>div+div{border-left:1px solid var(--line)}
+.summary .k{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.summary .v{margin-top:4px;font-weight:600}
+.summary .s{font-size:13px;color:var(--muted);margin-top:2px}
+@media (max-width:760px){.summary{grid-template-columns:minmax(0,1fr)}.summary>div+div{border-left:0;border-top:1px solid var(--line)}}
+.cols{display:grid;grid-template-columns:24px minmax(0,1fr) 88px 156px 112px;gap:14px;padding:8px 16px;border-top:1px solid var(--line);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+ol.rows{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:24px minmax(0,1fr) 88px 156px 112px;grid-template-areas:"chk what lead due btn";gap:8px 14px;align-items:start;padding:14px 16px;border-top:1px solid var(--line)}
+.row.is-open{background:var(--accent-soft);background:color-mix(in srgb,var(--accent-soft) 45%,var(--surface))}
+.row .chk{grid-area:chk;padding-top:10px}
+.row .what{grid-area:what;min-width:0}
+.row .what b{display:block;font-weight:600;line-height:1.35;padding-top:2px}
+.row .auth,.row .own{margin-top:6px;min-height:34px;padding:5px 8px;font-size:13.5px;color:var(--muted)}
+.row .lead{grid-area:lead}.row .due{grid-area:due}.row .btn.act{grid-area:btn;align-self:start}
+.row .cap{display:none;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px}
+.row .rel{display:block;margin-top:3px;font-size:12.5px;color:var(--muted)}
+.row .rel.late{color:var(--warn);font-weight:600}
+.row .rel.soon{color:var(--ink);font-weight:600}
+.row.off>.what,.row.off>.lead,.row.off>.due{opacity:.5}
+.signote{grid-column:2/-1;margin-top:2px;padding:10px 12px;border-radius:8px;background:var(--sunk);font-size:14px}
+@media (max-width:700px){
+  .cols{display:none}
+  .row{grid-template-columns:24px minmax(0,1fr) minmax(0,1fr);grid-template-areas:"chk what what" ". lead due" ". btn btn";gap:10px 12px}
+  .row .cap{display:block}
+  .row .btn.act{width:100%}
+  .signote{grid-column:2/-1}
+}
+.letter{grid-column:1/-1;margin-top:6px;container-type:inline-size;container-name:letter}
+.letter-box{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px}
+.letter-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.notice{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--warn-soft);color:var(--ink);font-size:14px;border-left:3px solid var(--warn)}
+.notice b{color:var(--warn)}
+.letter-body{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:12px}
+@container letter (min-width:760px){.letter-body{grid-template-columns:minmax(0,1fr) 270px}}
+.paper{background:var(--paper);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);padding:clamp(14px,3cqi,30px)}
+.paper:focus-within{border-color:var(--accent)}
+#letter-text{display:block;width:100%;min-height:360px;border:0;background:transparent;color:var(--paper-ink);font:16px/1.65 var(--f-letter);resize:none;outline:none;overflow:hidden;padding:0}
+.side-doc{display:grid;gap:8px;align-content:start;min-width:0}
+.docs{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.docs label{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:start;padding:6px 6px;border-radius:6px;font-size:13.5px;cursor:pointer}
+.docs label:hover{background:var(--sunk)}
+.docs input{margin-top:2px}
+.docs input:checked+span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.tips{font-size:13.5px;color:var(--muted)}
+.letter-foot{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;margin-top:12px}
+.letter-foot .inline{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:600;color:var(--muted)}
+.letter-foot .inline input{width:auto}
+.spacer{flex:1 1 0}
+.blanks{font-size:13px;font-weight:600;color:var(--muted)}
+.blanks.some{color:var(--warn)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:10px;background:var(--ink);color:var(--bg);font-size:14px;font-weight:600;box-shadow:var(--shadow)}
+.foot{margin-top:28px;font-size:13px;color:var(--muted);max-width:80ch}
+@media (prefers-reduced-motion:no-preference){.row,.btn{transition:background-color .12s}}
+</style>
+
+<main class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Race Director · Approvals tab</p>
+      <h1>Race approvals template</h1>
+      <p class="lede">Type the edition, date and venue. Every apply-by date, authority and application letter below follows. Nothing is saved on this page; it shows what the Approvals tab will do.</p>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn" id="b-sample">Use sample details</button>
+      <button type="button" class="btn" id="b-clear">Clear all details</button>
+    </div>
+  </header>
+
+  <p class="racebar" id="racebar"></p>
+
+  <div class="grid">
+    <aside class="side" aria-label="Race details">
+      <section class="card" aria-labelledby="t-race">
+        <div class="card-head"><h2 id="t-race">Race details</h2><span class="muted" style="font-size:13px">Edit anything</span></div>
+        <div class="pad" style="border-top:1px solid var(--line)"><div class="fields" id="race-fields"></div></div>
+      </section>
+      <details class="card fold" open>
+        <summary><h2>What does this race involve?</h2><span class="muted" style="font-size:13px;flex:1;text-align:right">11 questions</span></summary>
+        <div class="checks" id="scope" style="border-top:1px solid var(--line);padding-top:8px"></div>
+      </details>
+      <details class="card fold" open>
+        <summary><h2>Organiser and letters</h2><span class="muted" style="font-size:13px;flex:1;text-align:right">Typed once</span></summary>
+        <div class="pad"><div class="fields" id="org-fields"></div></div>
+      </details>
+    </aside>
+
+    <section class="main" aria-label="Approvals">
+      <div class="card summary" id="summary" aria-live="polite"></div>
+
+      <section class="card" aria-labelledby="t-permits">
+        <div class="card-head"><h2 id="t-permits">Permits and permissions</h2><span class="muted" style="font-size:13px" id="permit-count"></span></div>
+        <div class="cols" aria-hidden="true"><span></span><span>Approval and authority</span><span>Days before</span><span>Apply by</span><span></span></div>
+        <ol class="rows" id="permits"></ol>
+      </section>
+
+      <section class="card" aria-labelledby="t-signoffs">
+        <div class="card-head"><h2 id="t-signoffs">Race-day sign-offs</h2><span class="muted" style="font-size:13px" id="signoff-count"></span></div>
+        <div class="cols" aria-hidden="true"><span></span><span>Sign-off and owner</span><span>Minutes before</span><span>Time on the day</span><span></span></div>
+        <ol class="rows" id="signoffs"></ol>
+      </section>
+
+      <p class="foot">The authorities, documents and lead times are a sound starting point, not legal advice. Offices differ by city and state, so confirm each one's current rules and forms before you apply. Anything missing from a letter shows as a [bracketed blank] for you to fill in.</p>
+    </section>
+  </div>
+
+  <section class="letter" id="letter" hidden aria-label="Application letter">
+    <div class="letter-box">
+      <div class="letter-head"><h3 id="letter-title">Application letter</h3><button type="button" class="btn sm" id="l-close">Close</button></div>
+      <p class="notice" id="letter-missing" hidden></p>
+      <div class="letter-body">
+        <div class="paper"><textarea id="letter-text" spellcheck="true" aria-label="Application letter text"></textarea></div>
+        <div class="side-doc">
+          <h4>Documents to attach <span id="docs-count"></span></h4>
+          <ul class="docs" id="docs"></ul>
+          <h4 style="margin-top:8px">Where and how to apply</h4>
+          <p class="tips" id="tips"></p>
+        </div>
+      </div>
+      <div class="letter-foot">
+        <label class="inline">Letter date <input type="date" id="letter-date"></label>
+        <span class="blanks" id="blanks"></span>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="l-rebuild" hidden>Rebuild from details</button>
+        <button type="button" class="btn pri" id="l-copy">Copy letter</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+'use strict';
+var RDA = (function () {
+/*__LIB__*/
+})();
+
+var $ = function (s, r) { return (r || document).querySelector(s); };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+var TODAY = iso(new Date());
+function daysBetween(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000); }
+function shortDate(s) { return RDA.isDate(s) ? RDA.weekdayOf(s).slice(0, 3) + ' ' + RDA.longDate(s) : ''; }
+function clamp(n, lo, hi) { n = Math.round(Number(n)); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : null; }
+
+/* ---------- sample and blank details ---------- */
+function nextSunday(minDays) { var d = new Date(); d.setDate(d.getDate() + minDays); while (d.getDay() !== 0) d.setDate(d.getDate() + 1); return iso(d); }
+function sample() {
+  var date = nextSunday(120);
+  return {
+    race: { edition: '6', name: 'Vizag Half Marathon', date: date, venue: 'Beach Road, Visakhapatnam', start: '05:30', end: '09:30', dist: '21.1, 10, 5', participants: '2500', volunteers: '250', route: '', expoDate: RDA.addDays(date, -2) },
+    org: { place: 'Visakhapatnam', localBody: 'Greater Visakhapatnam Municipal Corporation (GVMC)', organiser: 'Visakha Trail Running Association (VTRA)', regNo: 'Reg. No. 429 of 2021', signatory: 'Vangada Yogeshwar Rao', role: 'Founder, President and Race Director', phone: '', email: '', address: '' }
+  };
+}
+function blank() {
+  return {
+    race: { edition: '', name: '', date: '', venue: '', start: '', end: '', dist: '', participants: '', volunteers: '', route: '', expoDate: '' },
+    org: { place: '', localBody: '', organiser: '', regNo: '', signatory: '', role: '', phone: '', email: '', address: '' }
+  };
+}
+var RACE_FIELDS = [
+  ['edition', 'Edition', 'text', 'e.g. 6', ''], ['date', 'Race date', 'date', '', ''],
+  ['name', 'Race name', 'text', 'e.g. Vizag Half Marathon', 'wide'],
+  ['venue', 'Venue', 'text', 'e.g. Beach Road, Visakhapatnam', 'wide'],
+  ['start', 'Flag-off time', 'time', '', ''], ['end', 'Finish closes', 'time', '', ''],
+  ['dist', 'Distances in km', 'text', 'e.g. 21.1, 10, 5', 'wide'],
+  ['participants', 'Runners expected', 'text', 'e.g. 2500', ''], ['volunteers', 'Volunteers', 'text', 'e.g. 250', ''],
+  ['expoDate', 'Expo and bib collection', 'date', '', 'wide'],
+  ['route', 'Route in one line (optional)', 'text', 'e.g. Out and back along the coast road', 'wide']
+];
+var ORG_FIELDS = [
+  ['place', 'City or district', 'text', 'e.g. Visakhapatnam', ''], ['regNo', 'Registration number', 'text', '', ''],
+  ['localBody', 'Local body', 'text', 'Corporation or municipality', 'wide'],
+  ['organiser', 'Organiser', 'text', '', 'wide'],
+  ['signatory', 'Who signs the letters', 'text', '', 'wide'], ['role', 'Their role', 'text', '', 'wide'],
+  ['phone', 'Phone', 'text', '', ''], ['email', 'Email', 'email', '', ''],
+  ['address', 'Address', 'text', '', 'wide']
+];
+
+/* ---------- state ---------- */
+var S = { race: {}, org: {}, scope: RDA.defaultScope(), over: {}, docs: {}, letters: {}, open: null, letterDate: TODAY, E: null };
+function load(d) { S.race = Object.assign({}, d.race); S.org = Object.assign({}, d.org); S.scope = RDA.defaultScope(); S.over = {}; S.docs = {}; S.letters = {}; }
+
+function eventObj() {
+  var r = S.race;
+  var kms = String(r.dist || '').split(/[\s,;]+|\band\b/i).map(Number).filter(function (n) { return n > 0 && isFinite(n); });
+  return { name: String(r.name || '').trim(), date: RDA.isDate(r.date) ? r.date : '', venue: String(r.venue || '').trim(), cats: kms.map(function (k) { return { km: k }; }) };
+}
+function infoObj() {
+  var r = S.race, o = S.org, t = function (v) { return String(v || '').trim(); };
+  return {
+    edition: t(r.edition), place: t(o.place), localBody: t(o.localBody), organiser: t(o.organiser), regNo: t(o.regNo), signatory: t(o.signatory), role: t(o.role),
+    phone: t(o.phone), email: t(o.email), address: t(o.address), participants: t(r.participants), volunteers: t(r.volunteers),
+    startTime: RDA.isTime(r.start) ? r.start : '', endTime: RDA.isTime(r.end) ? r.end : '', route: t(r.route), expoDate: RDA.isDate(r.expoDate) ? r.expoDate : ''
+  };
+}
+// What each line shows: the library's suggestion, with anything typed by hand on top. A date that was never typed follows the race date.
+function effective() {
+  var ev = eventObj(), info = infoObj(), sg = RDA.suggest(ev, info, S.scope), rows = {};
+  sg.permits.forEach(function (d) {
+    var o = S.over[d.key] || {}, lead = o.lead !== undefined ? o.lead : d.lead;
+    rows[d.key] = { kind: 'permit', def: d, title: d.title, on: o.on !== undefined ? o.on : d.on, party: o.party !== undefined ? o.party : d.party, lead: lead, due: o.due !== undefined ? o.due : (ev.date ? RDA.addDays(ev.date, -lead) : ''), manualDue: o.due !== undefined };
+  });
+  sg.signoffs.forEach(function (d) {
+    var o = S.over[d.key] || {}, off = o.offset !== undefined ? o.offset : d.offset;
+    rows[d.key] = { kind: 'signoff', def: d, title: d.title, on: o.on !== undefined ? o.on : d.on, owner: o.owner !== undefined ? o.owner : d.owner, offset: off, time: o.time !== undefined ? o.time : (info.startTime ? RDA.minusMinutes(info.startTime, off) : ''), manualTime: o.time !== undefined, due: ev.date };
+  });
+  return { ev: ev, info: info, rows: rows };
+}
+function doneCount(key) { var s = S.docs[key]; return s ? Object.keys(s).filter(function (i) { return s[i]; }).length : 0; }
+function relText(due) {
+  if (!RDA.isDate(due)) return 'Set the race date';
+  var n = daysBetween(TODAY, due);
+  if (n < 0) return 'Overdue by ' + (-n) + (n === -1 ? ' day' : ' days');
+  if (n === 0) return 'Due today';
+  return 'In ' + n + (n === 1 ? ' day' : ' days');
+}
+function relClass(due) { if (!RDA.isDate(due)) return ''; var n = daysBetween(TODAY, due); return n < 0 ? 'late' : n <= 14 ? 'soon' : ''; }
+
+/* ---------- build the form and the rows once ---------- */
+function field(group, f) {
+  var id = 'f-' + group + '-' + f[0];
+  return '<label class="f ' + f[4] + '" for="' + id + '">' + esc(f[1]) + '<input id="' + id + '" type="' + f[2] + '" data-g="' + group + '" data-k="' + f[0] + '" placeholder="' + esc(f[3]) + '" autocomplete="off"' + (f[0] === 'participants' || f[0] === 'volunteers' || f[0] === 'edition' ? ' inputmode="numeric"' : '') + '></label>';
+}
+$('#race-fields').innerHTML = RACE_FIELDS.map(function (f) { return field('race', f); }).join('');
+$('#org-fields').innerHTML = ORG_FIELDS.map(function (f) { return field('org', f); }).join('');
+$('#scope').innerHTML = RDA.SCOPES.map(function (s) { return '<label class="check"><input type="checkbox" data-scope="' + s.key + '"><span>' + esc(s.label) + '</span></label>'; }).join('');
+
+var ROWS = [];
+function mkRow(kind, item) {
+  var li = document.createElement('li');
+  li.className = 'row'; li.dataset.key = item.key;
+  var title = '<b>' + esc(item.title) + '</b>';
+  if (kind === 'permit') {
+    li.innerHTML = '<label class="chk"><input type="checkbox" data-f="on" aria-label="Include ' + esc(item.title) + '"></label>'
+      + '<div class="what">' + title + '<input class="auth" data-f="party" aria-label="Authority" type="text" autocomplete="off"></div>'
+      + '<label class="lead"><span class="cap">Days before</span><input type="number" data-f="lead" min="0" max="365" inputmode="numeric" aria-label="Days before the race"></label>'
+      + '<div class="due"><span class="cap">Apply by</span><input type="date" data-f="due" aria-label="Apply by"><span class="rel"></span><button type="button" class="link" data-act="follow" hidden>Follow the race date</button></div>'
+      + '<button type="button" class="btn act" data-act="open" aria-expanded="false">Letter</button>';
+  } else {
+    li.innerHTML = '<label class="chk"><input type="checkbox" data-f="on" aria-label="Include ' + esc(item.title) + '"></label>'
+      + '<div class="what">' + title + '<input class="own" data-f="owner" aria-label="Owner" type="text" autocomplete="off"></div>'
+      + '<label class="lead"><span class="cap">Minutes before</span><input type="number" data-f="offset" min="0" max="600" inputmode="numeric" aria-label="Minutes before the flag-off"></label>'
+      + '<div class="due"><span class="cap">Time on the day</span><input type="time" data-f="time" aria-label="Time on the race day"><span class="rel"></span><button type="button" class="link" data-act="follow" hidden>Follow the flag-off</button></div>'
+      + '<button type="button" class="btn act" data-act="note" aria-expanded="false">What to check</button>'
+      + '<p class="signote" hidden></p>';
+    li.querySelector('.signote').textContent = item.notes;
+  }
+  var r = { key: item.key, kind: kind, li: li, on: li.querySelector('[data-f=on]'), btn: li.querySelector('.act'), follow: li.querySelector('[data-act=follow]'), rel: li.querySelector('.rel') };
+  ['party', 'lead', 'due', 'owner', 'offset', 'time'].forEach(function (f) { r[f] = li.querySelector('[data-f=' + f + ']'); });
+  r.note = li.querySelector('.signote');
+  ROWS.push(r);
+  return li;
+}
+RDA.PERMITS.forEach(function (p) { $('#permits').appendChild(mkRow('permit', p)); });
+RDA.SIGNOFFS.forEach(function (s) { $('#signoffs').appendChild(mkRow('signoff', s)); });
+
+/* ---------- painting: update what is shown, never the box you are typing in ---------- */
+function setVal(input, v) { if (!input) return; v = v === undefined || v === null ? '' : String(v); if (input !== document.activeElement && input.value !== v) input.value = v; }
+var CAT_SHORT = function (t) { return t.replace(/\s+for\s.*$/i, '').replace(/\s*\(.*\)\s*$/, ''); };
+function paint() {
+  var E = S.E = effective();
+  // race bar
+  var ed = RDA.editionLabel(E.info.edition), bar = [];
+  var sp = function (t) { return '<span>' + t + '</span>'; };
+  bar.push('<b>' + esc(E.ev.name || 'Your race') + '</b>');
+  if (ed) bar.push(sp(esc(ed) + ' edition'));
+  if (E.ev.date) { var n = daysBetween(TODAY, E.ev.date); bar.push(sp(esc(RDA.weekdayOf(E.ev.date) + ' ' + RDA.longDate(E.ev.date)))); bar.push(sp(n > 0 ? n + ' days to go' : n === 0 ? 'race day' : 'finished')); } else bar.push(sp('Set the race date'));
+  if (E.ev.venue) bar.push(sp(esc(E.ev.venue)));
+  $('#racebar').innerHTML = bar.join('');
+  // rows
+  var nP = 0, nS = 0, first = null;
+  ROWS.forEach(function (r) {
+    var d = E.rows[r.key], li = r.li;
+    li.classList.toggle('off', !d.on);
+    r.on.checked = !!d.on;
+    if (d.kind === 'permit') {
+      if (d.on) { nP++; if (RDA.isDate(d.due) && (!first || d.due < first.due)) first = d; }
+      setVal(r.party, d.party); setVal(r.lead, d.lead); setVal(r.due, d.due);
+      r.follow.hidden = !d.manualDue;
+      r.rel.textContent = relText(d.due); r.rel.className = 'rel ' + relClass(d.due);
+      r.btn.textContent = 'Letter · ' + doneCount(r.key) + '/' + d.def.docs;
+    } else {
+      if (d.on) nS++;
+      setVal(r.owner, d.owner); setVal(r.offset, d.offset); setVal(r.time, d.time);
+      r.follow.hidden = !d.manualTime;
+      r.rel.textContent = d.due ? shortDate(d.due) : 'Set the race date';
+      r.rel.className = 'rel';
+    }
+  });
+  $('#permit-count').textContent = nP + ' of ' + RDA.PERMITS.length + ' on the list';
+  $('#signoff-count').textContent = nS + ' of ' + RDA.SIGNOFFS.length + ' on the list';
+  // summary
+  var sum = '<div><div class="k">On the list</div><div class="v">' + nP + ' permits and ' + nS + ' sign-offs</div><div class="s">Change the answers on the left to add or drop lines.</div></div>';
+  if (first) {
+    sum += '<div><div class="k">Apply first</div><div class="v">' + esc(CAT_SHORT(first.title)) + '</div><div class="s">By ' + esc(shortDate(first.due)) + ' · ' + esc(relText(first.due).toLowerCase()) + '</div></div>';
+  } else {
+    sum += '<div><div class="k">Apply first</div><div class="v muted">Needs a race date</div><div class="s">Dates appear once you set it.</div></div>';
+  }
+  var dt = E.ev.date;
+  sum += '<div><div class="k">Race day</div><div class="v">' + (dt ? esc(shortDate(dt)) : '<span class="muted">Not set</span>') + '</div><div class="s">' + (E.info.startTime ? 'Flag-off ' + esc(RDA.clock12(E.info.startTime)) + (E.rows['rd-weather'].time ? ' · first sign-off ' + esc(RDA.clock12(E.rows['rd-weather'].time)) : '') : 'Add the flag-off time for sign-off times.') + '</div></div>';
+  $('#summary').innerHTML = sum;
+  paintLetter();
+}
+
+/* ---------- the letter ---------- */
+function blanksIn(t) { return (String(t).match(/\[[^\]\n]+\]/g) || []).length; }
+function grow(ta) { ta.style.height = 'auto'; ta.style.height = Math.max(360, ta.scrollHeight + 2) + 'px'; }
+function letterFor(key) {
+  var d = S.E.rows[key];
+  return RDA.renderLetter({ tpl: key, title: d.title, party: d.party }, S.E.ev, S.E.info, { today: S.letterDate, scope: S.scope });
+}
+function paintLetter() {
+  var box = $('#letter'), key = S.open;
+  if (!key || !S.E.rows[key] || S.E.rows[key].kind !== 'permit') { box.hidden = true; return; }
+  var d = S.E.rows[key], res = letterFor(key), ta = $('#letter-text'), saved = S.letters[key];
+  $('#letter-title').textContent = CAT_SHORT(d.title) + ' · application letter';
+  // A letter you have typed in is kept as it is; until then it is rebuilt from the details every time they change.
+  if (saved) { if (ta.dataset.shown !== 'mine:' + key) { ta.value = saved.text; ta.dataset.shown = 'mine:' + key; } }
+  else { if (ta !== document.activeElement) ta.value = res.text; ta.dataset.shown = 'auto:' + key; }
+  $('#l-rebuild').hidden = !saved;
+  grow(ta);
+  var m = $('#letter-missing');
+  if (!saved && res.missing.length) { m.hidden = false; m.innerHTML = '<b>' + res.missing.length + ' detail' + (res.missing.length === 1 ? '' : 's') + ' to add:</b> ' + esc(res.missing.join(', ')) + '. Fill them in on the left, or type over the [brackets] in the letter.'; } else m.hidden = true;
+  paintBlanks(ta.value);
+  var p = RDA.permitByKey(key), ticks = S.docs[key] || {};
+  $('#docs').innerHTML = p.docs.map(function (t, i) { return '<li><label><input type="checkbox" data-doc="' + i + '"' + (ticks[i] ? ' checked' : '') + '><span>' + esc(t) + '</span></label></li>'; }).join('');
+  $('#docs-count').textContent = '· ' + doneCount(key) + ' of ' + p.docs.length + ' ready';
+  $('#tips').textContent = p.tips;
+  setVal($('#letter-date'), S.letterDate);
+}
+function paintBlanks(text) {
+  var bl = blanksIn(text), el = $('#blanks');
+  el.textContent = bl ? bl + ' [bracketed] blank' + (bl === 1 ? '' : 's') + ' to fill in' : 'No blanks left';
+  el.className = 'blanks' + (bl ? ' some' : '');
+}
+function openLetter(key) {
+  var row = ROWS.filter(function (r) { return r.key === key; })[0];
+  ROWS.forEach(function (r) { r.li.classList.toggle('is-open', r.key === key); if (r.kind === 'permit') r.btn.setAttribute('aria-expanded', r.key === key ? 'true' : 'false'); });
+  S.open = key;
+  var box = $('#letter');
+  row.li.appendChild(box);
+  box.hidden = false;
+  paintLetter();
+}
+function closeLetter() {
+  S.open = null;
+  ROWS.forEach(function (r) { r.li.classList.remove('is-open'); if (r.kind === 'permit') r.btn.setAttribute('aria-expanded', 'false'); });
+  var box = $('#letter'); box.hidden = true; document.querySelector('.wrap').appendChild(box);
+}
+var toastTimer = null;
+function toast(msg) { var t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2600); }
+
+/* ---------- events ---------- */
+function fillForm() {
+  document.querySelectorAll('[data-g]').forEach(function (i) { i.value = (S[i.dataset.g] || {})[i.dataset.k] || ''; });
+  document.querySelectorAll('[data-scope]').forEach(function (i) { i.checked = !!S.scope[i.dataset.scope]; });
+}
+function rowOf(t) { var li = t.closest('.row'); return li ? li.dataset.key : null; }
+document.addEventListener('input', function (e) {
+  var t = e.target;
+  if (t.type === 'checkbox') return; // ticks are read on 'change', after the browser has applied them
+  if (t.dataset && t.dataset.g) { S[t.dataset.g][t.dataset.k] = t.value; paint(); return; }
+  if (t.id === 'letter-text') { if (S.open) { S.letters[S.open] = { text: t.value }; t.dataset.shown = 'mine:' + S.open; $('#l-rebuild').hidden = false; $('#letter-missing').hidden = true; paintBlanks(t.value); grow(t); } return; }
+  var key = t.dataset && t.dataset.f && rowOf(t);
+  if (!key) return;
+  var o = S.over[key] = S.over[key] || {}, f = t.dataset.f, v = t.value;
+  if (f === 'party' || f === 'owner') o[f] = v;
+  else if (f === 'lead' || f === 'offset') { var n = v === '' ? null : clamp(v, 0, f === 'lead' ? 365 : 600); if (n === null) delete o[f]; else o[f] = n; }
+  else if (f === 'due' || f === 'time') { if (v === '') delete o[f]; else o[f] = v; }
+  paint();
+});
+document.addEventListener('change', function (e) {
+  var t = e.target;
+  if (t.dataset && t.dataset.scope) { S.scope[t.dataset.scope] = t.checked; paint(); return; }
+  if (t.dataset && t.dataset.f === 'on') { var k = rowOf(t); if (k) { (S.over[k] = S.over[k] || {}).on = t.checked; paint(); } return; }
+  if (t.dataset && t.dataset.doc !== undefined && S.open) { var s = S.docs[S.open] = S.docs[S.open] || {}; s[t.dataset.doc] = t.checked; paint(); return; }
+  if (t.id === 'letter-date') { S.letterDate = RDA.isDate(t.value) ? t.value : TODAY; paint(); }
+});
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  var act = b.dataset.act, key = rowOf(b);
+  if (act === 'open') { if (S.open === key) closeLetter(); else openLetter(key); }
+  else if (act === 'note') { var r = ROWS.filter(function (x) { return x.key === key; })[0]; r.note.hidden = !r.note.hidden; b.setAttribute('aria-expanded', r.note.hidden ? 'false' : 'true'); }
+  else if (act === 'follow') { var o = S.over[key]; if (o) { delete o.due; delete o.time; } paint(); }
+  else if (b.id === 'l-close') closeLetter();
+  else if (b.id === 'l-rebuild') { delete S.letters[S.open]; $('#letter-text').dataset.shown = ''; paint(); toast('Letter rebuilt from the details'); }
+  else if (b.id === 'l-copy') {
+    var ta = $('#letter-text');
+    var fallback = function () { ta.focus(); ta.select(); toast('Press Ctrl+C (Cmd+C on a Mac) to copy'); };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(function () { toast('Letter copied'); }, fallback); else fallback(); } catch (x) { fallback(); }
+  }
+  else if (b.id === 'b-sample') { load(sample()); fillForm(); closeLetter(); paint(); openLetter('police'); toast('Sample details loaded'); }
+  else if (b.id === 'b-clear') { load(blank()); fillForm(); paint(); toast('All details cleared. Letters now show what is missing.'); }
+});
+
+document.addEventListener('focusout', function () { setTimeout(paint, 0); });
+
+/* ---------- start ---------- */
+try { if (window.matchMedia && window.matchMedia('(max-width:1039px)').matches) document.querySelectorAll('details.fold').forEach(function (d) { d.open = false; }); } catch (x) { /* keep them open */ }
+load(sample());
+fillForm();
+paint();
+openLetter('police');
+window.__RDA = { S: S, RDA: RDA };
+})();
+</script>
