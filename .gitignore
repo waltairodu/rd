@@ -1,2 +1,5 @@
 node_modules/
 *.test.mjs
+__pycache__/
+dist/
+tests/last-run.json

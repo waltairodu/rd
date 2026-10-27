@@ -1,0 +1,30 @@
+# Regression baseline: the number of checks each suite passed at the last release (2026-10-27, Package 1: Expo inside RaceOS).
+# tests/all.sh fails if any suite now passes fewer checks than listed here, or if any check fails.
+# Update a number only when checks were removed on purpose.
+scen.mjs 97
+ui.mjs 45
+director.mjs 209
+plan.mjs 98
+dash.mjs 38
+dash-ui.mjs 15
+expo-int.mjs 65
+ai.mjs 77
+bibs-ai-ui.mjs 27
+director-ui.mjs 73
+plan-ui.mjs 51
+coaching-ui.mjs 15
+pagecode.mjs 65
+training.mjs 130
+training-ui.mjs 37
+training-ai.mjs 32
+rd-ui.mjs 58
+approvals.mjs 228
+approvals-ui.mjs 60
+preview-ui.mjs 48
+unit-auth.mjs 122
+unit-team.mjs 249
+integration-flow.mjs 100
+integration-ui.mjs 47
+pentest.mjs 422
+pentest-ui.mjs 131
+security.mjs 149

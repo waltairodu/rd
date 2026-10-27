@@ -11,13 +11,14 @@ Command centre, volunteers (public sign-up, approval, shifts, check-in and hours
 | Lead (role `lead`) | `/director` | Volunteers, race day, pacers, safety. No creating races, no deleting. |
 | Viewer (role `viewer`) | `/director` | Look only. For sponsors and partners. |
 
-Logins are the rows you already keep in the CMS collection **ExpoStaff** (username, password, role). A login with role `desk` works only on the Expo desk.
+There is **one login for everything**, made on the **Team** screen (they are rows of the CMS collection ExpoStaff behind it; nobody edits those by hand). A login with role `desk` works only on the Expo desk and lands there after logging in. Passwords are stored hashed; a new login gets a generated PIN (desk) or password (others), shown once.
 
 ## Files
 
 | File | Where it goes |
 | --- | --- |
 | `racedir.web.js` | Code panel, Backend, a web module named `racedir.web.js` |
+| `rd-auth.js` | Code panel, Backend, a plain file named `rd-auth.js` (not .web.js). Passwords, PINs and roles; all three backends import it |
 | `rd-approvals.js` | Code panel, Backend, a plain file named `rd-approvals.js` (not .web.js). Approvals library and letter writer; `racedir.web.js` imports it |
 | `ai-core.js` | Code panel, Backend, a plain file named `ai-core.js`; `racedir.web.js` imports it |
 | `director-embed.html` | HTML embed on the **Director** page, element ID `dirFrame` |
@@ -25,7 +26,7 @@ Logins are the rows you already keep in the CMS collection **ExpoStaff** (userna
 | `volunteer-embed.html` | HTML embed on the **Volunteer** page, element ID `volFrame` |
 | `volunteer-page-code.js` | That page's code panel |
 
-Your Expo files and the findmybib files are not changed.
+`exposoft.web.js` (the Expo desk's server side) is also needed in the Backend: the page sends the desk's calls to it. See docs/SETUP.md for the whole pack.
 
 ## Setup (about 20 minutes)
 
@@ -37,7 +38,7 @@ Your Expo files and the findmybib files are not changed.
 6. Open `/director`. Under **First-time setup (owner only)** enter the setup key and, only if you have no logins yet, a new admin name and password. It creates the Director collections (locked to Admin). It never changes existing logins.
 7. Log in, open **Setup**, create the race. Fill **Expo race ID** with the Import collection of that race (for example `Import910`) so the Overview shows live check-in, bib and T-shirt counts from the Expo desk.
 8. Open **Volunteers**, add shifts, then copy the sign-up link. If your volunteer page is not at `https://www.vtra.run/volunteer`, edit the address in the box once; it is remembered in that browser.
-9. Add lead and viewer logins in ExpoStaff (role column).
+9. Add everyone's login on the **Team** screen (Add a login). Nothing is typed into the CMS.
 
 ## Race-day use
 
@@ -65,7 +66,7 @@ Your Expo files and the findmybib files are not changed.
 
 ## Tests
 
-From the repository root: `tests/all.sh`. It runs every suite (19 files, about 1,370 checks): Expo, Director backend and screens, planning, dashboard, AI, Expo integration, training, page code and the approvals template. Cases include two people taking the last spot, a lead trying to delete, a viewer trying to change something, a volunteer name containing HTML, and a race moved to a new date.
+From the repository root: `sh tests/all.sh`. It runs every suite once and writes `docs/TESTING.md`: unit, penetration, integration, security and regression results by kind, plus the mutation spot-checks (`python3 tests/mutants.py`). Cases include two people taking the last spot, two desks handing over the same bib, a lead trying to delete, a viewer trying to change something, a stolen or forged token, 60 password guesses sent at the same instant, a volunteer name containing HTML, and a race moved to a new date.
 
 ## Qualification checks (new)
 - Tab **Qualification**. The director sets rules per category in one text box, one line each:
@@ -83,14 +84,22 @@ From the repository root: `tests/all.sh`. It runs every suite (19 files, about 1
 - Shows counts per ticket, who has no size, and (when the race is linked to its Expo race) who is registered but not yet in the findmybib/Expo list, matched by phone or email. CSV download.
 - Needs the Wix Events app on the site. Never run on a live site yet: the first Import is the real test. Send me any error text.
 
-## Expo desk inside /rd (new)
-The /rd page now holds the Expo desk too, behind the same login.
-- Paste **`rd-embed.html`** (not `director-embed.html`) into the /rd page. It is the Director page with the Expo desk built in (about 145 KB). Use **`director-page-code.js`** as before: it now also needs the `exposoft.web.js` backend file, because the Expo desk's calls are routed to it.
-- **Director or admin logins** see an **Expo desk** tab next to Setup. The desk signs in by itself with the same login (admins still pick a desk). Leads and viewers do not get the tab.
-- **Desk logins** (the existing Expo staff, locked to a desk and race) type their login at /rd and go straight to the Expo desk; they never see the Director. Everything the Expo desk enforces (locked T-shirt size, role per desk, selfie, one login per desk) is unchanged, because it is the same Expo code and backend.
-- Logging out of /rd also ends the Expo session.
-- `director-embed.html` is the source. After changing it or `wix/expo/exposoft-embed.html`, run `python3 tools/build_rd.py` to rebuild `rd-embed.html` (the tests do this too).
-- The stand-alone Expo page keeps working, so you can keep it as a fallback, or if Wix refuses a page that large, keep using `director-embed.html` on /rd and the stand-alone Expo page.
+## Expo desk inside RaceOS (the BIB & Expo tab)
+The /rd page holds the Expo desk behind the same login. There is no separate Expo page or login.
+- Paste **`rd-embed.html`** (not `director-embed.html`) into the /rd page: it is the RaceOS page with the Expo desk built in. Use **`director-page-code.js`**, which needs the `racedir.web.js`, `exposoft.web.js` and `training.web.js` backend modules.
+- **Directors** see the **BIB & Expo** tab. The desk signs in by itself with the same login (a director still picks a desk).
+- **Desk logins** (made on the Team screen, locked to a desk and a race) type their login at /rd and land on their desk; they never see RaceOS. Leads, viewers and coaches get no desk (`not_allowed`).
+- Desk rules (locked T-shirt size, role per desk, selfie, one login per desk, one winner when two desks hand over the same item) are enforced in `exposoft.web.js`.
+- Logging out of /rd ends the session everywhere. The desk frame never holds a login token: the page adds it, and only that frame can ask it to call the backend.
+- `director-embed.html` is the source. After changing it or `wix/expo/exposoft-embed.html`, run `python3 tools/build_rd.py` to rebuild `rd-embed.html` (the tests and `tools/make_pack.py` do this too).
+
+## Team: logins and roles
+**Team** (Admin group, directors only). One row per login with role, desk(s), race, whether someone is at a desk now, and whether it is locked.
+- **Add a login**: name, username (3 to 30 letters, digits, dots, dashes), role, and for desk staff the desk(s) and race. A PIN (6 digits, desk) or password (10 characters, others) is generated and shown once. A password you type yourself must be 6 to 72 characters and not a common one.
+- **New PIN / New password**, **Sign out**, **Remove**, and change a login's role, desk or race. Any change to role, desk, race or password ends that person's other sessions at once. You cannot remove or demote yourself.
+- Five wrong tries lock a login for ten minutes, at RaceOS and at the coach login together; even a burst of guesses sent at the same moment gets only five looks. A new password or PIN clears the lock.
+- A short log of who changed what is shown at the bottom (never a password).
+- Methods: `listTeam`, `saveTeam`, `resetTeamSecret`, `signOutTeam`, `removeTeam` (all director only).
 
 ## Planning: tasks, money, approvals, ceremonies, logistics (new)
 Five tabs hold everything a race director tracks, all in one collection, **RDPlan** (created automatically at the first login after you publish; if you prefer to make it by hand, give it these text columns: event, kind, title, cat, phase, status, owner, party, contact, due, time, amount, amount2, ref, link, notes, order, by, at, tpl, lead, offset, docsDone, and make it Admin-only; the last four are optional hidden columns used by the approvals template).

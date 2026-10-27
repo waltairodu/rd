@@ -15,11 +15,11 @@ function pickFrame(byId) {
 }
 
 
-const ALLOWED = ['health', 'login', 'logout', 'whoami', 'ensureSetup', 'listEvents', 'saveEvent', 'listShifts', 'saveShift', 'removeShift', 'listVolunteers', 'setVolunteerStatus', 'setVolunteerNote', 'addVolunteer', 'assignShift', 'unassignShift', 'volunteerCheck', 'listRun', 'saveRunItem', 'removeRunItem', 'listLog', 'addLog', 'closeLog', 'listPacers', 'savePaceGroups', 'savePacer', 'removePacer', 'listChecklist', 'toggleCheck', 'addCheck', 'removeCheck', 'overview', 'listQuals', 'saveQualRules', 'saveQualClaim', 'decideQual', 'listWixEvents', 'linkWixEvent', 'wixFormFields', 'saveWixMap', 'importRegs', 'listRegs', 'saveCats', 'dashboard', 'racesSummary', 'listPlan', 'savePlanItem', 'setPlanStatus', 'removePlanItem', 'seedPlanLists', 'expoRaces', 'saveBibPlan', 'assignBibs', 'setBib', 'sendToExpo', 'expoSummary', 'aiStatus', 'aiForecastNow', 'aiBriefing', 'aiAsk', 'aiDraftKinds', 'aiDraft', 'eventInfo', 'saveEventInfo', 'approvalTemplate', 'applyApprovalTemplate', 'approvalLetter', 'setApprovalDoc'];
+const ALLOWED = ['health', 'login', 'logout', 'whoami', 'ensureSetup', 'listEvents', 'saveEvent', 'listShifts', 'saveShift', 'removeShift', 'listVolunteers', 'setVolunteerStatus', 'setVolunteerNote', 'addVolunteer', 'assignShift', 'unassignShift', 'volunteerCheck', 'listRun', 'saveRunItem', 'removeRunItem', 'listLog', 'addLog', 'closeLog', 'listPacers', 'savePaceGroups', 'savePacer', 'removePacer', 'listChecklist', 'toggleCheck', 'addCheck', 'removeCheck', 'overview', 'listQuals', 'saveQualRules', 'saveQualClaim', 'decideQual', 'listWixEvents', 'linkWixEvent', 'wixFormFields', 'saveWixMap', 'importRegs', 'listRegs', 'saveCats', 'dashboard', 'racesSummary', 'listPlan', 'savePlanItem', 'setPlanStatus', 'removePlanItem', 'seedPlanLists', 'expoRaces', 'saveBibPlan', 'assignBibs', 'setBib', 'sendToExpo', 'expoSummary', 'aiStatus', 'aiForecastNow', 'aiBriefing', 'aiAsk', 'aiDraftKinds', 'aiDraft', 'eventInfo', 'saveEventInfo', 'approvalTemplate', 'applyApprovalTemplate', 'approvalLetter', 'setApprovalDoc', 'listTeam', 'saveTeam', 'resetTeamSecret', 'signOutTeam', 'removeTeam'];
 
-// The Expo desk is shown inside this page. Its calls arrive tagged mod:'expo' and go to the Expo backend,
-// with the same method list as the stand-alone Expo page.
-const EXPO_ALLOWED = ['health', 'login', 'logout', 'whoami', 'chooseDesk', 'loadPage', 'loadSince', 'issue', 'getPickup', 'revert', 'addRunner', 'importRunners', 'removeSample', 'saveConfig', 'listEvents', 'ensureSetup', 'previewFindMyBib', 'syncFromFindMyBib'];
+// The Expo desk is shown inside this page and has no login of its own. Its calls arrive tagged mod:'expo', with the
+// session token of the RaceOS login added by the page, and go to the Expo backend. There is no login, logout or setup here.
+const EXPO_ALLOWED = ['health', 'enter', 'whoami', 'chooseDesk', 'loadPage', 'loadSince', 'issue', 'getPickup', 'revert', 'addRunner', 'importRunners', 'removeSample', 'saveConfig', 'listEvents', 'previewFindMyBib', 'syncFromFindMyBib'];
 
 // The Coaching tab calls these Training methods, tagged mod:'train'. Staff sessions are shared, so the same login works.
 const TRAIN_ALLOWED = ['listAthletes', 'listCoaches', 'assignCoach', 'declineCoaching', 'stopCoaching'];
@@ -50,6 +50,10 @@ $w.onReady(function () {
         return;
       }
       if (EXPO_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+      if (typeof expo[msg.method] !== 'function') {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+        return;
+      }
       try {
         const result = await expo[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
@@ -60,6 +64,10 @@ $w.onReady(function () {
     }
     if (msg.mod === 'train') {
       if (TRAIN_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+      if (typeof train[msg.method] !== 'function') {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+        return;
+      }
       try {
         const result = await train[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });

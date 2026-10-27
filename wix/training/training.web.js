@@ -8,12 +8,23 @@
 //                ("0" means free for now); no payment is taken here.
 //
 // Athletes log in with mobile number + a PIN (salted hash, never stored plain). Staff use the same ExpoStaff logins as
-// the Expo desk and Director: role  admin or director (everything), coach (only their own athletes).
-import { Permissions, webMethod } from 'wix-web-module';
+// the Director (made on RaceOS's Team screen): role  admin or director (everything), coach (only their own athletes).
+import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
 import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
+import { checkPassword, hashPassword, needsUpgrade, newToken, kindOf, tidyError, takeSlot, freeSlots, slotKey } from './rd-auth.js';
+
+// Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
+const webMethod = (permission, fn) =>
+  wixWebMethod(permission, async (arg) => {
+    try {
+      return await fn(arg);
+    } catch (e) {
+      throw tidyError(e, 'training');
+    }
+  });
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -25,6 +36,8 @@ const ENR = 'TrainEnroll';
 const SESN = 'TrainSessions';
 const MSG = 'TrainMsgs';
 const RATE = 'RDRate';
+const LOGIN_TRIES = 5;
+const LOGIN_WINDOW_MS = 10 * 60000;
 const SETTINGS_ID = 'settings';
 
 // Choose your own secret. It is asked on setup so that only you can create the collections.
@@ -55,11 +68,6 @@ const addDays = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).
 const dow = (d) => (new Date(d + 'T00:00:00Z').getUTCDay() + 6) % 7; // Monday = 0
 const weekStart = (d) => addDays(d, -dow(d));
 
-function newToken() {
-  let t = '';
-  for (let k = 0; k < 6; k++) t += Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0');
-  return t + Date.now().toString(16);
-}
 function same(a, b) {
   const x = String(a);
   const y = String(b);
@@ -175,12 +183,19 @@ async function all(q) {
 
 /* ---------- staff logins ---------- */
 const roleOf = (u) => {
-  const r = lc(u.role || u.Role);
-  return r === 'admin' || r === 'director' ? 'director' : r === 'coach' ? 'coach' : 'none';
+  const k = kindOf(u);
+  return k === 'director' ? 'director' : k === 'coach' ? 'coach' : 'none';
 };
+// Every login, however many there are (read a page at a time, so no login is ever out of sight).
 async function staffRows() {
   try {
-    return (await wixData.query(STAFF).limit(200).find(SA)).items;
+    const out = [];
+    for (let skip = 0; skip < 5000; skip += MAXROWS) {
+      const r = await wixData.query(STAFF).ascending('_id').skip(skip).limit(MAXROWS).find(SA);
+      out.push(...r.items);
+      if (r.items.length < MAXROWS) break;
+    }
+    return out;
   } catch (e) {
     throw new Error('setup_needed');
   }
@@ -202,18 +217,52 @@ async function sauth(arg, need) {
   if (need === 'manage' && role !== 'director') throw new Error('director_only');
   return { role, name: String(u.name || unameOf(u)), username: String(unameOf(u)) };
 }
+// Writes login bookkeeping (failure count, lock, password upgrade) onto the row as it is NOW, not onto the copy read a
+// moment ago, so a change made on the Team screen in between is never undone. A password upgrade is applied only if the
+// stored password is still the one that was read (a reset made in between wins).
+async function patchStaff(u, patch) {
+  const fresh = await wixData.get(STAFF, u._id, SA).catch(() => null);
+  if (!fresh) return;
+  const p = Object.assign({}, patch);
+  if (p.password !== undefined && String(fresh.password || '') !== String(u.password || '')) delete p.password;
+  if (!Object.keys(p).length) return;
+  await wixData.update(STAFF, Object.assign({}, fresh, p), SA);
+}
+// Checked against when the username does not exist, so a wrong username takes as long to refuse as a wrong password.
+const DUMMY_HASH = 'h1$0123456789abcdef$0000000000000000000000000000000000000000000000000000000000000000';
 export const tLogin = webMethod(Permissions.Anyone, async (arg) => {
-  const username = lc(arg && arg.username);
-  const password = String((arg && arg.password) || '');
+  // Only plain text is accepted. An array or object in either field is a wrong login, never turned into text.
+  const typed = !!arg && typeof arg.username === 'string' && typeof arg.password === 'string';
+  const username = typed ? lc(arg.username) : '';
+  const password = typed ? arg.password : '';
   const u = (await staffRows()).find((r) => lc(unameOf(r)) === username);
-  if (!u || !username || !password) throw new Error('bad_login');
+  if (!u || !username || !password) {
+    checkPassword(DUMMY_HASH, password || 'x');
+    throw new Error('bad_login');
+  }
   if (u.lockUntil && Date.parse(u.lockUntil) > Date.now()) throw new Error('locked');
-  if (!(String(u.password || '') !== '' && same(u.password, password))) {
+  // Only a few tries can be under way at the same moment, however fast they are sent (the same slots as the RaceOS login,
+  // so tries at either login add up).
+  const gate = slotKey('att', unameOf(u));
+  let slot = '';
+  try {
+    slot = await takeSlot(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  } catch (e) {
+    throw new Error('setup_needed');
+  }
+  if (!slot) throw new Error('locked');
+  if (!checkPassword(u.password, password)) {
     const fails = int(u.failCount) + 1;
-    await wixData.update(STAFF, Object.assign({}, u, fails >= 5 ? { failCount: '0', lockUntil: new Date(Date.now() + 10 * 60000).toISOString() } : { failCount: String(fails) }), SA);
+    await patchStaff(u, fails >= 5 ? { failCount: '0', lockUntil: new Date(Date.now() + 10 * 60000).toISOString() } : { failCount: String(fails) });
     throw new Error(fails >= 5 ? 'locked' : 'bad_login');
   }
-  if (u.failCount || u.lockUntil) await wixData.update(STAFF, Object.assign({}, u, { failCount: '0', lockUntil: '' }), SA);
+  await freeSlots(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  // A good login clears the failures, and replaces a password typed by hand in the CMS with its hash.
+  // (A row with no failures to clear is not written at all.)
+  const patch = {};
+  if ((u.failCount && u.failCount !== '0') || u.lockUntil) Object.assign(patch, { failCount: '0', lockUntil: '' });
+  if (needsUpgrade(u.password)) patch.password = hashPassword(password);
+  if (Object.keys(patch).length) await patchStaff(u, patch);
   const role = roleOf(u);
   if (role === 'none') throw new Error('not_allowed');
   await ensureCollections();
@@ -434,11 +483,21 @@ export const athleteLogin = webMethod(Permissions.Anyone, async (arg) => {
   }
   if (!a || !pin) throw new Error('bad_login');
   if (a.lockUntil && Date.parse(a.lockUntil) > Date.now()) throw new Error('locked');
+  // A six-digit PIN can be guessed in a million tries, so only a few may be under way at once, however fast they are sent.
+  const gate = slotKey('ath', a.phone);
+  let slot = '';
+  try {
+    slot = await takeSlot(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  } catch (e) {
+    throw new Error('setup_needed');
+  }
+  if (!slot) throw new Error('locked');
   if (!same(hashPin(pin, a.salt), a.pinHash)) {
     const fails = int(a.failCount) + 1;
     await wixData.update(ATH, Object.assign({}, a, fails >= 5 ? { failCount: '0', lockUntil: new Date(Date.now() + 10 * 60000).toISOString() } : { failCount: String(fails) }), SA);
     throw new Error(fails >= 5 ? 'locked' : 'bad_login');
   }
+  await freeSlots(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
   if (a.failCount !== '0' || a.lockUntil) await wixData.update(ATH, Object.assign({}, a, { failCount: '0', lockUntil: '' }), SA);
   return { token: await newAthleteToken(a), athlete: athOut(a) };
 });
@@ -451,7 +510,17 @@ export const athleteLogout = webMethod(Permissions.Anyone, async (arg) => {
 });
 export const changePin = webMethod(Permissions.Anyone, async (arg) => {
   const a = await aauth(arg);
+  // The old PIN is asked for, so a session token alone cannot change it: tries at it are limited like the login.
+  const gate = slotKey('ath', a.phone);
+  let slot = '';
+  try {
+    slot = await takeSlot(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  } catch (e) {
+    throw new Error('setup_needed');
+  }
+  if (!slot) throw new Error('locked');
   if (!same(hashPin(String(arg.oldPin || ''), a.salt), a.pinHash)) throw new Error('bad_login');
+  await freeSlots(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
   if (!/^\d{6}$/.test(String(arg.newPin || ''))) throw new Error('bad_pin');
   const salt = newToken().slice(0, 16);
   await wixData.update(ATH, Object.assign({}, a, { salt, pinHash: hashPin(String(arg.newPin), salt) }), SA);
@@ -861,9 +930,25 @@ async function ensureCollections() {
   checked = true;
 }
 // Creates the Training collections and the three starter plans. Needs SETUP_KEY.
+const setupMisses = new Map();
 export const ensureTrainSetup = webMethod(Permissions.Anyone, async (arg) => {
   if (SETUP_KEY === 'change-this-key') throw new Error('Edit SETUP_KEY at the top of training.web.js first');
+  // Ten tries an hour, however fast they are sent. Before the first setup the collection for the slots may not exist
+  // yet, so then this server's own count is used.
+  const hour = new Date().toISOString().slice(0, 13);
+  let slot = '';
+  try {
+    slot = await takeSlot(wixData, RATE, 'tsetup', 10, 3600000, SA);
+  } catch (e) {
+    const n = setupMisses.get(hour) || 0;
+    setupMisses.set(hour, n + 1);
+    slot = n < 10 ? 'memory' : '';
+  }
+  if (!slot) throw new Error('busy_try_later');
   if (!arg || !same(String(arg.key || ''), SETUP_KEY)) throw new Error('Wrong setup key');
+  // Only wrong keys use up the tries: the owner running the setup again is not held back.
+  if (slot === 'memory') setupMisses.set(hour, Math.max(0, (setupMisses.get(hour) || 1) - 1));
+  else await wixData.bulkRemove(RATE, [slot], SA).catch(() => null);
   checked = false;
   const notes = await makeCollections();
   let seeded = 0;

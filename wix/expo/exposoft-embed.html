@@ -223,27 +223,14 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline
   <div class="card gatebox">
     <div class="eyebrow">Expo desk</div>
     <h1>Race expo</h1>
-    <form id="loginForm" autocomplete="on">
-      <div class="field"><label for="lgUser">Username</label><input id="lgUser" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></div>
-      <div class="field"><label for="lgPass">Password</label><input id="lgPass" type="password" autocomplete="current-password" required></div>
-      <div class="row"><button type="submit" class="btn primary" id="lgBtn">Log in</button><span class="msg" id="lgMsg"></span></div>
-    </form>
-    <p class="note" id="lgDiag" hidden style="margin-top:10px;color:var(--bad,#a3261a)"></p>
+    <p class="note" id="gateMsg" role="status" aria-live="polite"></p>
     <form id="pickForm" hidden>
       <p class="note" id="pickHi" style="margin-bottom:12px"></p>
       <div class="field"><label for="pkRace">Race</label><select id="pkRace"></select></div>
       <div class="field"><label for="pkDesk">Desk</label><select id="pkDesk"></select></div>
-      <div class="row"><button type="submit" class="btn primary" id="pkBtn">Start</button><button type="button" class="btn" data-act="logout">Log out</button><span class="msg" id="pkMsg"></span></div>
+      <div class="row"><button type="submit" class="btn primary" id="pkBtn">Start</button><span class="msg" id="pkMsg"></span></div>
     </form>
-    <details class="more" id="firstSetup"><summary>First-time setup (owner only)</summary>
-      <form id="setupForm" autocomplete="off">
-        <p class="note" style="margin:8px 0 12px">Creates the database and the first admin login. Needs the setup key you put in <b>expo.web.js</b>.</p>
-        <div class="field"><label for="fsKey">Setup key</label><input id="fsKey" type="password" autocomplete="off"></div>
-        <div class="field"><label for="fsUser">Admin username</label><input id="fsUser" type="text" autocomplete="off" autocapitalize="off"></div>
-        <div class="field"><label for="fsPass">Admin password</label><input id="fsPass" type="password" autocomplete="new-password"></div>
-        <div class="row"><button type="submit" class="btn">Create database</button><span class="msg" id="fsMsg"></span></div>
-      </form>
-    </details>
+    <div class="row" id="gateRetry" hidden><button type="button" class="btn" data-act="retry-enter">Try again</button></div>
   </div>
 </div>
 <div class="app" id="app" hidden>
@@ -257,7 +244,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline
         <label class="deskin" for="raceSel">Race <select id="raceSel" aria-label="Race"><option value="">Loading…</option></select></label>
         <label class="deskin" for="deskName">Desk <input id="deskName" readonly type="text" maxlength="20" placeholder="Desk 1" autocomplete="off"></label>
         <span class="live wait" id="live"><span class="dot"></span><span id="liveTxt">Connecting</span></span>
-        <button type="button" class="btn sm" data-act="change-desk">Change race or desk</button><button type="button" class="btn sm" data-act="logout">Log out</button>
+        <button type="button" class="btn sm" data-act="change-desk">Change race or desk</button>
       </div>
     </div>
     <nav class="tabs" role="tablist" aria-label="Sections">
@@ -339,9 +326,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline
           </form>
         </div>
         </details>
-        <div class="card" id="prepCard">
+        <div class="card" id="prepCard" hidden>
           <h2 class="h">Staff logins</h2>
-          <p class="note">Logins are kept in the Wix CMS, in the <b>ExpoStaff</b> collection. Add one row per person: <b>username</b>, <b>password</b>, <b>role</b> (admin or desk). The three desks are fixed in the software: Desk 1 - BIB, Desk 2 - Tshirt, Desk 3 - Misc. Leave <b>desk</b> empty to let that login choose any desk, or enter 1, 2 or 3 (several separated by commas) to limit it. Delete the row to remove access.</p>
+          <p class="note">Desk logins are made on the <b>Team</b> screen of RaceOS: one login per desk, with its desk and race. There is no separate Expo login. The three desks are fixed: Desk 1 - BIB, Desk 2 - Tshirt, Desk 3 - Misc.</p>
+          <div class="row"><button type="button" class="btn" data-act="open-team">Open Team</button></div>
         </div>
         <div class="card">
           <h2 class="h">Export</h2>
@@ -368,7 +356,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
 var S={tab:'desk',q:'',sel:null,pick:{check:true,bib:true,shirt:true,size:null},runners:[],byId:new Map(),
-  cfg:{name:'',bibLot:0,shirtLot:{},example:false},token:'',me:null,ev:'',events:[],live:false,err:null,canWrite:false,canAdmin:false,since:'',label:'',notStaff:false,setup:false,ready:false,
+  cfg:{name:'',bibLot:0,shirtLot:{},example:false},me:null,ev:'',events:[],live:false,err:null,canWrite:false,canAdmin:false,since:'',label:'',notStaff:false,setup:false,ready:false,
   desk:'',busy:false,lastOp:null,armed:null,D:null,imp:null,cfgDirty:false,importing:false,pickups:{}};
 function newPickup(){return {by:'self',friendName:'',friendPhone:'',selfie:''}}
 S.pickup=newPickup();
@@ -397,23 +385,23 @@ function normSize(v){
   return SIZES.indexOf(s)>=0?s:''
 }
 
-/* ---------- bridge to the Wix page code ---------- */
+/* ---------- bridge to RaceOS ---------- */
+// There is no login here. The RaceOS page this desk sits in holds the session and adds it to every call, so nothing
+// in this frame ever sees or sends a token.
 var pending={},seq=0;
 window.addEventListener('message',function(e){
   var m=e.data;
-  // The Race Director shell logs the person in here with the login they just typed, and logs out with it.
-  if(m&&m.kind==='autologin'&&m.username&&$('#lgUser')&&!S.token){$('#lgUser').value=String(m.username);$('#lgPass').value=String(m.password||'');doLogin({preventDefault:function(){}});return}
-  if(m&&m.kind==='shell-logout'){try{sessionStorage.removeItem('expo-token')}catch(x){}if(S.token)api('logout').catch(function(){});S.token='';return}
+  if(e.source!==window.parent)return; /* only the RaceOS page that holds this desk may answer it */
   if(!m||m.kind!=='result'||!pending[m.id])return;
   var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);
-  if(m.ok)p.res(m.result);else{if((m.error==='not_logged_in'||m.error==='desk_busy')&&S.canWrite)forceLogin(m.error);p.rej(new Error(m.error||'failed'))}
+  if(m.ok)p.res(m.result);else{if((m.error==='not_logged_in'||m.error==='desk_busy')&&S.canWrite)forceGate(m.error);p.rej(new Error(m.error||'failed'))}
 });
 function api(method,arg,ms){
   return new Promise(function(res,rej){
     var id=++seq;
     var t=setTimeout(function(){delete pending[id];rej(new Error('timeout'))},ms||30000);
     pending[id]={res:res,rej:rej,t:t};
-    var a=Object.assign({ev:S.ev,token:S.token},arg||{});window.parent.postMessage({kind:'call',id:id,method:method,arg:a},'*');
+    var a=Object.assign({ev:S.ev},arg||{});window.parent.postMessage({kind:'call',id:id,method:method,arg:a},'*');
   });
 }
 
@@ -512,8 +500,7 @@ function renderAll(){
 }
 function renderBanner(){
   var b=$('#banner'),msg='',act='';
-  if(S.notStaff){msg=S.setup?'The database has not been created yet. The site owner can create it now.':'You are logged in, but this login is not on the staff list. Ask the site owner to add your email to the ExpoStaff collection.';if(S.setup)act='<button type="button" class="btn sm" data-act="prepare">Create database</button>'}
-  else if(S.err&&S.ready)msg='Connection problem. Changes may not save until it is back; the desk keeps retrying.';
+  if(S.err&&S.ready)msg='Connection problem. Changes may not save until it is back; the desk keeps retrying.';
   else if(S.D&&S.D.examples>0){msg='Sample data is loaded. Replace it in Setup before the expo opens.';act='<button type="button" class="link" data-act="tab" data-tab="setup">Open Setup</button>'}
   if(!msg){b.hidden=true;setHTML(b,'');return}
   b.hidden=false;setHTML(b,'<span>'+esc(msg)+'</span>'+act);
@@ -546,9 +533,11 @@ function undoBtn(item){
   var key='p:'+item,on=S.armed===key;
   return '<button type="button" class="btn sm'+(on?' armed':'')+'" data-act="undo-item" data-item="'+item+'"'+(writable()?'':' disabled')+'>'+(on?'Tap again to undo':'Undo')+'</button>'
 }
+// A selfie is shown only if it really is a small JPEG/PNG/WebP data address; anything else (even from the database) is not put in the page.
+function imgSrc(s){s=String(s||'');return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(s)?s:''}
 function pkLine(p,title){
   if(!p)return '';
-  return '<div class="pkdone">'+(p.selfie?'<img class="selfie sm" alt="Selfie" src="'+p.selfie+'">':'')+'<div><b>'+title+': '+(p.by==='friend'?'collected by a friend':'collected by the runner')+'</b><small>'+(p.by==='friend'?esc(p.friendName)+(p.friendPhone?' · '+esc(p.friendPhone):'')+' · ':'')+esc(p.desk||'')+' · '+esc(when(p.at))+' · verified by selfie</small></div></div>';
+  return '<div class="pkdone">'+(imgSrc(p.selfie)?'<img class="selfie sm" alt="Selfie" src="'+imgSrc(p.selfie)+'">':'')+'<div><b>'+title+': '+(p.by==='friend'?'collected by a friend':'collected by the runner')+'</b><small>'+(p.by==='friend'?esc(p.friendName)+(p.friendPhone?' · '+esc(p.friendPhone):'')+' · ':'')+esc(p.desk||'')+' · '+esc(when(p.at))+' · verified by selfie</small></div></div>';
 }
 function pickedBy(r){
   var p=S.pickups[r.id];if(!p)return '';
@@ -629,7 +618,7 @@ function renderPanel(){
       (pk.by==='friend'?'<input type="text" id="pkName" data-pk="friendName" autocomplete="off" placeholder="Friend\'s full name" value="'+esc(pk.friendName)+'"><input type="tel" id="pkPhone" data-pk="friendPhone" inputmode="tel" autocomplete="off" placeholder="Friend\'s phone (optional)" value="'+esc(pk.friendPhone)+'">':'')+
       '<span class="lbl">Verify with</span>'+
       '<div class="seg"><button type="button" aria-pressed="true">Selfie</button><button type="button" disabled title="Needs an SMS service">SMS OTP (not set up)</button></div>'+
-      '<div class="pkrow">'+(pk.selfie?'<img class="selfie" alt="Selfie of the person collecting" src="'+pk.selfie+'">':'')+
+      '<div class="pkrow">'+(imgSrc(pk.selfie)?'<img class="selfie" alt="Selfie of the person collecting" src="'+imgSrc(pk.selfie)+'">':'')+
       '<button type="button" class="btn'+(pk.selfie?'':' primary')+'" data-act="pk-selfie"'+(canW?'':' disabled')+'>'+(pk.selfie?'Retake selfie':'Take selfie')+'</button></div>'+
       '<p class="note">Selfie of the person collecting'+((S.pick.check&&!r.checkedIn)&&(S.pick.shirt&&!r.shirtIssued)?' the bib and T-shirt':(S.pick.shirt&&!r.shirtIssued)?' the T-shirt (compare with the check-in selfie above)':' the bib')+'. Check the face with the person in front of you.</p></div>';
   }
@@ -723,6 +712,7 @@ function fillSetup(force){
 }
 function renderSetupLive(){
   var admin=S.canAdmin&&S.live,canW=writable();
+  var pc=$('#prepCard');if(pc)pc.hidden=!S.canAdmin;
   ['cfgName','cfgBib','saveCfg'].forEach(function(id){$('#'+id).disabled=!admin});
   Array.prototype.forEach.call(document.querySelectorAll('#cfgSizes input'),function(i){i.disabled=!admin});
   $('#csv').disabled=!admin;$('#csvFile').disabled=!admin;
@@ -919,19 +909,11 @@ async function refreshRaces(){
     fillSetup(true);m.className='msg good';m.textContent=S.events.length+' race'+(S.events.length===1?'':'s')+' found.';renderAll();
   }catch(e){m.className='msg bad';m.textContent='Could not refresh: '+((e&&e.message)||'try again')}
 }
-async function prepare(){
-  var msg=$('#prepMsg');msg.className='msg';msg.textContent='Working…';
-  try{
-    var r=await api('ensureSetup',{},60000),t=(r&&r.summary)||'Done.';
-    msg.className='msg good';msg.textContent=t;toast(t,false);
-    if(S.notStaff){S.notStaff=false;S.setup=false;start()}
-  }catch(e){var t2='Could not create the database: '+((e&&e.message)||'only the site owner can do this');msg.className='msg bad';msg.textContent=t2;toast(t2,true)}
-}
-
 /* export */
-function csvCell(v,guard){
+/* A spreadsheet runs a cell that starts with = + - @ as a formula, so such a cell gets a ' in front. Plain numbers and phone numbers such as +91 98765 43210 are left alone. The second argument is kept only so older calls still work. */
+function csvCell(v){
   var s=String(v==null?'':v);
-  if(guard&&/^[=+\-@]/.test(s))s="'"+s;
+  if(/^[=@\t\r]/.test(s)||(/^[+\-]/.test(s)&&!/^[+\-][\d\s().\-]*$/.test(s)))s="'"+s;
   return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s
 }
 function saveFile(name,rows,msgEl){
@@ -1032,11 +1014,11 @@ document.addEventListener('click',function(ev){
   else if(a==='fmb-preview')fmbPreview();
   else if(a==='refresh-races')refreshRaces();
   else if(a==='fmb-sync')fmbSync();
-  else if(a==='prepare')prepare();
   else if(a==='rm-sample'){if(arm('rm-sample'))removeSample()}
   else if(a==='export-roster')exportRoster();
   else if(a==='export-stock')exportStock();
-  else if(a==='logout')logout();
+  else if(a==='open-team')window.parent.postMessage({kind:'open-team'},'*');
+  else if(a==='retry-enter')start();
   else if(a==='change-desk'){S.canWrite=false;showPick(true)}
 });
 $('#q').addEventListener('input',function(e){S.q=e.target.value;S.sel=null;S.pick=defaultPick(null);S.pickup=newPickup();renderAll()});
@@ -1093,35 +1075,31 @@ async function poll(){
   pollT=setTimeout(poll,4000);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden)poll()});
-/* ---------- login ---------- */
-function showGate(stage){
+/* ---------- starting the desk ---------- */
+var GATE_ERR={
+  no_race:'No race is assigned to this login. Ask the director to choose its race on the Team screen.',
+  bad_race:'The race assigned to this login was not found. Ask the director to check it on the Team screen.',
+  not_allowed:'This login cannot use the Expo desk. Ask the director for a desk login.',
+  desk_busy:'This login is already in use at another desk. Each desk needs its own login. Log out at the other desk first, or wait a few minutes.',
+  not_logged_in:'Your session ended. Please log in again.',
+  timeout:'No answer from the server. Check the connection and try again.',
+  page_code_old:'The page code of this page is out of date. Paste the latest director-page-code.js and publish.',
+  backend_old:'The backend files are out of date. Paste the latest backend files and publish.',
+  setup_needed:'RaceOS is not set up yet. The owner runs the one-time setup on the login page.',
+  server_error:'Something went wrong on the server. Try again; if it keeps happening, tell the Race Director.'
+};
+function showGate(stage,note){
   $('#app').hidden=true;$('#gate').hidden=false;
-  $('#loginForm').hidden=stage!=='login';$('#pickForm').hidden=stage!=='pick';
-  if(stage==='login')setTimeout(function(){$('#lgUser').focus()},50);
+  $('#pickForm').hidden=stage!=='pick';
+  $('#gateMsg').textContent=stage==='pick'?'':(note||'');
+  $('#gateRetry').hidden=stage!=='error';
 }
 function clearSession(){
-  S.token='';S.me=null;S.canWrite=false;S.canAdmin=false;S.live=false;S.err=null;
+  S.me=null;S.canWrite=false;S.canAdmin=false;S.live=false;S.err=null;
   S.byId=new Map();S.sel=null;S.lastOp=null;S.since='';S.cfg=normCfg({});rebuild();
-  try{sessionStorage.removeItem('expo-token')}catch(x){}
 }
-function forceLogin(why){clearSession();showGate('login');$('#lgMsg').className='msg bad';$('#lgMsg').textContent=why==='desk_busy'?'This login is now in use at another desk, so it was logged out here. Each desk needs its own login.':'Please log in again.'}
-async function doLogin(ev){
-  ev.preventDefault();
-  var m=$('#lgMsg'),btn=$('#lgBtn');m.className='msg';m.textContent='Checking…';btn.disabled=true;
-  try{
-    var r=await api('login',{username:$('#lgUser').value.trim(),password:$('#lgPass').value},20000);
-    $('#lgPass').value='';S.token=r.token;S.me=r;
-    try{sessionStorage.setItem('expo-token',S.token)}catch(x){}
-    m.textContent='';
-    await showPick();
-  }catch(e){
-    var c=e&&e.message;
-    m.className='msg bad';
-    m.textContent=c==='bad_login'?'Wrong username or password.':c==='locked'?'Too many tries. Wait 10 minutes, then try again.':c==='no_race'?'No race is assigned to this login. Ask the admin to fill the race column for it.':c==='bad_race'?'The race assigned to this login was not found. Ask the admin to check its spelling.':c==='desk_busy'?'This login is already in use at another desk. Each desk needs its own login. Log out there first, or use the login for this desk.':c==='setup_needed'?'The database has not been created yet. Use First-time setup below.':c==='timeout'?'No answer from the server. See the note below.':'Could not log in: '+(c||'try again');
-    if(c==='setup_needed')$('#firstSetup').open=true;
-  }
-  btn.disabled=false;
-}
+function gateError(code){showGate('error',GATE_ERR[code]||('Could not start the desk ('+(code||'try again')+').'))}
+function forceGate(why){clearSession();gateError(why)}
 function raceFixed(){return !!(S.me&&S.me.race)||S.events.length<=1}
 function deskFixed(){return !!(S.me&&S.me.deskChosen&&S.me.desks.length<=1)}
 async function showPick(force){
@@ -1147,7 +1125,7 @@ async function doPick(ev){
     var r=await api('chooseDesk',{desk:deskFixed()?S.me.desk:$('#pkDesk').value});
     S.me=Object.assign(S.me,r);S.ev=S.me.race||(raceFixed()?S.ev:$('#pkRace').value);
     await enterApp();
-  }catch(e){m.className='msg bad';m.textContent=(e&&e.message)==='desk_busy'?'This login is already in use at another desk. Log out there first, or use the login for this desk.':'Could not start: '+((e&&e.message)||'try again')}
+  }catch(e){m.className='msg bad';m.textContent=(e&&e.message)==='desk_busy'?GATE_ERR.desk_busy:'Could not start: '+((e&&e.message)||'try again')}
 }
 async function enterApp(){
   var me=S.me;
@@ -1162,48 +1140,14 @@ async function enterApp(){
   try{if(S.ev)await fullLoad();else{S.live=true;renderAll()}}catch(e){S.err=e;renderAll()}
   poll();
 }
-async function logout(){
-  try{await api('logout',{},8000)}catch(x){}
-  clearSession();showGate('login');$('#lgMsg').textContent='';
-}
-async function firstSetup(ev){
-  ev.preventDefault();
-  var m=$('#fsMsg');m.className='msg';m.textContent='Working…';
-  try{
-    var r=await api('ensureSetup',{key:$('#fsKey').value,username:$('#fsUser').value.trim(),password:$('#fsPass').value},60000);
-    m.className='msg good';m.textContent=r.summary+'. Now log in above.';
-    $('#lgUser').value=$('#fsUser').value.trim();$('#fsKey').value='';$('#fsPass').value='';
-  }catch(e){var c=e&&e.message;m.className='msg bad';m.textContent=c==='already_set_up'?'Already set up. Add logins in the CMS (ExpoStaff).':'Could not set up: '+(c||'try again')}
-}
-function setDiag(kind,msg){
-  var el=$('#lgDiag');S.diag=kind;
-  if(kind==='ok'){el.hidden=true;return}
-  el.hidden=false;
-  el.textContent=kind==='nopage'
-    ?'The page is not answering. Check: (1) you opened the published site, not the editor; (2) the embed element ID is exactly expoFrame; (3) expo-page-code.js is pasted in this page\'s own code panel and shows no red errors; (4) the site has been published after saving.'
-    :'The page code answers, but the backend failed ('+msg+'). Check that backend/expo.web.js is saved exactly as provided (file name expo.web.js) and publish again.';
-}
-function diagnose(){
-  api('ping',{},6000).then(function(){return api('health',{},20000)}).then(function(){setDiag('ok')},function(e){var c=e&&e.message;if(c==='timeout')setDiag('nopage');else setDiag('backend',c||'error')});
-}
 async function start(){
-  diagnose();
-  $('#loginForm').addEventListener('submit',doLogin);
-  $('#pickForm').addEventListener('submit',doPick);
-  $('#setupForm').addEventListener('submit',firstSetup);
-  try{S.token=sessionStorage.getItem('expo-token')||''}catch(x){}
-  if(S.token){
-    try{
-      var me=await api('whoami',{},10000);S.me=me;
-      await loadEvents();
-      if(me.deskChosen&&S.ev){await enterApp();return}
-      await showPick();return;
-    }catch(e){
-      if(e&&e.message==='not_logged_in')clearSession();
-    }
-  }
-  showGate('login');
+  showGate('wait','Starting the desk…');
+  try{
+    S.me=await api('enter',{},20000);
+    await showPick();
+  }catch(e){gateError(e&&e.message)}
 }
+$('#pickForm').addEventListener('submit',doPick);
 start();
 })();
 </script>

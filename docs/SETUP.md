@@ -1,18 +1,21 @@
-# VTRA Race Director: files and setup steps (Wix)
+# VTRA RaceOS: files and setup steps (Wix)
+
+RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts, check-in) is part of it, not a separate page and not a separate login. You make every login on the **Team** screen; nobody edits the ExpoStaff collection by hand any more.
 
 ## A. The files and where each one goes
 
-**Backend files** (code sidebar > Backend > add a .web.js file, paste the contents)
+**Backend files** (code sidebar > Backend). The first three are web modules (`.web.js`); the other three are plain files: create them with **+ > Add a .js file** and give them exactly these names.
 
-| File | Backend file name in Wix | Needs your SETUP_KEY? |
+| File in this pack | Name in Wix | Notes |
 |---|---|---|
-| 1-backend/exposoft.web.js | exposoft.web.js | yes |
-| 1-backend/racedir.web.js | racedir.web.js | yes |
-| 1-backend/training.web.js | training.web.js | yes |
-| 1-backend/ai-core.js | **ai-core.js** (a plain backend file, not .web.js; racedir.web.js and training.web.js import it) | no |
-| 1-backend/rd-approvals.js | **rd-approvals.js** (a plain backend file, not .web.js; racedir.web.js imports it. It holds the approvals library and the letter writer) | no |
+| 1-backend/racedir.web.js | racedir.web.js | RaceOS. **Change SETUP_KEY near the top to a secret of your own.** Until you do, setup refuses to run for anyone |
+| 1-backend/exposoft.web.js | exposoft.web.js | The Expo desk's server side. Has no key and no login of its own |
+| 1-backend/training.web.js | training.web.js | Coach and athlete pages. Has its own SETUP_KEY, used only by its optional manual setup (the collections are also made by the first coach login) |
+| 1-backend/rd-auth.js | **rd-auth.js** | New. Passwords, PINs, roles. All three `.web.js` files import it |
+| 1-backend/ai-core.js | **ai-core.js** | Optional AI helper (works without a key) |
+| 1-backend/rd-approvals.js | **rd-approvals.js** | Approvals library and the letter writer |
 
-**Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code)
+**Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code in the page's code panel)
 
 | Page URL | Embed to paste into the HTML element | Element ID | Page code to paste |
 |---|---|---|---|
@@ -21,25 +24,53 @@
 | /train | 2-pages/train/athlete-embed.html | trainFrame | 2-pages/train/page-code.js |
 | /coach | 2-pages/coach/coach-embed.html | coachFrame | 2-pages/coach/page-code.js |
 
-Optional: the stand-alone Expo desk page (also still works). Embed 2-pages/expo-standalone/exposoft-embed.html, element ID expoFrame, page code 2-pages/expo-standalone/page-code.js.
+**There is no separate Expo page any more.** If you made a /exposoft page for the old software, you can delete it (or leave it; it will no longer be used). The Expo desk is the **BIB & Expo** tab at /rd, and desk staff land on it straight after logging in.
 
-## B. Steps
+## B. First-time steps
 
 1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets).
-2. **Backend.** Add the three `.web.js` files, then the two plain files `ai-core.js` and `rd-approvals.js` (exact names). In each `.web.js` file, change `const SETUP_KEY = 'change-this-key'` to your own secret.
-3. **Pages.** Create /rd, /volunteer, /train, /coach. On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code in the page's code panel.
-   - If Wix refuses the large /rd embed, use `director-embed.html` (from the repo, wix/director) on /rd instead and keep the stand-alone Expo page. Nothing else changes.
-4. **Publish** the site.
-5. **First login at /rd.** Use your existing Expo admin login. If you have none, open "First-time setup (owner only)" on the login screen and enter the setup key plus a new admin username and password. Check the new collections exist in the **live** CMS data.
-6. **Staff logins.** Add rows to the ExpoStaff collection. Role column: `director`, `lead`, `viewer` (Director), `coach` (Coach desk), or leave role empty with a desk and race for Expo desk staff.
-7. **CMS column.** Add a text column `bibName` to the Runners collection.
-8. **Create the race** (/rd > Setup): name, date, venue, distance. Expo race ID only if you use the Expo desk.
+2. **Backend.** Add the six files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
+3. **Pages.** Create /rd, /volunteer, /train, /coach (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
+4. **Publish** the site. Everything works on the published site only.
+5. **First login at /rd.** Open "First-time setup (owner only)" on the login screen and enter the setup key plus a new admin username and password. This creates every collection (the Expo desk's too) locked to the site admin, and the first admin login. It does nothing to logins that already exist. Check that the new collections appear in the **live** CMS data.
+   - *You used the old Expo desk?* Its logins keep working: staff type the same username and password at /rd. A password that was typed by hand into the CMS is replaced by a hash the first time that person logs in.
+   - *Collections that already exist* (made by the old Expo setup) are not changed. Add these text columns by hand if they are missing: `Runners`: `bibName`; `ExpoStaff`: `desks`, `race`, `name`, `failCount`, `lockUntil`.
+6. **Make the team's logins: /rd > Team > Add a login.** Type a name and a username, choose the role, and for desk staff choose the desk or desks and the race. RaceOS makes a PIN (desk staff) or a password (everyone else) and shows it **once**: hand it over there and then. It cannot be looked up later; use **New PIN** / **New password** if it is lost. The roles:
+   - **Director**: everything, including Team, races and money.
+   - **Lead**: volunteers, race day, pacers, safety and plans. No Team, no deleting, no money changes.
+   - **Viewer**: look only (sponsors, partners). Sees no money and no phone numbers.
+   - **Coach**: the coach page only.
+   - **Desk**: works the Expo desk and nothing else. Give each desk its own login (Desk 1 - BIB, Desk 2 - Tshirt, Desk 3 - Misc), tied to one race. Staff log in at /rd and land on their desk.
+   Changing a login's role, desk, race or password signs that person out at once. **Sign out** and **Remove** are on the same screen.
+7. **Expo desk set-up** (/rd > BIB & Expo, as director): type the bib lot and the T-shirt lot per size (the Stock tab), then Setup tab > **Sync from findmybib**. Press **Check data** first and send me the Columns line if category or size shows as not found.
+8. **Create the race** (/rd > Settings): name, date, venue, distance. Fill the Expo race only if you use the Expo desk for it.
 9. **Registrations** (/rd > Registrations): Load my Wix events, pick the event, Link. Open Form fields, choose the T-shirt size, bib name and phone fields, Save. Press Import / refresh.
 10. **Qualification** (/rd > Qualification): one rule per line, for example `110 K | Marathon under 6 hrs, or any 50 km+ | 42.195@6:00; 50@`.
 11. **Volunteers** (/rd > Volunteers): add shifts (roles are suggested), then Copy link and share it.
-12. **Training** (/coach): log in as admin. The first login creates the collections and three starter 8-week plans. Check Settings. Then open /train on a phone and sign up as a test athlete.
-13. **Expo desk** (/rd > Expo desk, or the stand-alone page): Setup tab > Check data, and send the Columns line to Claude.
-14. **Test** with a test race, a test volunteer and a test athlete before announcing. Send any error text with the page name.
+12. **Coaching** (/coach): log in with a director or coach login (made on the Team screen). The first login creates the Training collections and three starter 8-week plans. Check Settings. Then open /train on a phone and sign up as a test athlete.
+13. **Test** with a test race, a test volunteer, a test athlete and one login of each desk before announcing. Send any error text with the page name.
+
+## Expo desk rules (enforced on the server; the screen only mirrors them)
+
+| Desk | Gives | Can undo | Other |
+|---|---|---|---|
+| Desk 1 - BIB | bibs and the check-in (selfie required) | bib and check-in | no T-shirts |
+| Desk 2 - Tshirt | T-shirts only (selfie; the size on the registration, locked at hand-over) | T-shirts | no bibs, no check-in |
+| Desk 3 - Misc | nothing | everything (the corrections desk) | looks up runners, adds a walk-in runner |
+
+- A director has no exception: a director at Desk 1 still cannot give a T-shirt. Directors set stock, sync and import from any desk.
+- One login works one desk at a time (a second phone on the same login is refused while the first is active). Use a different login per desk.
+- A desk login is tied to one race, forced on the server: that login can never see or change another race.
+- A request that mixes allowed and not-allowed items is refused as a whole, and two desks cannot hand the same item to the same runner: exactly one wins.
+- Nobody can overwrite the findmybib lists or the CMS data: the Expo desk only reads the `Import...` collections.
+
+## Rehearsal before race day (live site, test runner)
+- Desk 1 login: check-in and bib work with a selfie; no T-shirt option is offered.
+- Desk 2 login: a T-shirt works with a selfie; no bib option is offered; the size cannot be changed.
+- Desk 3 login: nothing can be handed over; Add runner is visible only here.
+- Use the Desk 1 login on a second phone for Desk 2: it is refused.
+- Undo from each desk and watch the stock go back.
+- On the Team screen: make a new desk login, log in with it in a private window, then **Sign out** it and watch the private window return to the login.
 
 ## Planning tabs
 After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.

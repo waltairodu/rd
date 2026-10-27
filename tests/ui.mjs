@@ -1,6 +1,7 @@
 import fs from 'fs';
 import {JSDOM,VirtualConsole} from 'jsdom';
 import * as B from './exposoft.test.mjs';
+import * as R from './racedir.test.mjs';
 import wd from 'wix-data';
 const SA={suppressAuth:true};
 let html=fs.readFileSync('../wix/expo/exposoft-embed.html','utf8');
@@ -17,19 +18,20 @@ const fresh=await mk(),full=await mk({checkedInAt:'2026-10-18T05:00:00Z',checked
 const fresh2=await mk(),fresh3=await mk();
 
 async function open(user,desk){
+  // One login: the person logs in to RaceOS; the page that holds the Expo desk adds that session token to every call.
+  const rl=await R.login({username:user,password:'pw'});const tok=rl.token;
   const vc=new VirtualConsole();vc.on('jsdomError',e=>console.log('JSERR',e.message,(e.detail&&e.detail.stack||'').split('\n')[0]));const dom=new JSDOM(html,{virtualConsole:vc,runScripts:'dangerously',pretendToBeVisual:true,url:'https://example.com/',beforeParse(w){w.HTMLElement.prototype.scrollIntoView=()=>{};}});
   const w=dom.window,d=w.document;
+  // The desk page believes an answer only from the page that holds it (window.parent), so the answers are delivered as coming from there.
+  const answer=(data)=>w.dispatchEvent(new w.MessageEvent('message',{data,source:w.parent}));
   w.addEventListener('message',async(e)=>{const m=e.data;if(!m||m.kind!=='call')return;
-    try{const r=await B[m.method](m.arg);w.postMessage({kind:'result',id:m.id,ok:true,result:JSON.parse(JSON.stringify(r===undefined?null:r))},'*')}
-    catch(x){w.postMessage({kind:'result',id:m.id,ok:false,error:x.message},'*')}});
-  await sleep(150);
-  d.querySelector('#lgUser').value=user;d.querySelector('#lgPass').value='pw';
-  d.querySelector('#loginForm').dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
-  await sleep(400);
+    try{const r=await B[m.method](Object.assign({},m.arg,{token:tok}));answer({kind:'result',id:m.id,ok:true,result:JSON.parse(JSON.stringify(r===undefined?null:r))})}
+    catch(x){answer({kind:'result',id:m.id,ok:false,error:x.message})}});
+  await sleep(550);
   if(!d.querySelector('#pickForm').hidden){
     const sel=d.querySelector('#pkDesk');if(desk)sel.value=desk;
     d.querySelector('#pickForm').dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));await sleep(700)}
-  return {w,d};
+  return {w,d,tok};
 }
 async function pickRunner(w,d,id){
   d.querySelector('#q').value='';w.__t.S.q='';
@@ -110,7 +112,7 @@ await wd.insert('ExpoStaff',{username:'adm2',password:'pw',role:'admin',desks:'D
 {const {w,d}=await open('u9');
  ok(d.querySelector('#pickForm').hidden&&!d.querySelector('#app').hidden,'locked race+desk: straight into the app with two races existing');
  ok(d.querySelector('#raceSel').parentNode.hidden,'  race selector hidden');w.close();}
-{const {w,d}=await open('adm2');
+{const {w,d,tok}=await open('adm2');
  ok(!d.querySelector('#pickForm').hidden&&!d.querySelector('#pkRace').parentNode.hidden&&d.querySelector('#pkDesk').parentNode.hidden,'admin with 2 races and one desk: only the race is asked');
  d.querySelector('#pkRace').value='Import909';
  d.querySelector('#pickForm').dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));await sleep(700);
@@ -120,6 +122,6 @@ await wd.insert('ExpoStaff',{username:'adm2',password:'pw',role:'admin',desks:'D
  nm.value='Ultribe Paderu';
  d.querySelector('#saveCfg').click();await sleep(600);
  ok(d.querySelector('#raceSel').textContent.includes('Ultribe Paderu'),'  race dropdown shows the new name');
- ok((await B.listEvents({token:w.__t.S.token})).some(r=>r.name==='Ultribe Paderu'),'  name stored on the server');
+ ok((await B.listEvents({token:tok})).some(r=>r.name==='Ultribe Paderu'),'  name stored on the server');
  w.close();}
 console.log(`\nUI: ${pass} passed, ${fail} failed`);process.exit(fail?1:0);

@@ -8,7 +8,7 @@ const err = async (p) => { try { await p; return ''; } catch (e) { return e.mess
 const count = async (c, f) => (await wd.query(c).limit(1000).find(SA)).items.filter(f || (() => true)).length;
 
 // ---- logins
-for (const [u, r] of [['boss', 'admin'], ['dir', 'director'], ['lead1', 'lead'], ['view1', 'viewer'], ['desk1', 'desk'], ['blank', '']])
+for (const [u, r] of [['boss', 'admin'], ['dir', 'director'], ['lead1', 'lead'], ['view1', 'viewer'], ['desk1', 'desk'], ['blank', ''], ['coach1', 'coach'], ['odd1', 'volunteer']])
   await wd.insert('ExpoStaff', { username: u, password: 'pw-' + u, role: r, desks: '', name: u.toUpperCase(), failCount: '0', lockUntil: '' }, SA);
 const L = async (u) => (await D.login({ username: u, password: 'pw-' + u }));
 const boss = await L('boss'), dir = await L('dir'), lead = await L('lead1'), view = await L('view1');
@@ -16,8 +16,16 @@ ok(boss.role === 'director' && boss.canManage && boss.canWrite, 'admin works as 
 ok(dir.role === 'director', 'director role');
 ok(lead.role === 'lead' && lead.canWrite && !lead.canManage, 'lead: write yes, manage no');
 ok(view.role === 'viewer' && !view.canWrite, 'viewer read only');
-ok((await err(D.login({ username: 'desk1', password: 'pw-desk1' }))) === 'not_allowed', 'expo desk login refused here');
-ok((await err(D.login({ username: 'blank', password: 'pw-blank' }))) === 'not_allowed', 'login with no role refused');
+// Desk staff log in here too (one login for everything) but the session is good for nothing except the Expo desk.
+const desk1 = await D.login({ username: 'desk1', password: 'pw-desk1' });
+ok(desk1.role === 'desk' && !desk1.canWrite && !desk1.canManage, 'desk login works and is a desk session (no write, no manage)');
+ok((await D.whoami({ token: desk1.token })).role === 'desk', 'desk session: whoami works');
+ok((await err(D.listEvents({ token: desk1.token }))) === 'not_allowed', 'desk session refused by Director methods');
+ok((await err(D.saveEvent({ token: desk1.token, name: 'X Race' }))) === 'not_allowed', 'desk session cannot write');
+const blank1 = await D.login({ username: 'blank', password: 'pw-blank' });
+ok(blank1.role === 'desk', 'a login with no role is an old hand-made desk login');
+ok((await err(D.login({ username: 'coach1', password: 'pw-coach1' }))) === 'not_allowed', 'coach login refused here (coach page only)');
+ok((await err(D.login({ username: 'odd1', password: 'pw-odd1' }))) === 'not_allowed', 'a login with an unknown role is refused');
 ok((await err(D.login({ username: 'boss', password: 'nope' }))) === 'bad_login', 'wrong password');
 ok((await err(D.login({ username: 'ghost', password: 'x' }))) === 'bad_login', 'unknown user');
 for (let k = 0; k < 5; k++) await err(D.login({ username: 'view1', password: 'bad' }));

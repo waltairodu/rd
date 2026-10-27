@@ -1,11 +1,26 @@
 // backend/exposoft.web.js
-// Expo Desk backend for Wix (Velo). Logins (username, password, desks) live in the
-// ExpoStaff collection that the admin fills in. Every method except login and
-// ensureSetup needs a session token from login.
-import { Permissions, webMethod } from 'wix-web-module';
+// Expo Desk backend for Wix (Velo). The Expo desk is part of RaceOS: it has NO login of its own. A person logs in once
+// to RaceOS (racedir.web.js) and the same session token works here. Logins are made on RaceOS's Team screen (the
+// ExpoStaff collection); the collections are created by RaceOS's one-time setup.
+//   director (role admin or director)  every desk, and the admin methods (import, lot, sync)
+//   desk                               only the desks and the race written on that login
+//   lead, viewer, coach, anything else refused ('not_allowed'): they have a session, but not for the desk.
+// Every method needs a session token. `enter` starts the desk for a person who is already logged in.
+import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
+import { kindOf, unameOf, deskValueOf, deskList, tidyError } from './rd-auth.js';
+
+// Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
+const webMethod = (permission, fn) =>
+  wixWebMethod(permission, async (arg) => {
+    try {
+      return await fn(arg);
+    } catch (e) {
+      throw tidyError(e, 'exposoft');
+    }
+  });
 
 const RUNNERS = 'Runners';
 const CONFIG = 'ExpoConfig';
@@ -14,10 +29,6 @@ const SESS = 'ExpoSessions';
 const CHECKS = 'ExpoCheckins';
 const PRES = 'ExpoPresence';
 
-// Choose your own secret and keep it private: it is asked once, on the very first
-// setup, so that only you can create the first admin login.
-const SETUP_KEY = 'change-this-key';
-const SESSION_HOURS = 12;
 const SA = { suppressAuth: true };
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const PAGE = 500;
@@ -53,39 +64,9 @@ function normSize(v) {
   return SIZES.includes(t) ? t : '';
 }
 
-// Session token. Wix backend code has no crypto global, so this mixes several random draws and the clock.
-function newToken() {
-  let t = '';
-  for (let k = 0; k < 6; k++) t += Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0');
-  return t + Date.now().toString(16);
-}
-
-function same(a, b) {
-  const x = String(a);
-  const y = String(b);
-  let d = x.length ^ y.length;
-  for (let k = 0; k < Math.max(x.length, y.length); k++) d |= (x.charCodeAt(k) || 0) ^ (y.charCodeAt(k) || 0);
-  return d === 0;
-}
-
 const lc = (v) => String(v || '').trim().toLowerCase();
-// The first column of a hand-made collection may be stored under the key 'title'.
-const unameOf = (u) => (u.username !== undefined && u.username !== null && u.username !== '' ? u.username : u.title);
-const deskOf = (u) => (u.desks !== undefined && u.desks !== null && u.desks !== '' ? u.desks : u.desk);
-// The desks are fixed here. Edit the names if you want, keep the format 'Desk N - Name'.
-// A login may carry a 'desk' / 'desks' value in ExpoStaff (for example 1, Desk 2 or Tshirt) to limit it to
-// those desks. A login with nothing there can choose any of the three.
-const DESKS = ['Desk 1 - BIB', 'Desk 2 - Tshirt', 'Desk 3 - Misc'];
-const deskKey = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-function canonDesk(x) {
-  const k = deskKey(x);
-  if (!k) return '';
-  const exact = DESKS.find((d) => deskKey(d) === k);
-  if (exact) return exact;
-  const num = k.match(/\d+/);
-  if (num) return DESKS.find((d) => deskKey(d).match(/\d+/)[0] === num[0]) || '';
-  return DESKS.find((d) => k.indexOf(deskKey(d.split(' - ')[1])) >= 0) || '';
-}
+// The desks are fixed (rd-auth.js): Desk 1 - BIB, Desk 2 - Tshirt, Desk 3 - Misc. A login's desks are written on the
+// Team screen; a login with none written (an old hand-made row) may use any of the three.
 // What each desk may DO. Enforced here on the server, so a changed or hacked page cannot get around it.
 //   hand over: Desk 1 gives bibs (and checks the runner in), Desk 2 gives T-shirts only, Desk 3 gives neither.
 //   undo:      each desk can undo only what it hands over; Desk 3 (Misc) is the corrections desk and can undo all.
@@ -102,21 +83,22 @@ function needDesk(staff, kind, action) {
   const ok = kind === 'addRunner' ? can.addRunner : can[kind].includes(action);
   if (!ok) throw new Error('wrong_desk');
 }
-const deskList = (v) => {
-  const out = [];
-  String(v || '')
-    .split(',')
-    .forEach((x) => {
-      const c = canonDesk(x);
-      if (c && !out.includes(c)) out.push(c);
-    });
-  return out.length ? out : DESKS.slice();
+// Only a director and desk staff may use the desk. Everyone else with a RaceOS session is refused.
+const roleOf = (u) => {
+  const k = kindOf(u);
+  return k === 'director' ? 'admin' : k === 'desk' ? 'desk' : 'none';
 };
-const roleOf = (u) => (lc(u.role || u.Role) === 'admin' ? 'admin' : 'desk');
 
+// Every login, however many there are (read a page at a time, so no login is ever out of sight).
 async function staffRows() {
   try {
-    return (await wixData.query(STAFF).limit(200).find(SA)).items;
+    const out = [];
+    for (let skip = 0; skip < 5000; skip += 1000) {
+      const r = await wixData.query(STAFF).ascending('_id').skip(skip).limit(1000).find(SA);
+      out.push(...r.items);
+      if (r.items.length < 1000) break;
+    }
+    return out;
   } catch (e) {
     throw new Error('setup_needed');
   }
@@ -144,17 +126,6 @@ async function keepPresence(username, desk) {
   if (Date.now() - (presenceChecked.get(k) || 0) < 30000) return;
   await claimDesk(username, desk);
 }
-async function releaseDesk(username, desk) {
-  const key = lc(username);
-  presenceChecked.delete(key + '|' + desk);
-  try {
-    const row = await wixData.get(PRES, key, SA).catch(() => null);
-    if (row && row.desk === desk) await wixData.bulkRemove(PRES, [key], SA);
-  } catch (e) {
-    // nothing to release
-  }
-}
-
 // A login can be tied to one race by the admin: put the race name (or its Import id) in the 'race' column of
 // ExpoStaff. That login then always works on that race; the race is forced on the server for every call.
 const raceCache = { at: 0, list: null };
@@ -187,7 +158,9 @@ async function lockOf(u) {
   return { id: hit.id, name: hit.name };
 }
 
-// Checks the session token. Throws 'not_logged_in', 'admin_only' or 'setup_needed'.
+// Checks the RaceOS session token. Throws 'not_logged_in', 'not_allowed' (a role that has no business at the desk),
+// 'admin_only' or 'setup_needed'. The race is forced to the one written on a login that has one, whatever the call says,
+// and a desk the login is not allowed to use is never honoured.
 async function auth(arg, needAdmin) {
   const t = String((arg && arg.token) || '');
   if (t.length < 20) throw new Error('not_logged_in');
@@ -201,11 +174,17 @@ async function auth(arg, needAdmin) {
   const u = (await staffRows()).find((r) => lc(unameOf(r)) === lc(sess.username));
   if (!u) throw new Error('not_logged_in');
   const role = roleOf(u);
+  if (role === 'none') throw new Error('not_allowed');
   if (needAdmin && role !== 'admin') throw new Error('admin_only');
   const lock = await lockOf(u);
+  // With more than one race, a desk login must be tied to one (the Team screen makes sure of it). Checked on every
+  // call, not only when the desk starts, so a token cannot be used to skip `enter` and work a race that is not theirs.
+  if (!lock && role !== 'admin' && (await raceList()).length > 1) throw new Error('no_race');
   if (lock && arg) arg.ev = lock.id;
-  if (sess.desk) await keepPresence(unameOf(u), sess.desk);
-  return { lock, role, label: sess.desk || String(unameOf(u)).slice(0, 20), username: unameOf(u), sess, user: u };
+  const desks = deskList(deskValueOf(u));
+  const desk = sess.desk && desks.includes(sess.desk) ? sess.desk : '';
+  if (desk) await keepPresence(unameOf(u), desk);
+  return { lock, role, label: desk || String(unameOf(u)).slice(0, 20), username: unameOf(u), sess: Object.assign({}, sess, { desk }), user: u, desks };
 }
 
 function toRunner(it) {
@@ -260,9 +239,9 @@ async function needEvent(arg) {
 
 export const health = webMethod(Permissions.Anyone, async () => ({ ok: true }));
 
-/* ---------- logins ---------- */
+/* ---------- starting the desk ---------- */
 function me(a) {
-  const desks = deskList(deskOf(a.user));
+  const desks = deskList(deskValueOf(a.user));
   return {
     role: a.role,
     name: String(a.user.name || unameOf(a.user)),
@@ -275,48 +254,17 @@ function me(a) {
   };
 }
 
-export const login = webMethod(Permissions.Anyone, async (arg) => {
-  const username = lc(arg && arg.username);
-  const password = String((arg && arg.password) || '');
-  const rows = await staffRows();
-  const u = rows.find((r) => lc(unameOf(r)) === username);
-  if (!u || !username || !password) throw new Error('bad_login');
-  if (u.lockUntil && Date.parse(u.lockUntil) > Date.now()) throw new Error('locked');
-  const good = String(u.password || '') !== '' && same(u.password, password);
-  if (!good) {
-    const fails = (parseInt(u.failCount, 10) || 0) + 1;
-    const next = Object.assign({}, u, fails >= 5 ? { failCount: '0', lockUntil: new Date(Date.now() + 10 * 60000).toISOString() } : { failCount: String(fails) });
-    await wixData.update(STAFF, next, SA);
-    throw new Error(fails >= 5 ? 'locked' : 'bad_login');
+// The person is already logged in to RaceOS; this starts their work at the desk. A login with one desk is put at that
+// desk at once. (A login with no race, while there is more than one race, is refused by auth() with 'no_race'.)
+export const enter = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, false);
+  let sess = a.sess;
+  if (a.desks.length === 1 && !sess.desk) {
+    await claimDesk(a.username, a.desks[0]);
+    sess = Object.assign({}, sess, { desk: a.desks[0] });
+    await wixData.update(SESS, sess, SA);
   }
-  if (u.failCount || u.lockUntil) await wixData.update(STAFF, Object.assign({}, u, { failCount: '0', lockUntil: '' }), SA);
-  await ensureCollections();
-  const lock = await lockOf(u);
-  if (!lock && roleOf(u) !== 'admin' && (await raceList()).length > 1) throw new Error('no_race');
-  const nowIso = new Date().toISOString();
-  try {
-    const old = await wixData.query(SESS).lt('expires', nowIso).limit(100).find(SA);
-    if (old.items.length) await wixData.bulkRemove(SESS, old.items.map((x) => x._id), SA);
-  } catch (e) {
-    // clean-up is best effort
-  }
-  const desks = deskList(deskOf(u));
-  if (desks.length === 1) await claimDesk(unameOf(u), desks[0]);
-  const sess = await wixData.insert(
-    SESS,
-    { token: newToken(), username: unameOf(u), desk: desks.length === 1 ? desks[0] : '', expires: new Date(Date.now() + SESSION_HOURS * 3600000).toISOString() },
-    SA
-  );
-  return Object.assign({ token: sess.token }, me({ role: roleOf(u), user: u, sess, lock }));
-});
-
-export const logout = webMethod(Permissions.Anyone, async (arg) => {
-  const t = String((arg && arg.token) || '');
-  if (t.length < 20) return { ok: true };
-  const r = await wixData.query(SESS).eq('token', t).limit(5).find(SA);
-  for (const x of r.items) if (x.desk) await releaseDesk(x.username, x.desk);
-  if (r.items.length) await wixData.bulkRemove(SESS, r.items.map((x) => x._id), SA);
-  return { ok: true };
+  return me({ role: a.role, user: a.user, lock: a.lock, sess });
 });
 
 export const whoami = webMethod(Permissions.Anyone, async (arg) => {
@@ -325,11 +273,9 @@ export const whoami = webMethod(Permissions.Anyone, async (arg) => {
 
 export const chooseDesk = webMethod(Permissions.Anyone, async (arg) => {
   const a = await auth(arg, false);
-  const desks = deskList(deskOf(a.user));
   const want = String((arg && arg.desk) || '').trim();
-  if (desks.length && !desks.includes(want)) throw new Error('bad_desk');
-  if (!desks.length && want) throw new Error('bad_desk');
-  await claimDesk(unameOf(a.user), want, a.sess.desk || '');
+  if (!a.desks.includes(want)) throw new Error('bad_desk');
+  await claimDesk(a.username, want, a.sess.desk || '');
   await wixData.update(SESS, Object.assign({}, a.sess, { desk: want }), SA);
   return me({ role: a.role, user: a.user, lock: a.lock, sess: Object.assign({}, a.sess, { desk: want }) });
 });
@@ -379,6 +325,35 @@ export const getPickup = webMethod(Permissions.Anyone, async (arg) => {
   return { pickup: shape(check), shirtPickup: shape(shirt) };
 });
 
+// What the runner's row shows as done, per item.
+const itemDone = (row, item) => !!(item === 'check' ? row.checkedInAt : item === 'bib' ? row.bibAt : row.shirtAt);
+const CLASH_LABEL = { check: 'check-in', bib: 'bib', shirt: 'T-shirt' };
+const CLAIM_STALE_MS = 60000;
+// A hand-over is claimed before it is written. A claim is a record whose id is the runner plus the item, and an id can
+// be inserted only once, so when two desks hand over the same thing in the same instant exactly one of them gets it.
+// The claim stays as the record of the hand-over (removed again by "undo"); one that is left behind by a call that
+// failed half way is taken over after a minute if the runner still does not show the item as done.
+async function claimItem(it, item, desk, now) {
+  const id = it._id + '#claim-' + item;
+  const doc = { _id: id, event: it.event, bib: it.bib, method: 'claim', at: now, desk };
+  try {
+    await wixData.insert(CHECKS, doc, SA);
+    return true;
+  } catch (e) {
+    const old = await wixData.get(CHECKS, id, SA).catch(() => null);
+    if (!old) throw e;
+    if (Date.now() - Date.parse(old.at) > CLAIM_STALE_MS) {
+      const fresh = await wixData.get(RUNNERS, it._id, SA).catch(() => null);
+      if (fresh && !itemDone(fresh, item)) {
+        await wixData.save(CHECKS, doc, SA);
+        return true;
+      }
+    }
+    return false;
+  }
+}
+const releaseClaims = (it, items) => (items.length ? wixData.bulkRemove(CHECKS, items.map((i) => it._id + '#claim-' + i), SA).catch(() => null) : null);
+
 export const issue = webMethod(Permissions.Anyone, async (arg) => {
   const staff = await auth(arg, false);
   const it = await wixData.get(RUNNERS, String((arg && arg.id) || ''), SA);
@@ -399,28 +374,22 @@ export const issue = webMethod(Permissions.Anyone, async (arg) => {
   const needPk = (arg.check && !it.checkedInAt) || (arg.shirtSize && !it.shirtAt);
   const pk = needPk ? cleanPickup(arg.pickup) : null;
 
+  // What is still to be handed over (and what already was).
+  const todo = [];
   if (arg.check) {
-    if (it.checkedInAt) clash.push('check-in');
-    else {
-      next.checkedInAt = now;
-      next.checkedInDesk = desk;
-      done.push('check');
-    }
+    if (it.checkedInAt) clash.push(CLASH_LABEL.check);
+    else todo.push('check');
   }
   if (arg.bib) {
-    if (it.bibAt) clash.push('bib');
-    else {
-      next.bibAt = now;
-      next.bibDesk = desk;
-      done.push('bib');
-    }
+    if (it.bibAt) clash.push(CLASH_LABEL.bib);
+    else todo.push('bib');
   }
   if (arg.shirtSize) {
     // The size is always the registered one (from findmybib / the CMS). Nobody can pick or change it here.
     const size = String(it.size || '');
     if (!SIZES.includes(size)) throw new Error('no_registered_size');
     if (String(arg.shirtSize) !== size) throw new Error('size_locked');
-    if (it.shirtAt) clash.push('T-shirt');
+    if (it.shirtAt) clash.push(CLASH_LABEL.shirt);
     else {
       const cfg = (await readConfig(it.event)) || { shirtLot: {} };
       const lot = cfg.shirtLot[size] || 0;
@@ -428,20 +397,44 @@ export const issue = webMethod(Permissions.Anyone, async (arg) => {
         const given = await wixData.query(RUNNERS).eq('event', it.event).eq('shirtSize', size).count(SA);
         if (given >= lot) throw new Error('out_of_stock');
       }
-      next.shirtSize = size;
-      next.shirtAt = now;
-      next.shirtDesk = desk;
-      done.push('shirt');
+      todo.push('shirt');
     }
   }
-  if (pk && done.includes('check')) {
-    await wixData.save(CHECKS, Object.assign({ _id: it._id, event: it.event, bib: it.bib, name: it.name, at: now, desk }, pk), SA);
+
+  // Claim each item. If another desk got there first, that item is a clash, not a second hand-over.
+  const taken = [];
+  try {
+    for (const item of todo) {
+      if (await claimItem(it, item, desk, now)) taken.push(item);
+      else clash.push(CLASH_LABEL[item]);
+    }
+    for (const item of taken) {
+      if (item === 'check') {
+        next.checkedInAt = now;
+        next.checkedInDesk = desk;
+      } else if (item === 'bib') {
+        next.bibAt = now;
+        next.bibDesk = desk;
+      } else {
+        next.shirtSize = String(it.size);
+        next.shirtAt = now;
+        next.shirtDesk = desk;
+      }
+      done.push(item);
+    }
+    if (pk && done.includes('check')) {
+      await wixData.save(CHECKS, Object.assign({ _id: it._id, event: it.event, bib: it.bib, name: it.name, at: now, desk }, pk), SA);
+    }
+    if (pk && done.includes('shirt')) {
+      await wixData.save(CHECKS, Object.assign({ _id: it._id + '#shirt', event: it.event, bib: it.bib, name: it.name, at: now, desk }, pk), SA);
+    }
+    const saved = done.length ? await wixData.update(RUNNERS, next, SA) : it;
+    return { done, clash, runner: toRunner(saved) };
+  } catch (e) {
+    // Nothing was handed over: let go of what was claimed so the next try is not blocked.
+    await releaseClaims(it, taken);
+    throw e;
   }
-  if (pk && done.includes('shirt')) {
-    await wixData.save(CHECKS, Object.assign({ _id: it._id + '#shirt', event: it.event, bib: it.bib, name: it.name, at: now, desk }, pk), SA);
-  }
-  const saved = done.length ? await wixData.update(RUNNERS, next, SA) : it;
-  return { done, clash, runner: toRunner(saved) };
 });
 
 export const revert = webMethod(Permissions.Anyone, async (arg) => {
@@ -468,6 +461,8 @@ export const revert = webMethod(Permissions.Anyone, async (arg) => {
     await wixData.bulkRemove(CHECKS, [it._id + '#shirt'], SA).catch(() => null);
   }
   const saved = await wixData.update(RUNNERS, next, SA);
+  // The hand-over is undone, so its claims go too (and the item can be handed over again at once).
+  await releaseClaims(it, items);
   return { runner: toRunner(saved) };
 });
 
@@ -753,72 +748,4 @@ export const saveConfig = webMethod(Permissions.Anyone, async (arg) => {
   }
   await writeConfig(cfg.id, name, { bibLot, shirtLot: lot, named });
   return readConfig(cfg.id);
-});
-
-/* ---------- one-time database setup ---------- */
-const textField = (key, displayName) => ({ key, displayName, type: 'TEXT' });
-const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };
-
-
-function collectionDefs() {
-  return [
-    { _id: RUNNERS, displayName: 'Runners', permissions: LOCKED,
-      fields: ['event', 'bib', 'name', 'bibName', 'cat', 'size', 'phone', 'email', 'example', 'checkedInAt', 'checkedInDesk', 'bibAt', 'bibDesk', 'shirtSize', 'shirtAt', 'shirtDesk'].map((k) => textField(k, k)) },
-    { _id: CONFIG, displayName: 'ExpoConfig', permissions: LOCKED, fields: [textField('name', 'name'), textField('json', 'json')] },
-    { _id: STAFF, displayName: 'ExpoStaff', permissions: LOCKED,
-      fields: ['username', 'password', 'role', 'desks', 'name', 'failCount', 'lockUntil'].map((k) => textField(k, k)) },
-    { _id: SESS, displayName: 'ExpoSessions', permissions: LOCKED, fields: ['token', 'username', 'desk', 'expires'].map((k) => textField(k, k)) },
-    { _id: PRES, displayName: 'ExpoPresence', permissions: LOCKED, fields: ['username', 'desk', 'seen'].map((k) => textField(k, k)) },
-    { _id: CHECKS, displayName: 'ExpoCheckins', permissions: LOCKED,
-      fields: ['event', 'bib', 'name', 'pickupBy', 'friendName', 'friendPhone', 'method', 'selfie', 'at', 'desk'].map((k) => textField(k, k)) },
-  ];
-}
-
-// Creates collections. With onlyMissing it skips the ones that already exist.
-async function makeCollections(onlyMissing) {
-  const create = elevate(collections.createDataCollection);
-  const notes = [];
-  for (const d of collectionDefs()) {
-    if (onlyMissing) {
-      try {
-        await wixData.query(d._id).limit(1).find(SA);
-        continue;
-      } catch (e) {
-        // missing, so create it below
-      }
-    }
-    try {
-      await create(d);
-      notes.push(d._id + ' created');
-    } catch (e) {
-      notes.push(d._id + ': ' + ((e && e.message) || 'not created (it may already exist)'));
-    }
-  }
-  return notes;
-}
-
-let collectionsChecked = false;
-async function ensureCollections() {
-  if (collectionsChecked) return;
-  await makeCollections(true);
-  collectionsChecked = true;
-}
-
-// Creates the collections and the first admin login. Needs SETUP_KEY and refuses once any login exists.
-export const ensureSetup = webMethod(Permissions.Anyone, async (arg) => {
-  if (SETUP_KEY === 'change-this-key') throw new Error('Edit SETUP_KEY at the top of exposoft.web.js first');
-  if (!arg || !same(String(arg.key || ''), SETUP_KEY)) throw new Error('Wrong setup key');
-  const username = String((arg && arg.username) || '').trim().slice(0, 40);
-  const password = String((arg && arg.password) || '');
-  if (username.length < 3 || password.length < 6) throw new Error('Username needs 3+ characters and password 6+');
-  try {
-    const have = await wixData.query(STAFF).limit(1).find(SA);
-    if (have.items.length) throw new Error('already_set_up');
-  } catch (e) {
-    if (e && e.message === 'already_set_up') throw e;
-  }
-  const notes = await makeCollections(false);
-  await wixData.insert(STAFF, { username, password, role: 'admin', desks: '', name: '', failCount: '0', lockUntil: '' }, SA);
-  notes.push('admin ' + username + ' added');
-  return { summary: notes.join(' · ') };
 });

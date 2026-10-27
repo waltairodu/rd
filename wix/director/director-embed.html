@@ -137,6 +137,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline
 var $=function(s,r){return (r||document).querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+/* A link or picture address is used only if it is a plain web address; anything else (javascript:, quotes, brackets) is left out. */
+function httpUrl(u){u=String(u==null?'':u);return /^https?:\/\//i.test(u)?u:''}
+function okUrl(u){u=String(u==null?'':u);return /^https?:\/\/[^\s'"()<>\\]+$/i.test(u)?u:''}
 var ROLES=['Aid station / hydration','Course marshal','Start line crew','Finish line crew','Medal and finisher goodies','Finisher food and recovery','Bib and packet pickup (expo)','T-shirt / swag handout','Registration and check-in help','Information booth','Baggage check','Timing and results support','Medical support (first aid)','Sweeper / back-of-pack','Bike or cart escort','Traffic and road crossing','Parking and shuttle','Pacer support','Kids run helper','Cheer zone','Photography and social media','Set-up and tear-down','Sponsor and partner booth','Water and sanitation (toilets, bins)'];
 var ERR={page_code_old:'This page\'s code is out of date. Paste the latest page-code.js for this page, then publish.',backend_old:'The backend file is out of date. Paste the latest backend files, then publish.',timeout:'No answer from the server in time. Try again.',not_logged_in:'Your session ended. Please log in again.',bad_login:'Wrong username or password.',locked:'Too many wrong tries. Wait 10 minutes.',not_allowed:'This login is not set up for the Director. Ask for a director, lead or viewer role.',setup_needed:'Setup is not finished. Run the one-time setup first.',
   read_only:'Your login can only look, not change.',director_only:'Only a director login can do that.',no_event:'That race was not found.',name_needed:'Please enter a name.',bad_date:'Please use a real date.',bad_distance:'Distance must be between 1 and 100 km.',bad_status:'That status is not allowed.',
@@ -144,23 +147,28 @@ var ERR={page_code_old:'This page\'s code is out of date. Paste the latest page-
   shift_full:'That shift is full.',shifts_overlap:'Those shifts overlap in time.',no_volunteer:'Volunteer not found.',already_assigned:'Already on that shift.',volunteer_declined:'This volunteer was declined.',bad_phone:'Please enter a valid phone number.',already_signed_up:'That mobile number is already registered.',
   not_found:'No volunteer with that code.',not_approved:'This volunteer is not approved yet.',no_confirmed_shift:'No confirmed shift for this volunteer.',nothing_to_check:'Nothing to check in or out.',already_in:'Already checked in.',not_checked_in:'Not checked in yet.',already_out:'Already checked out.',already_checked_in:'They already checked in, so this cannot change.',no_assignment:'Shift assignment not found.',
   text_needed:'Please write a little more.',bad_kind:'Pick a type.',resolution_needed:'Say how it was resolved.',already_closed:'Already closed.',no_item:'Item not found.',wix_event_not_linked:'Link this race to its Wix event first.',wix_events_unavailable:'Wix Events did not answer. Try again in a minute.',wix_events_denied:'Wix Events refused access. Check that the Events app is installed on this site.',bad_quals:'Check the rules: each line needs a different category and at least one way to qualify (distance, time or both). Times look like 3:00.',no_runner:'That runner was not found.',no_rule:'This category has no qualification rule.',bad_claim:'Check the distance and the time (for example 21.1 and 2:45:10).',bad_link:'The proof link must start with http.',note_needed:'Please write a short reason.',bad_groups:'Check the pace groups: names must be different and not empty.',bad_finish:'Finish time must look like 1:45 or 2:00:00, between 20 minutes and 8 hours.',bad_group:'That pace group does not exist.',group_needed:'Choose a pace group first.',no_pacer:'Pacer not found.',no_enroll:'That runner is not on a plan.',no_coach_user:'That coach login was not found.',no_request:'There is no request to decline.',no_bib_plan:'Save bib number ranges first.',bad_bibs:'Check the ranges: each category once, first and last are whole numbers (1 to 99999), first not above last, and no overlaps.',bad_bib:'A bib number is letters, digits or dashes, up to 12 characters.',bib_taken:'That number is already used by another runner or in the Expo list.',bib_in_expo:'This runner is already in the Expo list. Change the number at the Expo desk.',no_expo_link:'Link this race to an Expo race in Settings first.',expo_race_missing:'The linked Expo race was not found. Pick it again in Settings.',no_registration:'Registration not found.',no_ai_key:'AI is not connected yet. Add the ANTHROPIC_API_KEY secret in Wix.',ai_busy:'The AI service is busy. Try again in a minute.',ai_failed:'The AI could not answer just now. Try again.',ai_key_rejected:'The AI key was rejected. Check the ANTHROPIC_API_KEY secret.',question_needed:'Type a question first.',bad_draft:'Choose what to draft.',no_sponsor:'Choose a sponsor from the plan.',bad_cats:'Check the categories: each needs a different name, and distance, fee and limit must be whole, positive numbers (limit a whole number).',title_needed:'Please give it a name (2 or more letters).',bad_phase:'Pick a valid group.',bad_amount:'Amounts must be a number, zero or more.',link_needed:'Please paste the link.',bad_email:'Please enter a valid email address.',bad_number:'Please enter a whole number, zero or more.',bad_scope:'Those answers could not be read. Try again.',bad_picks:'Those choices could not be read. Try again.',bad_item:'One of the approvals is not in the template. Reload the page and try again.',bad_lead:'Days before the race must be a whole number from 0 to 365.',bad_offset:'Minutes before the flag-off must be a whole number from 0 to 600.',bad_info:'Those details could not be read. Try again.',no_letter:'Only permits have an application letter.',no_docs:'This line has no list of documents.',bad_index:'That document is not on the list.',timeout:'No answer from the server. Try again.'};
+Object.assign(ERR,{not_allowed:'This login cannot use this page. Coaches use the coach page. Ask a director if your role should change.',bad_username:'A username is 3 to 30 letters, digits, dots, dashes or underscores, and starts with a letter or digit.',bad_role:'Pick a role.',username_taken:'That username is already used.',no_member:'That login was not found.',own_role:'You cannot change your own role.',own_login:'You cannot remove the login you are using.',desk_needed:'Tick at least one desk.',bad_desk:'That is not one of the three desks.',race_needed:'Choose the race for this desk login.',bad_race:'That race was not found.',bad_password:'A password is 6 to 72 characters.',weak_password:'That password is too easy to guess. Leave it empty to get a generated one.',busy_try_later:'Too many tries. Wait an hour and try again.',server_error:'Something went wrong on the server. Try again; if it keeps happening, tell the Race Director.'});
 var msg=function(e){return ERR[e]||('Something went wrong ('+e+')')};
 
 var EXPO_SRC=null; /* filled in by tools/build_rd.py: the Expo desk page, shown in the Expo desk tab */
-var S={cred:null,expoOnly:false,token:'',me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',plan:null,pedit:null,dash:null,races:null,bx:null,bxMsg:'',brief:null,aiQ:'',aiAnswer:null,aiBusy:'',draft:null,draftOut:null,sponsors:null,expoRaces:null,coachL:null,coaches:[],regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:'',tpl:null,tplOpen:undefined,tplErr:'',letter:null};
+var S={expoOnly:false,token:'',team:null,tf:null,teamSecret:null,me:null,events:[],ev:'',tab:'overview',ov:null,shifts:[],vols:[],run:[],log:[],logFilter:'open',pace:null,checks:[],qual:null,qF:'pending',plan:null,pedit:null,dash:null,races:null,bx:null,bxMsg:'',brief:null,aiQ:'',aiAnswer:null,aiBusy:'',draft:null,draftOut:null,sponsors:null,expoRaces:null,coachL:null,coaches:[],regs:null,mapOpen:false,wixEvents:null,wixForm:null,regQ:'',impMsg:'',busy:false,armed:null,volQ:'',volF:'all',editShift:null,editPacer:null,editEvent:null,loginErr:'',base:'https://www.vtra.run/volunteer',setupErr:'',ci:'',tpl:null,tplOpen:undefined,tplErr:'',letter:null};
 try{var b=localStorage.getItem('rd.base');if(b)S.base=b}catch(e){}
 var pending={},seq=0;
 var xmap={},xseq=0;
 window.addEventListener('message',function(e){
   var m=e.data;
-  // The Expo desk runs in a frame inside this page. Its requests are passed up to the page code tagged mod:'expo',
-  // and the answers are passed back down. Only a frame we made can send a 'call' to this page.
+  // The Expo desk runs in a frame inside this page and has no login of its own. Only that frame may send a 'call';
+  // it is passed up to the page code tagged mod:'expo' with THIS page's session token added (the frame never holds one),
+  // and the answer is passed back down. A message from anywhere else, or with no sender, is ignored.
   var xf=$('#expoFrame');
-  if(m&&m.kind==='call'&&xf&&(!e.source||e.source===xf.contentWindow)){if(S.cred){var c=S.cred;S.cred=null;setTimeout(function(){xf.contentWindow.postMessage({kind:'autologin',username:c.u,password:c.p},'*')},0)}var xid='x'+(++xseq);xmap[xid]=m.id;window.parent.postMessage({kind:'call',id:xid,method:m.method,arg:m.arg,mod:'expo'},'*');return}
-  if(m&&m.kind==='result'&&xmap[m.id]){var oid=xmap[m.id];delete xmap[m.id];if(xf&&xf.contentWindow)xf.contentWindow.postMessage(Object.assign({},m,{id:oid}),'*');return}
+  var fromXf=!!(xf&&xf.contentWindow&&e.source&&e.source===xf.contentWindow);
+  if(m&&m.kind==='call'){if(!fromXf)return;if(!S.token){xf.contentWindow.postMessage({kind:'result',id:m.id,ok:false,error:'not_logged_in'},'*');return}var xid='x'+(++xseq);xmap[xid]=m.id;window.parent.postMessage({kind:'call',id:xid,method:String(m.method||''),arg:Object.assign({},m.arg,{token:S.token}),mod:'expo'},'*');return}
+  if(m&&m.kind==='open-team'){if(fromXf&&man())doTab('team');return}
+  if(m&&m.kind==='result'&&fromXf)return; /* answers come from the Wix page, never from the desk frame inside this page */
+  if(m&&m.kind==='result'&&xmap[m.id]){var oid=xmap[m.id];delete xmap[m.id];if(xf&&xf.contentWindow)xf.contentWindow.postMessage(Object.assign({},m,{id:oid}),'*');if(!m.ok&&m.error==='not_logged_in'&&S.token)endSession('not_logged_in');return}
   if(!m||m.kind!=='result'||!pending[m.id])return;
   var p=pending[m.id];delete pending[m.id];clearTimeout(p.t);
-  if(m.ok)p.res(m.result);else{if(m.error==='not_logged_in'&&S.token){S.token='';S.me=null;S.loginErr=msg('not_logged_in');render()}p.rej(new Error(m.error||'failed'))}
+  if(m.ok)p.res(m.result);else{if(m.error==='not_logged_in'&&S.token)endSession('not_logged_in');p.rej(new Error(m.error||'failed'))}
 });
 function api(method,arg,ms,mod){
   return new Promise(function(res,rej){
@@ -169,6 +177,8 @@ function api(method,arg,ms,mod){
     var cm={kind:'call',id:id,method:method,arg:Object.assign({token:S.token,ev:S.ev},arg||{})};if(mod)cm.mod=mod;window.parent.postMessage(cm,'*');
   });
 }
+// Back to the login page: the session is over (logged out, expired, or ended by a director).
+function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -194,6 +204,8 @@ async function loadEvents(){
 }
 async function loadTab(){
   if(S.tab==='setup'&&man()&&!S.expoRaces){try{S.expoRaces=(await api('expoRaces')).races}catch(x){S.expoRaces=[]}}
+  // The Team screen and the Expo desk do not belong to a race, so they work before the first race exists.
+  if(S.tab==='team'&&man()){S.loadErr='';try{S.team=await api('listTeam')}catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}render();return}
   if(!S.ev){render();return}
   var t=S.tab;S.loadErr='';
   try{
@@ -229,12 +241,12 @@ function loginView(){
    +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
    +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
 }
-var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5'};
+var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
-  if(id==='coaching'||id==='setup')return man();
+  if(id==='coaching'||id==='setup'||id==='team')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
 }
@@ -279,7 +291,7 @@ function donut(parts){
 function raceCards(){
   var rs=(S.races||[]).slice(0,6);if(!rs.length)return '';
   return '<div class="card" style="margin-top:14px"><div class="row between"><h3>Races</h3>'+(man()?'<button class="btn sm pri" data-act="tab" data-tab="setup">Create race</button>':'')+'</div><div class="grid g2" style="margin-top:10px">'+rs.map(function(r){
-    var bg=r.bannerUrl?'background-image:linear-gradient(180deg,rgba(10,31,79,.1),rgba(10,31,79,.75)),url(\''+esc(r.bannerUrl).replace(/\'/g,'')+'\')':'';
+    var bg=okUrl(r.bannerUrl)?'background-image:linear-gradient(180deg,rgba(10,31,79,.1),rgba(10,31,79,.75)),url(\''+esc(okUrl(r.bannerUrl))+'\')':'';
     var when=r.daysToGo===null||r.daysToGo===undefined?'':r.daysToGo>0?r.daysToGo+' days to go':r.daysToGo===0?'race day':'finished';
     return '<div class="rcard'+(r.id===S.ev?' on':'')+'"><div class="rimg" style="'+bg+'"><span class="tag">'+(r.status==='open'?'Active':r.status==='closed'?'Closed':'Race')+'</span></div><div class="rbody"><b>'+esc(r.name)+'</b><small class="muted">'+esc(fdate(r.date))+(r.venue?' · '+esc(r.venue):'')+(when?' · '+when:'')+'</small>'
      +'<div class="row" style="gap:18px;margin:8px 0"><span><b>'+r.total.toLocaleString('en-IN')+'</b><small class="muted"> registered'+(r.capacity?' of '+r.capacity.toLocaleString('en-IN'):'')+'</small></span><span><b>'+r.cats.length+'</b><small class="muted"> categories</small></span>'+(r.revenue!==null&&r.revenue!==undefined?'<span><b>'+(INR(r.revenue)||'₹0')+'</b><small class="muted"> taken</small></span>':'')+'</div>'
@@ -364,7 +376,7 @@ function overviewView(){
   var o=S.ov;if(!o)return waiting();
   var v=o.volunteers,x=o.expo,al=o.alerts;
   var hev=S.events.find(function(e){return e.id===S.ev})||{};
-  var hero='<div class="hero"'+(hev.bannerUrl?' style="background-image:linear-gradient(100deg,rgba(10,31,79,.9),rgba(10,31,79,.25)),url(\''+esc(hev.bannerUrl).replace(/\'/g,'')+'\')"':'')+'><span class="tag">'+(hev.status==='open'?'Active event':hev.status==='closed'?'Closed':'Event')+'</span><h2>'+esc(hev.name||'')+'</h2><small>'+esc(fdate(hev.date))+(hev.venue?' \u00b7 '+esc(hev.venue):'')+(hev.daysToGo!==null&&hev.daysToGo!==undefined?' \u00b7 '+(hev.daysToGo>0?hev.daysToGo+' days to go':hev.daysToGo===0?'race day':'finished'):'')+'</small></div>';
+  var hero='<div class="hero"'+(okUrl(hev.bannerUrl)?' style="background-image:linear-gradient(100deg,rgba(10,31,79,.9),rgba(10,31,79,.25)),url(\''+esc(okUrl(hev.bannerUrl))+'\')"':'')+'><span class="tag">'+(hev.status==='open'?'Active event':hev.status==='closed'?'Closed':'Event')+'</span><h2>'+esc(hev.name||'')+'</h2><small>'+esc(fdate(hev.date))+(hev.venue?' \u00b7 '+esc(hev.venue):'')+(hev.daysToGo!==null&&hev.daysToGo!==undefined?' \u00b7 '+(hev.daysToGo>0?hev.daysToGo+' days to go':hev.daysToGo===0?'race day':'finished'):'')+'</small></div>';
   var goTab={coaching:'Coaching',plan:'Plan',money:'Money',approvals:'Approvals',logistics:'Logistics',regs:'Registrations',volunteers:'Volunteers',raceday:'Race day',pacers:'Pacers',safety:'Safety',quals:'Qualification'};
   return hero+dashTop()+raceCards()+'<div class="grid g2" style="margin-top:14px;align-items:start">'+quickActions()+'<div class="card"><h3>Needs attention</h3>'+(al.length?al.map(function(a){return '<div class="alert '+(a.level==='bad'?'bad':a.level==='warn'?'warn':'')+'"><span>'+esc(a.text)+'</span><button class="btn sm" data-act="tab" data-tab="'+esc(a.go)+'">'+esc(goTab[a.go]||'Open')+'</button></div>'}).join(''):'<p class="muted" style="margin-top:6px">Nothing needs you right now.</p>')+'</div></div>'
    +'<h3 style="margin:18px 0 10px">Race readiness</h3><div class="grid g4">'
@@ -406,7 +418,7 @@ function volView(){
 }
 function volRow(v){
   var kind=v.status==='approved'?'good':v.status==='declined'?'bad':'warn';
-  var wa='https://wa.me/91'+esc(v.phone)+'?text='+encodeURIComponent('Hi '+v.name.split(' ')[0]+', this is VTRA. Your volunteer code is '+v.code+'. Please keep it handy for check-in.');
+  var wa='https://wa.me/91'+String(v.phone==null?'':v.phone).replace(/\D/g,'').slice(-10)+'?text='+encodeURIComponent('Hi '+v.name.split(' ')[0]+', this is VTRA. Your volunteer code is '+v.code+'. Please keep it handy for check-in.');
   return '<tr><td><b>'+esc(v.name)+'</b><br><small>'+esc(v.club)+(v.notes?' · '+esc(v.notes):'')+'</small></td>'
    +'<td>'+esc(v.phone)+'<br><small><a href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a> · code '+esc(v.code)+'</small></td>'
    +'<td>'+pill(v.status==='applied'?'Waiting':v.status,kind)+(v.hours?'<br><small>'+v.hours+' h</small>':'')+'</td>'
@@ -467,7 +479,7 @@ function qualView(){
   var c=q.counts,list=q.rows.filter(function(r){return S.qF==='all'||r.status==='pending'});
   var head='<div class="card"><div class="row between"><h3>Qualification checks</h3><select id="qF" aria-label="Show"><option value="pending"'+(S.qF==='pending'?' selected':'')+'>Needs a decision ('+c.pending+')</option><option value="all"'+(S.qF==='all'?' selected':'')+'>All ('+c.total+')</option></select></div><p class="muted" style="margin:4px 0">'+c.approved+' approved · '+c.waived+' waived · '+c.rejected+' rejected · '+c.noclaim+' with no claim yet. The check is a first opinion from what you record; you decide.</p>';
   var rows=list.map(function(r){var v=VERD[r.verdict]||['',''],st=QST[r.status]||['',''],cl=r.claim;
-    var claimTxt=cl?esc(cl.text||'')+(cl.km?' · '+esc(cl.km)+' km':'')+(cl.time?' · '+esc(cl.time):'')+(cl.link?' · <a href="'+esc(cl.link)+'" target="_blank" rel="noopener noreferrer">proof</a>':''):'<small>none</small>';
+    var claimTxt=cl?esc(cl.text||'')+(cl.km?' · '+esc(cl.km)+' km':'')+(cl.time?' · '+esc(cl.time):'')+(httpUrl(cl.link)?' · <a href="'+esc(httpUrl(cl.link))+'" target="_blank" rel="noopener noreferrer">proof</a>':''):'<small>none</small>';
     var acts=can()?'<input data-note="'+esc(r.runnerId)+'" placeholder="Reason (needed to reject, waive or approve below rule)" value="'+esc(r.note)+'" style="width:100%;margin-bottom:4px"><div class="row"><button class="btn sm pri" data-act="qOk" data-id="'+esc(r.runnerId)+'">Approve</button><button class="btn sm" data-act="qNo" data-id="'+esc(r.runnerId)+'">Reject</button>'+(man()?'<button class="btn sm" data-act="qWaive" data-id="'+esc(r.runnerId)+'">Waive</button>':'')+'</div>'
      +'<details style="margin-top:6px"><summary class="btn sm">'+(cl?'Edit claim':'Record claim')+'</summary><form class="claimForm form" data-rid="'+esc(r.runnerId)+'" style="margin-top:6px"><label class="f">Race and year<input name="text" value="'+esc(cl?cl.text:'')+'"></label><label class="f">Distance (km)<input name="km" type="number" step="0.001" min="0" value="'+esc(cl&&cl.km?cl.km:'')+'"></label><label class="f">Time (h:mm)<input name="time" value="'+esc(cl?cl.time:'')+'" placeholder="2:45"></label><label class="f">Proof link<input name="link" value="'+esc(cl?cl.link:'')+'" placeholder="https://"></label><button class="btn pri" type="submit">Save claim</button></form></details>':'';
     return '<tr><td><small>'+esc(r.ref)+'</small></td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.cat)+'</small></td><td><small>'+esc(r.rule)+'</small></td><td>'+claimTxt+'</td><td>'+pill(v[0],v[1])+'<br>'+pill(st[0],st[1])+(r.by&&r.status!=='pending'?'<br><small>'+esc(r.by)+'</small>':'')+'</td><td style="min-width:240px">'+acts+'</td></tr>'}).join('');
@@ -514,7 +526,7 @@ function setupView(){
    +'<label class="f">Status<select name="status">'+[['open','Open (volunteers can sign up)'],['closed','Closed'],['archived','Archived (hidden)']].map(function(s){return '<option value="'+s[0]+'"'+(e.status===s[0]?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></label></div>'
    +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save race</button>'+(e.id?'<button class="btn" type="button" data-act="evNew">New race instead</button>':'')+'</div></form>'
    +(function(){var c=e.id?e:S.events.find(function(x){return x.id===S.ev});return c?catsCard(c):''})()
-   +'<div class="card"><h3>Who can log in</h3><p class="muted" style="margin-top:6px">Logins live in the CMS collection <b>ExpoStaff</b>. Set the <b>role</b> column: <b>admin</b> or <b>director</b> (everything), <b>lead</b> (volunteers, race day, pacers, safety), <b>viewer</b> (look only, for sponsors and partners). A login with role <b>desk</b> works only on the Expo desk.</p></div></div>';
+   +'<div class="card"><h3>Who can log in</h3><p class="muted" style="margin-top:6px">Logins are made on the <b>Team</b> screen: directors, leads, viewers, coaches and Expo desk staff, each with their own login. Desk staff log in here too and go straight to their desk.</p><div class="row" style="margin-top:8px"><button class="btn" data-act="tab" data-tab="team">Open Team</button></div></div></div>';
 }
 
 function showExpo(on){
@@ -530,7 +542,7 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='coaching'&&man()?coachingView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
   app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
 }
@@ -739,14 +751,60 @@ function coachingView(){
       :(S.coaches.length?'<select data-act="cassign" data-id="'+esc(a.id)+'" aria-label="Assign a coach">'+opts+'</select>':'<span class="muted">No coach logins yet</span>')+(a.coachStatus==='requested'?' '+arm('cd'+a.id,'Decline','cdecline','data-id="'+esc(a.id)+'"'):'');
     return '<tr><td><b>'+esc(a.name)+'</b><br><small>'+esc(a.phone)+' · '+esc(a.level)+'</small>'+(a.reqNote?'<br><small>“'+esc(a.reqNote)+'”</small>':'')+'</td><td>'+esc(a.planName)+'<br>'+st+'</td><td>'+(a.stats&&a.stats.adherence!==null?'<b>'+a.stats.adherence+'%</b> <span class="muted">('+a.stats.done+'/'+a.stats.due+')</span>':'<span class="muted">not started</span>')+'</td><td style="white-space:nowrap">'+act+'</td></tr>'}).join('');
   return '<div class="stack"><div class="grid g4">'+sumCard('Runners on a plan',L.totals.active,L.totals.athletes+' signed up')+sumCard('Want a coach',L.totals.requests||0,'waiting for you',(L.totals.requests||0)>0)+sumCard('Coached',coached,'with a coach assigned')+'</div>'
-   +'<div class="card"><div class="row between"><h3>Coaching</h3></div><p class="muted" style="margin-top:4px">Assign a coach to any runner, whether or not they asked. Coaches work from the coach page (/coach): they edit the plan, give feedback and message the runner. Coach logins are the ExpoStaff rows with role coach (admin and director logins can coach too).</p>'
+   +'<div class="card"><div class="row between"><h3>Coaching</h3></div><p class="muted" style="margin-top:4px">Assign a coach to any runner, whether or not they asked. Coaches work from the coach page (/coach): they edit the plan, give feedback and message the runner. Coach logins are made on the Team screen (role Coach); director logins can coach too.</p>'
    +'<div class="scroll"><table><tr><th>Runner</th><th>Plan</th><th>Done so far</th><th></th></tr>'+(rows||'<tr><td colspan="4" class="muted">No runners on a plan yet.</td></tr>')+'</table></div></div></div>';
+}
+/* ---------- Team: who can log in ---------- */
+var ROLE_INFO=[['director','Director','Everything, including money and this Team screen'],['lead','Lead','Volunteers, race day, pacers, safety and plans. No money and no Team screen'],['viewer','Viewer','Look only. No money and no contact details'],['desk','Desk staff','The Expo desk only: the desks and the race ticked below'],['coach','Coach','The coach page (/coach) only']];
+function roleName(r){var x=ROLE_INFO.filter(function(i){return i[0]===r})[0];return x?x[1]:'Other'}
+function roleInfo(r){var x=ROLE_INFO.filter(function(i){return i[0]===r})[0];return x?x[2]:''}
+function slug(n){return String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'.').replace(/^\.+|\.+$/g,'').slice(0,30).replace(/\.+$/,'')}
+function teamBlank(){var r=(S.team&&S.team.races)||[];return {edit:false,username:'',name:'',role:'desk',desks:[],race:r.length===1?r[0].id:'',userTouched:false}}
+function readTeamForm(f){var d=formData(f);return {edit:!!(S.tf&&S.tf.edit),username:d.username||'',name:d.name||'',role:d.role||'desk',desks:[].filter.call(f.querySelectorAll('input[data-desk]'),function(c){return c.checked}).map(function(c){return c.value}),race:d.race||'',userTouched:!!(S.tf&&S.tf.userTouched)}}
+function teamBase(){return String(S.base||'').replace(/\/volunteer.*$/,'')+'/rd'}
+function secretCard(){
+  var x=S.teamSecret;if(!x)return '';
+  var what=x.role==='desk'?'PIN':'password';
+  return '<div class="card" id="secretCard" style="border:2px solid var(--primary)"><h3>Hand this over now</h3><p class="muted" style="margin-top:4px">'+esc(roleName(x.role))+' login for <b>'+esc(x.username)+'</b>. The '+what+' is shown once and cannot be looked up later. If it is lost, use New '+what+' to make another.</p>'
+   +'<div class="row" style="margin:12px 0;gap:18px"><div><div class="muted">Username</div><b id="secUser" style="font-size:20px">'+esc(x.username)+'</b></div><div><div class="muted">'+(x.role==='desk'?'PIN':'Password')+'</div><b id="secPin" style="font-size:20px;letter-spacing:.08em">'+esc(x.secret)+'</b></div></div>'
+   +'<div class="row"><button class="btn pri" data-act="secretCopy">Copy both</button><button class="btn" data-act="secretClose">Done</button></div></div>';
+}
+function teamRow(m){
+  var where=m.role==='desk'?esc(m.anyDesk?'Any desk':m.desks.join(', '))+'<br><small class="muted">'+(m.raceName?esc(m.raceName):'no race set')+'</small>':'<span class="muted">–</span>';
+  var st=[m.you?pill('You'):'',m.atDesk?pill('At '+m.atDesk+' now','good'):'',m.locked?pill('Locked','bad'):'',m.handTyped?pill('Old password','warn'):''].join(' ');
+  var acts='<button class="btn sm" data-act="teamEdit" data-id="'+esc(m.username)+'">Edit</button> '+arm('reset:'+m.username,m.role==='desk'?'New PIN':'New password','teamReset','data-id="'+esc(m.username)+'"')+' '+arm('out:'+m.username,'Sign out','teamOut','data-id="'+esc(m.username)+'"')+(m.you?'':' '+arm('del:'+m.username,'Remove','teamDel','data-id="'+esc(m.username)+'"'));
+  return '<tr data-user="'+esc(m.username)+'"><td><b>'+esc(m.name||m.username)+'</b><br><small class="muted">'+esc(m.username)+'</small></td><td>'+pill(roleName(m.role),m.role==='director'?'good':'')+'</td><td>'+where+'</td><td>'+st+'</td><td style="white-space:nowrap">'+acts+'</td></tr>';
+}
+function teamView(){
+  var T=S.team;if(!T)return '<div class="card muted">Loading...</div>';
+  if(!S.tf)S.tf=teamBlank();
+  var f=S.tf;
+  var old=T.team.filter(function(m){return m.handTyped}).length;
+  var list=T.team.map(teamRow).join('');
+  var desks=T.desks.map(function(d,i){return '<label class="chk"><input type="checkbox" data-desk value="'+esc(d)+'"'+(f.desks.indexOf(d)>=0?' checked':'')+'><span>'+esc(d)+'</span></label>'}).join('');
+  var races='<option value="">'+(T.races.length?'Choose the race':'No race found yet')+'</option>'+T.races.map(function(r){return '<option value="'+esc(r.id)+'"'+(r.id===f.race?' selected':'')+'>'+esc(r.name)+'</option>'}).join('');
+  var roles=ROLE_INFO.map(function(r){return '<option value="'+r[0]+'"'+(f.role===r[0]?' selected':'')+'>'+esc(r[1])+'</option>'}).join('');
+  var recent=T.recent.length?'<div class="card"><h3>Recent changes</h3><div class="scroll"><table><tr><th>When</th><th>Who</th><th>What</th></tr>'+T.recent.map(function(n){return '<tr><td>'+esc(fdate((n.at||'').slice(0,10))+' '+ftime(n.at))+'</td><td>'+esc(n.by)+'</td><td>'+esc(n.action)+' <b>'+esc(n.target)+'</b>'+(n.detail?'<br><small class="muted">'+esc(n.detail)+'</small>':'')+'</td></tr>'}).join('')+'</table></div></div>':'';
+  return '<div class="stack">'+secretCard()
+   +'<div class="card"><div class="row between"><h3>Team</h3><button class="btn sm" data-act="teamNew">Add a login</button></div><p class="muted" style="margin-top:4px">Everyone who can log in to RaceOS, at '+esc(teamBase())+'. There is one login for everything: desk staff log in at the same address and go straight to their Expo desk. Give each desk its own login.</p>'
+   +'<div class="scroll"><table><tr><th>Person</th><th>Role</th><th>Desk and race</th><th></th><th></th></tr>'+(list||'<tr><td colspan="5" class="muted">No logins yet.</td></tr>')+'</table></div>'
+   +(old?'<p class="muted" style="margin-top:8px">'+old+' login'+(old===1?' has':'s have')+' a password typed by hand in the CMS. It is replaced by a scrambled one at their next login, or use New password now.</p>':'')+'</div>'
+   +'<form id="teamForm" class="card"><h3>'+(f.edit?'Edit '+esc(f.username):'Add a login')+'</h3><div class="form">'
+   +'<label class="f">Name<input id="tfName" name="name" value="'+esc(f.name)+'" maxlength="60" required></label>'
+   +'<label class="f">Username<input id="tfUser" name="username" value="'+esc(f.username)+'" maxlength="30" autocapitalize="off" autocomplete="off" spellcheck="false" required'+(f.edit?' readonly':'')+'></label>'
+   +'<label class="f">Role<select id="tfRole" name="role">'+roles+'</select></label>'
+   +(f.role==='desk'?'<div class="f"><span>Desks</span><div id="tfDesks">'+desks+'</div></div><label class="f">Race<select id="tfRace" name="race">'+races+'</select></label>':'')
+   +'<label class="f">Password (optional)<input id="tfPass" name="password" type="password" autocomplete="new-password" maxlength="72" placeholder="'+(f.edit?'Leave empty to keep it':'Leave empty to get a generated '+(f.role==='desk'?'PIN':'password'))+'"></label></div>'
+   +'<p class="muted" id="tfInfo" style="margin-top:8px">'+esc(roleInfo(f.role))+'.'+(f.role==='desk'?' A login ticked for more than one desk can work only one at a time.':'')+'</p>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">'+(f.edit?'Save changes':'Create login')+'</button>'+(f.edit?'<button class="btn" type="button" data-act="teamCancel">Cancel</button>':'')+'</div></form>'
+   +recent+'</div>';
 }
 /* ---------- actions ---------- */
 function formData(f){var o={};Array.prototype.forEach.call(f.elements,function(el){if(!el.name)return;o[el.name]=el.type==='checkbox'?el.checked:el.value});return o}
 function download(name,text,mime){try{var b=new Blob([text],{type:mime||'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
-function csvCell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
-async function doTab(t){S.tab=t;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
+/* A spreadsheet runs a cell that starts with = + - @ as a formula, so a volunteer who types "=HYPERLINK(...)" as a name could run it on the director's computer. Such a cell gets a ' in front. Plain numbers and phone numbers such as +91 98765 43210 are left alone. */
+function csvCell(v){var s=String(v==null?'':v);if(/^[=@\t\r]/.test(s)||(/^[+\-]/.test(s)&&!/^[+\-][\d\s().\-]*$/.test(s)))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+async function doTab(t){S.tab=t;S.teamSecret=null;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||b.tagName==='INPUT')return;
   var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
@@ -761,7 +819,7 @@ document.addEventListener('click',function(e){
   else if(act==='unlinkWix')run(async function(){await api('linkWixEvent',{wixEventId:''});S.wixEvents=null;S.wixForm=null;toast('Unlinked');await loadTab()});
   else if(act==='impRegs')run(async function(){var cur='',add=0,upd=0,sk=0;for(var i=0;i<60;i++){var r=await api('importRegs',{cursor:cur});add+=r.added;upd+=r.updated;sk+=r.skipped.cancelled+r.skipped.noName;S.impMsg='importing... '+(add+upd);render();cur=r.next;if(r.done)break}S.impMsg='Imported: '+add+' new, '+upd+' updated, '+sk+' skipped (cancelled or no name)';await reload()});
   else if(act==='regCsv'){var rr=S.regs.rows;download('registrations.csv',[['Name','Email','Phone','Ticket','Ticket no.','Size','Bib name','Payment pending']].concat(rr.map(function(r){return [r.name,r.email,r.phone,r.cat,r.ticket,r.size,r.bibName,r.unpaid?'yes':'']})).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
-  else if(act==='logout'){if(S.token)api('logout').catch(function(){});dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.cred=null;S.expoOnly=false;render()}
+  else if(act==='logout'){if(S.token)api('logout').catch(function(){});endSession('')}
   else if(act==='copyLink'){var t=$('#linkOut').textContent;try{navigator.clipboard.writeText(t).then(function(){toast('Link copied')},function(){toast(t)})}catch(x){toast(t)}}
   else if(act==='shiftNew'){S.editShift={id:'',role:'',location:'',date:(S.events.find(function(x){return x.id===S.ev})||{}).date||'',start:'05:00',end:'09:00',need:'4',notes:''};render()}
   else if(act==='shiftEdit'){S.editShift=Object.assign({},S.shifts.find(function(s){return s.id===id}));render()}
@@ -803,12 +861,22 @@ document.addEventListener('click',function(e){
   else if(act==='pdel')run(async function(){await api('removePlanItem',{id:id});toast('Removed');await reload()});
   else if(act==='pseed')run(async function(){var r=await api('seedPlanLists',{kinds:[b.getAttribute('data-kind')]});var n=0;Object.keys(r.added).forEach(function(k){n+=r.added[k]});toast('Added '+n+' starter items');await reload()});
   else if(act==='pcsv'){var k2=b.getAttribute('data-kind'),ls=(S.plan&&S.plan.items[k2])||[];download(k2+'.csv',[['Title','Category','Group','Status','Owner','Party','Contact','Due','Time','Amount','Actual','Ref','Link','Notes']].concat(ls.map(function(i){return [i.title,i.cat,i.phase,i.status,i.owner,i.party,i.contact,i.due,i.time,i.amount,i.amount2,i.ref,i.link,i.notes]})).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
+  else if(act==='teamNew'){S.tf=teamBlank();render();var tfe=$('#teamForm');if(tfe&&tfe.scrollIntoView)tfe.scrollIntoView({block:'center'})}
+  else if(act==='teamEdit'){var tm=S.team.team.find(function(x){return x.username===id});if(tm){S.tf={edit:true,username:tm.username,name:tm.name,role:tm.role==='other'?'viewer':tm.role,desks:tm.role==='desk'?tm.desks.slice():[],race:tm.race||'',userTouched:true};render();var tfe2=$('#teamForm');if(tfe2&&tfe2.scrollIntoView)tfe2.scrollIntoView({block:'center'})}}
+  else if(act==='teamCancel'){S.tf=null;render()}
+  else if(act==='teamReset')run(async function(){var r=await api('resetTeamSecret',{username:id});var tm2=S.team.team.find(function(x){return x.username===id});S.teamSecret={username:r.username,role:tm2?tm2.role:'desk',secret:r.secret};await reload();if(!S.loadErr){var sc=$('#secretCard');if(sc&&sc.scrollIntoView)sc.scrollIntoView({block:'start'})}});
+  else if(act==='teamOut')run(async function(){var r=await api('signOutTeam',{username:id});toast(r.ended?'Signed out ('+r.ended+' session'+(r.ended===1?'':'s')+')':'Nobody was signed in');await reload()});
+  else if(act==='teamDel')run(async function(){await api('removeTeam',{username:id});toast('Login removed');await reload()});
+  else if(act==='secretCopy'){var sx=S.teamSecret;if(sx){var st2='Username: '+sx.username+'\n'+(sx.role==='desk'?'PIN: ':'Password: ')+sx.secret+'\nLog in at: '+teamBase();try{navigator.clipboard.writeText(st2).then(function(){toast('Copied')},function(){toast('Select the text and copy it',true)})}catch(x){toast('Select the text and copy it',true)}}}
+  else if(act==='secretClose'){S.teamSecret=null;render()}
   else if(act==='evEdit'){S.editEvent=Object.assign({},S.events.find(function(x){return x.id===id}));render()}
   else if(act==='evNew'){S.editEvent=null;render()}
 });
 document.addEventListener('change',function(e){
   var t=e.target;
   if(t.id==='evPick'){S.ev=t.value;try{localStorage.setItem('rd.ev',S.ev)}catch(x){}S.ov=null;loadTab()}
+  else if(t.id==='tfRole'&&t.form){S.tf=readTeamForm(t.form);S.tf.role=t.value;render()}
+  else if(t.form&&t.form.id==='teamForm'){S.tf=readTeamForm(t.form)}
   else if(t.id==='volF'){S.volF=t.value;render()}
   else if(t.id==='regQ'){}
   else if(t.id==='qF'){S.qF=t.value;render()}
@@ -824,17 +892,20 @@ document.addEventListener('change',function(e){
 document.addEventListener('change',function(e){var t=e.target,f=t&&t.form;if(!f||f.id!=='tplForm')return;var n=t.name||'';
   if(n.indexOf('sc.')===0)[].forEach.call(f.querySelectorAll('tr[data-scope="'+n.slice(3)+'"] input[type=checkbox]'),function(c){c.checked=t.checked});
   if(n==='race.date'||n==='info.startTime'||/^[ps]\.[a-z-]+\.(lead|offset)$/.test(n))tplRecalc(f)});
-document.addEventListener('input',function(e){var t=e.target;if(t&&t.id==='letterText'&&S.letter){S.letter.text=t.value;var b=$('#letterBlanks');if(b)b.textContent=blankText(blankCount(t.value))}});
+document.addEventListener('input',function(e){var t=e.target;
+  if(t&&t.form&&t.form.id==='teamForm'&&S.tf){var touched=!!S.tf.userTouched||t.id==='tfUser';if(t.id==='tfName'&&!S.tf.edit&&!touched){var u1=$('#tfUser');if(u1)u1.value=slug(t.value)}S.tf=readTeamForm(t.form);S.tf.userTouched=touched}
+  if(t&&t.id==='letterText'&&S.letter){S.letter.text=t.value;var b=$('#letterBlanks');if(b)b.textContent=blankText(blankCount(t.value))}});
 document.addEventListener('input',function(e){if(e.target.id==='regQ'){S.regQ=e.target.value;var p2=e.target.selectionStart;render();var e2=$('#regQ');if(e2){e2.focus();try{e2.setSelectionRange(p2,p2)}catch(x){}}}if(e.target.id==='volQ'){S.volQ=e.target.value;var pos=e.target.selectionStart;render();var el=$('#volQ');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(x){}}}});
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.form&&t.form.id==='draftForm'&&t.name==='kind'){var d=formData(t.form);S.draft={kind:d.kind,channel:d.channel,notes:d.notes||'',sponsor:'',party:d.party||''};render()}});
 document.addEventListener('submit',function(e){
   e.preventDefault();var f=e.target,id=f.id,d=formData(f);
   if(id==='loginForm'){S.loginErr='';run(async function(){
     var u0=d.lgUser||$('#lgUser').value,p0=$('#lgPass').value;
-    try{var r=await api('login',{username:u0,password:p0,token:''});S.token=r.token;S.me=r;S.cred=EXPO_SRC&&r.role==='director'?{u:u0,p:p0}:null;await afterLogin()}
-    catch(x){
-      // A correct login that has no Director role is an Expo desk login: send it straight to the Expo desk.
-      if(x.message==='not_allowed'&&EXPO_SRC){S.cred={u:u0,p:p0};S.me={name:u0,role:'desk'};S.expoOnly=true;render();return}S.loginErr=msg(x.message);var el=$('#lgErr');if(el)el.textContent=S.loginErr;toast(S.loginErr,true)}})}
+    try{var r=await api('login',{username:u0,password:p0,token:''});S.token=r.token;S.me=r;
+      // Desk staff have no Director screens: straight to their Expo desk.
+      if(r.role==='desk'){S.expoOnly=true;render();return}
+      await afterLogin()}
+    catch(x){S.loginErr=msg(x.message);var el=$('#lgErr');if(el)el.textContent=S.loginErr;toast(S.loginErr,true)}})}
   else if(id==='setupForm'){run(async function(){try{var r=await api('ensureSetup',{key:$('#suKey').value,username:$('#suUser').value,password:$('#suPass').value,token:''});$('#suMsg').textContent=r.summary}catch(x){$('#suMsg').textContent=x.message}})}
   else if(id==='shiftForm')run(async function(){await api('saveShift',Object.assign({id:S.editShift.id||undefined},d));S.editShift=null;toast('Shift saved');await loadTab()});
   else if(id==='addVol')run(async function(){var r=await api('addVolunteer',d);toast('Added. Code '+r.code);await loadTab()});
@@ -854,6 +925,10 @@ document.addEventListener('submit',function(e){
   else if(id==='catForm')run(async function(){var r=await api('saveCats',{ev:S.editEvent&&S.editEvent.id||S.ev,cats:textToCats(d.cats)});toast('Saved '+r.cats.length+' categories');await loadEvents();S.dash=null;render()});
   else if(id==='checkForm')run(async function(){await api('addCheck',d);await loadTab()});
   else if(id==='tplForm')run(async function(){await api('saveEventInfo',tplArgs(d));var r=await api('applyApprovalTemplate',{scope:tplScope(d),picks:tplPicks(d)});await loadEvents();S.tplOpen=false;var m=[];if(r.added)m.push('Added '+r.added);if(r.replaced)m.push('replaced '+r.replaced+' starter line'+(r.replaced===1?'':'s'));if(r.linked)m.push(r.linked+' linked to the template');if(r.removed)m.push('removed '+r.removed+' unused starter line'+(r.removed===1?'':'s'));toast(m.length?m.join(', '):'Nothing new to add');await loadTab()});
+  else if(id==='teamForm')run(async function(){var tf=readTeamForm(f);var r=await api('saveTeam',{edit:tf.edit,username:tf.username,name:tf.name,role:tf.role,desks:tf.desks,race:tf.race,password:d.password||''});
+    S.teamSecret=r.secret?{username:r.member.username,role:r.member.role,secret:r.secret}:null;S.tf=null;
+    toast(r.warn==='race_column_missing'?'Saved, but the race could not be stored: add a text column named race to the ExpoStaff collection in the CMS, then save again.':tf.edit?'Saved':'Login created',r.warn==='race_column_missing');
+    await loadTab();if(S.teamSecret){var sc2=$('#secretCard');if(sc2&&sc2.scrollIntoView)sc2.scrollIntoView({block:'start'})}});
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
 render();

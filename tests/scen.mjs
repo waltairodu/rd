@@ -1,4 +1,5 @@
 import * as B from './exposoft.test.mjs';
+import * as R from './racedir.test.mjs';
 import wd from 'wix-data';
 const DB=global.__DB;
 let pass=0,fail=0;const bad=[];
@@ -14,7 +15,9 @@ for(const [u,d,r] of [['bibuser','1',''],['shirtuser','Tshirt',''],['miscuser','
   await wd.insert('ExpoStaff',{username:u,password:'pw-'+u,role:r,desks:d,name:u,failCount:'0',lockUntil:''},SA);
 let rn=0;
 async function runner(o={}){rn++;const bib='B'+rn;const row=Object.assign({_id:'Import910~'+bib,event:'Import910',bib,name:'Runner '+rn,cat:'21K',size:'M',phone:'9000000000',email:'',example:'',checkedInAt:'',checkedInDesk:'',bibAt:'',bibDesk:'',shirtSize:'',shirtAt:'',shirtDesk:''},o);await wd.insert('Runners',row,SA);return row._id}
-const L=async(u,desk)=>{const r=await B.login({username:u,password:'pw-'+u});if(desk&&r.desk!==desk)await B.chooseDesk({token:r.token,desk});return r.token};
+// One login for everything: log in to RaceOS, then start the Expo desk with the same token (what the /rd page does).
+const LG=async(u)=>{const r=await R.login({username:u,password:'pw-'+u});const e=await B.enter({token:r.token});return Object.assign({token:r.token},e)};
+const L=async(u,desk)=>{const r=await LG(u);if(desk&&r.desk!==desk)await B.chooseDesk({token:r.token,desk});return r.token};
 const get=(id)=>wd.get('Runners',id,SA);
 
 // ---- login sets desk / can map
@@ -129,7 +132,7 @@ ok((await err(B.issue({token:'x'.repeat(40),id:sp,bib:true})))==='not_logged_in'
 // ---- one login one desk
 const t1b=await L('bibuser');
 ok((await err(B.chooseDesk({token:t1b,desk:D2})))==='bad_desk','second session of desk-1 login cannot move to desk 2');
-await B.logout({token:t1});await B.logout({token:t1b});
+await R.logout({token:t1});await R.logout({token:t1b});
 // ---- race names and race lock
 ok((await B.listEvents({token:ta})).map(r=>r.name).join()==='VHM','one race known: named VHM from RACE_NAMES');
 global.__COLS.add('Import909');
@@ -148,11 +151,11 @@ ok((await B.listEvents({token:ta})).find(r=>r.id==='Import910').name==='VHM','em
 await wd.insert('ExpoStaff',{username:'ult1',password:'pw-ult1',role:'',desks:'Desk 2',race:'ultribe paderu',name:'u',failCount:'0',lockUntil:''},SA);
 await wd.insert('ExpoStaff',{username:'vhm1',password:'pw-vhm1',role:'',desks:'Desk 1',race:'Import910',name:'v',failCount:'0',lockUntil:''},SA);
 await wd.insert('ExpoStaff',{username:'typo1',password:'pw-typo1',role:'',desks:'Desk 1',race:'Nowhere',name:'t',failCount:'0',lockUntil:''},SA);
-ok((await err(B.login({username:'bibuser',password:'pw-bibuser'})))==='no_race','desk login with no race and several races is refused (no_race)');
-ok((await err(B.login({username:'typo1',password:'pw-typo1'})))==='bad_race','unknown race on a login -> bad_race');
-const rw=await B.login({username:'ult1',password:'pw-ult1'});
+ok((await err(LG('bibuser')))==='no_race','desk login with no race and several races is refused (no_race)');
+ok((await err(LG('typo1')))==='bad_race','unknown race on a login -> bad_race');
+const rw=await LG('ult1');
 ok(rw.race==='Import909'&&rw.raceName==='Ultribe Paderu'&&rw.desk===D2&&rw.deskChosen,'login by race NAME locks race + single desk, ready to work');
-const rv=await B.login({username:'vhm1',password:'pw-vhm1'});ok(rv.race==='Import910','login by Import id also works');
+const rv=await LG('vhm1');ok(rv.race==='Import910','login by Import id also works');
 ok((await B.listEvents({token:rw.token})).map(r=>r.id).join()==='Import909','locked user sees only their race');
 await wd.insert('Runners',{_id:'Import909~Q1',event:'Import909',bib:'Q1',name:'Q One',cat:'10K',size:'M',phone:'',email:'',example:'',checkedInAt:'',checkedInDesk:'',bibAt:'',bibDesk:'',shirtSize:'',shirtAt:'',shirtDesk:''},SA);
 let lp=await B.loadPage({token:rw.token,ev:'Import910'});

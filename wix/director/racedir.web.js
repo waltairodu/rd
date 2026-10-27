@@ -2,22 +2,42 @@
 // Race Director backend for Wix (Velo), Phase 1: command centre, volunteers (public sign-up, approval,
 // shifts, check-in and hours), race-day run of show and incident log, pacers, safety checklist.
 //
-// Logins are the same ExpoStaff rows the Expo desk uses. Role column:
-//   admin or director  everything, including events and settings
+// ONE login for everything in RaceOS, including the Expo desk. Logins are rows of the ExpoStaff collection and are
+// made and changed on the Team screen (methods listTeam, saveTeam, resetTeamSecret, signOutTeam, removeTeam), not by
+// hand in the CMS. Role column:
+//   admin or director  everything, including events, settings and the Team
 //   lead               volunteers, race day, pacers and safety (read and write), no events or deletes
 //   viewer             read only (sponsor or partner); sees no budget, sponsor or contact details
-//   anything else (desk, empty) is refused here.
-// Every method except login, ensureSetup, openShifts, volunteerSignup and volunteerStatus needs a session token.
-import { Permissions, webMethod } from 'wix-web-module';
+//   desk               Expo desk staff: works the Expo desk and nothing else. Every method here refuses a desk
+//                      session except whoami and logout. (A row with no role is a desk login too.)
+//   coach              the coach page only; refused here
+//   anything else is refused.
+// Passwords are stored hashed (rd-auth.js). A password typed by hand into the CMS still works and is hashed at the
+// first login. Every method except login, ensureSetup, openShifts, volunteerSignup and volunteerStatus needs a session token.
+import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
 import { wixEventsV2, guests } from 'wix-events.v2';
 import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
 import { SCOPES, LEGACY_TITLES, cleanScope, suggest, planRows as templateRows, follow, itemByKey, permitByKey, renderLetter, editionLabel } from './rd-approvals.js';
+import { checkPassword, hashPassword, needsUpgrade, genPin, genPassword, newToken, kindOf as staffKind, DESKS, canonDesk, parseDesks, deskValueOf, tidyError, takeSlot, freeSlots, slotKey } from './rd-auth.js';
+
+// Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
+const webMethod = (permission, fn) =>
+  wixWebMethod(permission, async (arg) => {
+    try {
+      return await fn(arg);
+    } catch (e) {
+      throw tidyError(e, 'racedir');
+    }
+  });
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
+const PRES = 'ExpoPresence';
+const EXPO_CHECKS = 'ExpoCheckins';
+const AUDIT = 'RDAudit';
 const RUNNERS = 'Runners';
 const EVENTS = 'RDEvents';
 const SHIFTS = 'RDShifts';
@@ -48,11 +68,6 @@ const int = (v, d) => {
 };
 const nowIso = () => new Date().toISOString();
 
-function newToken() {
-  let t = '';
-  for (let k = 0; k < 6; k++) t += Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0');
-  return t + Date.now().toString(16);
-}
 function same(a, b) {
   const x = String(a);
   const y = String(b);
@@ -93,21 +108,30 @@ async function all(q) {
 const rows = (c, ev) => all(() => wixData.query(c).eq('event', ev).ascending('_id'));
 
 /* ---------- logins and roles ---------- */
+// staffKind (rd-auth.js) reads the role column. Here: director, lead, viewer and desk may log in; coach and anything else may not.
 const roleOf = (u) => {
-  const r = lc(u.role || u.Role);
-  return r === 'admin' || r === 'director' ? 'director' : r === 'lead' ? 'lead' : r === 'viewer' ? 'viewer' : 'none';
+  const k = staffKind(u);
+  return k === 'coach' || k === 'other' ? 'none' : k;
 };
-const CAN = { director: { write: true, manage: true }, lead: { write: true, manage: false }, viewer: { write: false, manage: false } };
+const CAN = { director: { write: true, manage: true }, lead: { write: true, manage: false }, viewer: { write: false, manage: false }, desk: { write: false, manage: false } };
 
+// Every login, however many there are (read a page at a time, so no login is ever out of sight).
 async function staffRows() {
   try {
-    return (await wixData.query(STAFF).limit(200).find(SA)).items;
+    const out = [];
+    for (let skip = 0; skip < 5000; skip += MAXROWS) {
+      const r = await wixData.query(STAFF).ascending('_id').skip(skip).limit(MAXROWS).find(SA);
+      out.push(...r.items);
+      if (r.items.length < MAXROWS) break;
+    }
+    return out;
   } catch (e) {
     throw new Error('setup_needed');
   }
 }
 
-async function auth(arg, need) {
+// Checks the session token and returns who it belongs to, whatever the role (desk staff included).
+async function session(arg) {
   const t = String((arg && arg.token) || '');
   if (t.length < 20) throw new Error('not_logged_in');
   let sess;
@@ -121,28 +145,91 @@ async function auth(arg, need) {
   if (!u) throw new Error('not_logged_in');
   const role = roleOf(u);
   if (role === 'none') throw new Error('not_allowed');
-  const can = CAN[role];
-  if (need === 'write' && !can.write) throw new Error('read_only');
-  if (need === 'manage' && !can.manage) throw new Error('director_only');
-  return { role, can, user: u, name: String(u.name || unameOf(u)), username: String(unameOf(u)), sess };
+  return { role, can: CAN[role], user: u, name: String(u.name || unameOf(u)), username: String(unameOf(u)), sess };
+}
+// Every Director method uses this one: desk staff have a session, but nothing here is theirs to use.
+async function auth(arg, need) {
+  const a = await session(arg);
+  if (a.role === 'desk') throw new Error('not_allowed');
+  if (need === 'write' && !a.can.write) throw new Error('read_only');
+  if (need === 'manage' && !a.can.manage) throw new Error('director_only');
+  return a;
 }
 const meOf = (a) => ({ role: a.role, name: a.name, canWrite: a.can.write, canManage: a.can.manage });
 
+// Writes login bookkeeping (failure count, lock, password upgrade) onto the row as it is NOW, not onto the copy read a
+// moment ago, so a change made on the Team screen in between is never undone. A password upgrade is applied only if the
+// stored password is still the one that was read (a reset made in between wins).
+async function patchStaff(u, patch) {
+  const fresh = await wixData.get(STAFF, u._id, SA).catch(() => null);
+  if (!fresh) return;
+  const p = Object.assign({}, patch);
+  if (p.password !== undefined && String(fresh.password || '') !== String(u.password || '')) delete p.password;
+  if (!Object.keys(p).length) return;
+  await wixData.update(STAFF, Object.assign({}, fresh, p), SA);
+}
+
+// Frees the desk a login was holding (the Expo desk keeps one row per login in ExpoPresence).
+async function releaseDeskPresence(username, desk) {
+  const key = lc(username);
+  try {
+    const row = await wixData.get(PRES, key, SA).catch(() => null);
+    if (row && (!desk || row.desk === desk)) await wixData.bulkRemove(PRES, [key], SA);
+  } catch (e) {
+    // nothing to release
+  }
+}
+// Ends every session of a login (except one token) and frees its desk.
+async function dropAccess(username, exceptToken, keepDesk) {
+  const sess = await wixData.query(SESS).eq('username', username).limit(200).find(SA);
+  const gone = sess.items.filter((x) => x.token !== exceptToken);
+  if (gone.length) await wixData.bulkRemove(SESS, gone.map((x) => x._id), SA);
+  if (!keepDesk) await releaseDeskPresence(username);
+  return gone.length;
+}
+
 export const health = webMethod(Permissions.Anyone, async () => ({ ok: true }));
 
+// A password that is checked against when the username does not exist, so that a wrong username takes as long to
+// refuse as a wrong password (otherwise the response time would tell an attacker which usernames are real).
+const DUMMY_HASH = 'h1$0123456789abcdef$0000000000000000000000000000000000000000000000000000000000000000';
+const LOGIN_TRIES = 5;
+const LOGIN_WINDOW_MS = 10 * 60000;
+
 export const login = webMethod(Permissions.Anyone, async (arg) => {
-  const username = lc(arg && arg.username);
-  const password = String((arg && arg.password) || '');
+  // Only plain text is accepted. An array or object in either field is a wrong login, never turned into text.
+  const typed = !!arg && typeof arg.username === 'string' && typeof arg.password === 'string';
+  const username = typed ? lc(arg.username) : '';
+  const password = typed ? arg.password : '';
   const u = (await staffRows()).find((r) => lc(unameOf(r)) === username);
-  if (!u || !username || !password) throw new Error('bad_login');
+  if (!u || !username || !password) {
+    checkPassword(DUMMY_HASH, password || 'x');
+    throw new Error('bad_login');
+  }
   if (u.lockUntil && Date.parse(u.lockUntil) > Date.now()) throw new Error('locked');
-  const good = String(u.password || '') !== '' && same(u.password, password);
+  // Only a few tries can be under way at the same moment, however fast they are sent: the count in the row is read and
+  // written back, so a burst of requests would all see the same number. The slots (see takeSlot) cannot be raced.
+  const gate = slotKey('att', unameOf(u));
+  let slot = '';
+  try {
+    slot = await takeSlot(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  } catch (e) {
+    throw new Error('setup_needed');
+  }
+  if (!slot) throw new Error('locked');
+  const good = checkPassword(u.password, password);
   if (!good) {
     const fails = int(u.failCount) + 1;
-    await wixData.update(STAFF, Object.assign({}, u, fails >= 5 ? { failCount: '0', lockUntil: new Date(Date.now() + 10 * 60000).toISOString() } : { failCount: String(fails) }), SA);
+    await patchStaff(u, fails >= 5 ? { failCount: '0', lockUntil: new Date(Date.now() + 10 * 60000).toISOString() } : { failCount: String(fails) });
     throw new Error(fails >= 5 ? 'locked' : 'bad_login');
   }
-  if (u.failCount || u.lockUntil) await wixData.update(STAFF, Object.assign({}, u, { failCount: '0', lockUntil: '' }), SA);
+  await freeSlots(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  // A good login clears the failures, and replaces a password typed by hand in the CMS with its hash.
+  // (A row with no failures to clear is not written at all.)
+  const patch = {};
+  if ((u.failCount && u.failCount !== '0') || u.lockUntil) Object.assign(patch, { failCount: '0', lockUntil: '' });
+  if (needsUpgrade(u.password)) patch.password = hashPassword(password);
+  if (Object.keys(patch).length) await patchStaff(u, patch);
   if (roleOf(u) === 'none') throw new Error('not_allowed');
   await ensureCollections();
   try {
@@ -160,11 +247,13 @@ export const logout = webMethod(Permissions.Anyone, async (arg) => {
   const t = String((arg && arg.token) || '');
   if (t.length < 20) return { ok: true };
   const r = await wixData.query(SESS).eq('token', t).limit(5).find(SA);
+  // Logging out frees the Expo desk this session was holding, so the next person can take it at once.
+  for (const x of r.items) if (x.desk) await releaseDeskPresence(x.username, x.desk);
   if (r.items.length) await wixData.bulkRemove(SESS, r.items.map((x) => x._id), SA);
   return { ok: true };
 });
 
-export const whoami = webMethod(Permissions.Anyone, async (arg) => meOf(await auth(arg)));
+export const whoami = webMethod(Permissions.Anyone, async (arg) => meOf(await session(arg)));
 
 /* ---------- events ---------- */
 const DEFAULT_GROUPS = [
@@ -202,6 +291,34 @@ const DEFAULT_RUN = [
   ['09:00', 'Awards and closing', 'Race Director'],
 ];
 
+// What is stored for a race can have been edited by hand or written by another tool. Everything handed to the screens
+// is brought into the shape the screens expect (text cut to length, numbers real, lists of plain records), so odd data
+// shows up as empty or default rather than breaking a screen.
+const plainRecords = (v, max) => (Array.isArray(v) ? v.filter((x) => x && typeof x === 'object' && !Array.isArray(x)).slice(0, max) : []);
+const realNum = (v) => (v === '' || v === null || v === undefined || typeof v === 'object' || !Number.isFinite(Number(v)) ? 0 : Number(v));
+function groupsOut(v) {
+  const list = plainRecords(v, 12)
+    .map((g) => ({ label: clean(g.label, 12), finish: realNum(g.finish), need: realNum(g.need) }))
+    .filter((g) => g.label && g.finish > 0);
+  return list.length ? list : DEFAULT_GROUPS;
+}
+const qualsOut = (v) =>
+  plainRecords(v, 30)
+    .map((r) => ({ cat: clean(r.cat, 60), text: clean(r.text, 160), alts: plainRecords(r.alts, 6).map((a) => ({ minKm: realNum(a.minKm), maxSec: realNum(a.maxSec) })) }))
+    .filter((r) => r.cat);
+const catsOut = (v) =>
+  plainRecords(v, 20)
+    .map((c) => ({ name: clean(c.name, 40), km: realNum(c.km), price: realNum(c.price), cap: realNum(c.cap) }))
+    .filter((c) => c.name);
+const bibsOut = (v) =>
+  plainRecords(v, 30)
+    .map((r) => ({ cat: clean(r.cat, 60), from: Math.trunc(realNum(r.from)), to: Math.trunc(realNum(r.to)) }))
+    .filter((r) => r.cat);
+function wixMapOut(m) {
+  const out = {};
+  if (m && typeof m === 'object' && !Array.isArray(m)) Object.keys(m).slice(0, 30).forEach((k) => { if (typeof m[k] === 'string') out[clean(k, 40)] = clean(m[k], 120); });
+  return out;
+}
 function eventOut(it) {
   let j = {};
   try {
@@ -209,6 +326,7 @@ function eventOut(it) {
   } catch (e) {
     j = {};
   }
+  if (!j || typeof j !== 'object' || Array.isArray(j)) j = {};
   const t = it.date ? Date.parse(it.date + 'T00:00:00+05:30') : NaN;
   return {
     id: it._id,
@@ -217,16 +335,16 @@ function eventOut(it) {
     venue: it.venue || '',
     expoId: it.expoId || '',
     status: it.status || 'open',
-    distanceKm: Number(j.distanceKm) || 21.0975,
-    groups: Array.isArray(j.groups) ? j.groups : DEFAULT_GROUPS,
-    quals: Array.isArray(j.quals) ? j.quals : [],
+    distanceKm: realNum(j.distanceKm) || 21.0975,
+    groups: groupsOut(j.groups),
+    quals: qualsOut(j.quals),
     edition: clean(j.info && j.info.edition, 20),
     editionText: editionLabel(clean(j.info && j.info.edition, 20)),
-    wixEventId: j.wixEventId || '',
-    bannerUrl: j.bannerUrl || '',
-    cats: Array.isArray(j.cats) ? j.cats : [],
-    bibs: Array.isArray(j.bibs) ? j.bibs : [],
-    wixMap: j.wixMap && typeof j.wixMap === 'object' ? j.wixMap : {},
+    wixEventId: typeof j.wixEventId === 'string' ? clean(j.wixEventId, 80) : '',
+    bannerUrl: typeof j.bannerUrl === 'string' ? clean(j.bannerUrl, 300) : '',
+    cats: catsOut(j.cats),
+    bibs: bibsOut(j.bibs),
+    wixMap: wixMapOut(j.wixMap),
     daysToGo: Number.isFinite(t) ? Math.ceil((t - Date.now()) / 86400000) : null,
   };
 }
@@ -257,7 +375,7 @@ export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
   const dist = Number(arg.distanceKm);
   if (has('distanceKm') && !(dist >= 1 && dist <= 100)) throw new Error('bad_distance');
   const banner = has('bannerUrl') ? clean(arg.bannerUrl, 300) : '';
-  if (banner && !/^https:\/\//i.test(banner)) throw new Error('bad_link');
+  if (banner && !/^https:\/\/[^\s'"()<>\\]+$/i.test(banner)) throw new Error('bad_link');
   const base = {
     name,
     date,
@@ -1068,10 +1186,10 @@ export const saveQualClaim = webMethod(Permissions.Anyone, async (arg) => {
   return { ok: true, row: qualOut(e, r, row) };
 });
 export const decideQual = webMethod(Permissions.Anyone, async (arg) => {
-  const status = String(arg.status || '');
-  if (!['approved', 'rejected', 'waived', 'pending'].includes(status)) throw new Error('bad_status');
-  // Waiving a rule is a director decision.
+  const status = String((arg && arg.status) || '');
+  // Waiving a rule is a director decision. Who is asking is checked before anything else is looked at.
   const a = await auth(arg, status === 'waived' ? 'manage' : 'write');
+  if (!['approved', 'rejected', 'waived', 'pending'].includes(status)) throw new Error('bad_status');
   const { e, r, q } = await qualTarget(arg);
   const note = clean(arg.note, 200);
   if ((status === 'rejected' || status === 'waived') && note.length < 3) throw new Error('note_needed');
@@ -1301,11 +1419,11 @@ function planAlerts(sum, e, role) {
 
 const PLAN_FIELDS = ['title', 'cat', 'phase', 'status', 'owner', 'party', 'contact', 'due', 'time', 'amount', 'amount2', 'ref', 'link', 'notes'];
 export const listPlan = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg); // who is asking is checked before anything else is looked at
   const kinds = (Array.isArray(arg.kinds) ? arg.kinds : [arg.kind]).map(kindOf);
   for (const k of kinds) await planAuth(arg, k, false);
   const it = await getEvent(arg.ev);
   const e = eventOut(it);
-  const a = await auth(arg);
   const all = await rows(PLAN, e.id);
   const today = istToday();
   const out = {};
@@ -1314,6 +1432,7 @@ export const listPlan = webMethod(Permissions.Anyone, async (arg) => {
 });
 
 export const savePlanItem = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg); // who is asking is checked before anything else is looked at
   const kind = kindOf(arg.kind);
   const a = await planAuth(arg, kind, true);
   await getEvent(arg.ev);
@@ -1363,6 +1482,7 @@ export const savePlanItem = webMethod(Permissions.Anyone, async (arg) => {
 
 // Quick status change. Marking something paid, received or delivered fills the actual with the planned amount if empty.
 export const setPlanStatus = webMethod(Permissions.Anyone, async (arg) => {
+  await auth(arg); // who is asking is checked before anything else is looked at
   const old = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_item');
   const a = await planAuth(arg, kindOf(old.kind), true);
@@ -1953,10 +2073,26 @@ async function expoConfigOf(expoId) {
   XSIZES.forEach((z) => (lot[z] = Math.max(0, parseInt(c.shirtLot && c.shirtLot[z], 10) || 0)));
   return { name: String(it.name || c.name || expoId), bibLot: Math.max(0, parseInt(c.bibLot, 10) || 0), shirtLot: lot };
 }
+// Every Expo race the software knows: the settings rows the Expo desk keeps in ExpoConfig, plus every findmybib
+// "Import..." collection in the CMS (so a race shows up here before anyone has opened the desk for it).
+async function expoRaceList() {
+  const have = await all(() => wixData.query(EXPO_CONFIG).ascending('_id')).catch(() => []);
+  const byId = new Map(have.map((r) => [r._id, String(r.name || r._id)]));
+  try {
+    const list = elevate(collections.listDataCollections);
+    const r = await list({ paging: { limit: 100 } });
+    (r.collections || []).forEach((c) => {
+      const id = String(c._id || c.id || '');
+      if (/^import/i.test(id) && !byId.has(id)) byId.set(id, String(c.displayName || '').trim() || id);
+    });
+  } catch (e) {
+    // best effort: the races already known from the Expo desk are still listed
+  }
+  return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+}
 export const expoRaces = webMethod(Permissions.Anyone, async (arg) => {
   await auth(arg, 'manage');
-  const list = await all(() => wixData.query(EXPO_CONFIG).ascending('_id')).catch(() => []);
-  return { races: list.map((r) => ({ id: r._id, name: String(r.name || r._id) })).sort((a, b) => a.name.localeCompare(b.name)) };
+  return { races: await expoRaceList() };
 });
 
 function cleanBibRanges(list) {
@@ -2487,6 +2623,175 @@ export const aiDraft = webMethod(Permissions.Anyone, async (arg) => {
   return { subject, body, ai: true, kind, channel: ch };
 });
 
+/* ---------- Team: who can log in, and what each login can do ---------- */
+// The Team screen is the only place logins are made. A password is never sent back: a new or reset login gets a
+// generated PIN (desk staff) or password (everyone else), shown once so the director can hand it over.
+// Changing a login's role, desks, race or password ends its other sessions at once.
+const TEAM_KINDS = ['director', 'lead', 'viewer', 'desk', 'coach'];
+const STORE_ROLE = { director: 'admin', lead: 'lead', viewer: 'viewer', desk: 'desk', coach: 'coach' };
+const USERNAME_RE = /^[a-z0-9][a-z0-9._-]{2,29}$/;
+const PRESENCE_FRESH_MS = 3 * 60 * 1000;
+const WEAK = ['password', 'passw0rd', '123456', '1234567', '12345678', '123456789', 'qwerty', 'qwerty123', 'abc123', 'abcdef', '111111', '000000', '654321', 'admin', 'admin123', 'welcome', 'letmein', 'iloveyou', 'vtra', 'vtra123', 'visakha'];
+
+// A note of who changed what, for the Team screen. Never holds a password or PIN. Best effort: it never stops the change.
+async function audit(a, action, target, detail) {
+  try {
+    await wixData.insert(AUDIT, { at: nowIso(), by: a.username, action, target: clean(target, 60), detail: clean(detail, 200) }, SA);
+  } catch (e) {
+    // the note is lost, the change is not
+  }
+}
+const findRace = (races, v) => races.find((r) => r.id.toLowerCase() === lc(v)) || races.find((r) => nameKey(r.name) === nameKey(v));
+function teamOut(u, presence, races, me) {
+  const kind = staffKind(u);
+  const uname = String(unameOf(u));
+  const rv = String(u.race || u.Race || u.races || '').split(',')[0].trim();
+  const hit = rv ? findRace(races, rv) : null;
+  const here = presence.get(lc(uname));
+  const fresh = !!(here && here.desk && here.seen && Date.now() - Date.parse(here.seen) < PRESENCE_FRESH_MS);
+  const listed = parseDesks(deskValueOf(u));
+  return {
+    username: uname,
+    name: String(u.name || ''),
+    role: kind,
+    desks: kind === 'desk' ? (listed.length ? listed : DESKS.slice()) : [],
+    anyDesk: kind === 'desk' && !listed.length,
+    race: hit ? hit.id : rv,
+    raceName: hit ? hit.name : rv,
+    hasPassword: String(u.password || '') !== '',
+    handTyped: needsUpgrade(u.password),
+    locked: !!(u.lockUntil && Date.parse(u.lockUntil) > Date.now()),
+    atDesk: fresh ? here.desk : '',
+    you: lc(uname) === lc(me),
+  };
+}
+const KIND_ORDER = { director: 0, lead: 1, viewer: 2, desk: 3, coach: 4, other: 5 };
+
+export const listTeam = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'manage');
+  const [staff, races, pres, notes] = await Promise.all([staffRows(), expoRaceList(), all(() => wixData.query(PRES).ascending('_id')).catch(() => []), all(() => wixData.query(AUDIT).ascending('_id')).catch(() => [])]);
+  const presence = new Map(pres.map((p) => [lc(p.username || p._id), p]));
+  const team = staff.map((u) => teamOut(u, presence, races, a.username)).sort((x, y) => KIND_ORDER[x.role] - KIND_ORDER[y.role] || x.username.localeCompare(y.username));
+  const recent = notes.sort((x, y) => String(y.at).localeCompare(String(x.at))).slice(0, 15).map((n) => ({ at: n.at || '', by: n.by || '', action: n.action || '', target: n.target || '', detail: n.detail || '' }));
+  return { team, races, desks: DESKS, roles: TEAM_KINDS, you: a.username, recent };
+});
+
+export const saveTeam = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'manage');
+  // Only plain text is accepted for these two: an array or object is refused, not quietly turned into text.
+  const username = typeof (arg && arg.username) === 'string' ? lc(arg.username) : '';
+  if (!USERNAME_RE.test(username)) throw new Error('bad_username');
+  const kind = typeof (arg && arg.role) === 'string' ? arg.role : '';
+  if (!TEAM_KINDS.includes(kind)) throw new Error('bad_role');
+  const name = typeof (arg && arg.name) === 'string' ? clean(arg.name, 60) : '';
+  if (name.length < 2) throw new Error('name_needed');
+  const rows = await staffRows();
+  const old = rows.find((r) => lc(unameOf(r)) === username);
+  const editing = !!arg && arg.edit === true;
+  if (editing && !old) throw new Error('no_member');
+  if (!editing && old) throw new Error('username_taken');
+  const self = !!old && lc(unameOf(old)) === lc(a.username);
+  if (self && staffKind(old) !== kind) throw new Error('own_role');
+  let desks = '';
+  let race = '';
+  if (kind === 'desk') {
+    // Only the first 11 entries are looked at (there are three desks), so a huge list costs nothing.
+    const list = Array.isArray(arg.desks) ? arg.desks : String(arg.desks || '').slice(0, 500).split(',');
+    const given = list.slice(0, 11).map((x) => String(x).trim()).filter(Boolean);
+    if (!given.length) throw new Error('desk_needed');
+    if (given.length > 10 || given.some((x) => !canonDesk(x))) throw new Error('bad_desk');
+    const want = parseDesks(given);
+    desks = DESKS.filter((d) => want.includes(d)).join(',');
+    const races = await expoRaceList();
+    const rv = clean(arg.race, 100);
+    if (rv) {
+      const hit = findRace(races, rv);
+      if (!hit) throw new Error('bad_race');
+      race = hit.id;
+    } else if (races.length > 1) throw new Error('race_needed');
+  }
+  let secret = '';
+  const rawPw = arg && arg.password;
+  if (rawPw !== undefined && rawPw !== null && typeof rawPw !== 'string') throw new Error('bad_password');
+  let pw = rawPw || '';
+  if (pw) {
+    if (pw.length < 6 || pw.length > 72) throw new Error('bad_password');
+    if (WEAK.includes(lc(pw)) || lc(pw) === username) throw new Error('weak_password');
+  } else if (!editing) {
+    pw = kind === 'desk' ? genPin() : genPassword();
+    secret = pw;
+  }
+  const keepRole = editing && staffKind(old) === kind && String(old.role || old.Role || '').trim() !== '';
+  const fields = {
+    username: editing ? String(unameOf(old)) : username,
+    password: pw ? hashPassword(pw) : String(old.password || ''),
+    role: keepRole ? String(old.role || old.Role) : STORE_ROLE[kind],
+    desks,
+    race,
+    name,
+  };
+  if (!editing || pw) Object.assign(fields, { failCount: '0', lockUntil: '' });
+  const write = (f) => (editing ? wixData.update(STAFF, Object.assign({}, old, f), SA) : wixData.insert(STAFF, Object.assign({ failCount: '0', lockUntil: '' }, f), SA));
+  let saved;
+  let warn = '';
+  try {
+    saved = await write(fields);
+  } catch (e) {
+    // A collection made by the old Expo setup has no 'race' column. Save the rest and say so.
+    if (!race) throw e;
+    const without = Object.assign({}, fields);
+    delete without.race;
+    saved = await write(without);
+    warn = 'race_column_missing';
+  }
+  if (editing) {
+    const changed = staffKind(old) !== kind || parseDesks(deskValueOf(old)).join() !== desks || String(old.race || '') !== race || !!pw;
+    if (changed) await dropAccess(String(unameOf(old)), self ? a.sess.token : '', self);
+    // A new password also gives back the tries used up by wrong guesses.
+    if (pw) await freeSlots(wixData, RATE, slotKey('att', unameOf(old)), LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  }
+  await audit(a, editing ? 'login changed' : 'login created', username, kind + (kind === 'desk' ? ': ' + desks + (race ? ' · ' + race : '') : '') + (pw && editing ? ' · password changed' : ''));
+  const races = kind === 'desk' ? await expoRaceList() : [];
+  return { member: teamOut(Object.assign({}, saved, race ? { race } : {}), new Map(), races, a.username), secret, warn };
+});
+
+export const resetTeamSecret = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'manage');
+  const username = lc(arg && arg.username);
+  const old = (await staffRows()).find((r) => lc(unameOf(r)) === username);
+  if (!old) throw new Error('no_member');
+  const secret = staffKind(old) === 'desk' ? genPin() : genPassword();
+  await wixData.update(STAFF, Object.assign({}, old, { password: hashPassword(secret), failCount: '0', lockUntil: '' }), SA);
+  await freeSlots(wixData, RATE, slotKey('att', unameOf(old)), LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
+  const self = lc(unameOf(old)) === lc(a.username);
+  await dropAccess(String(unameOf(old)), self ? a.sess.token : '', self);
+  await audit(a, 'password reset', String(unameOf(old)), staffKind(old));
+  return { username: String(unameOf(old)), secret };
+});
+
+export const signOutTeam = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'manage');
+  const username = lc(arg && arg.username);
+  const old = (await staffRows()).find((r) => lc(unameOf(r)) === username);
+  if (!old) throw new Error('no_member');
+  const self = lc(unameOf(old)) === lc(a.username);
+  const ended = await dropAccess(String(unameOf(old)), self ? a.sess.token : '', self);
+  await audit(a, 'signed out', String(unameOf(old)), ended + ' session' + (ended === 1 ? '' : 's'));
+  return { ok: true, ended };
+});
+
+export const removeTeam = webMethod(Permissions.Anyone, async (arg) => {
+  const a = await auth(arg, 'manage');
+  const username = lc(arg && arg.username);
+  const old = (await staffRows()).find((r) => lc(unameOf(r)) === username);
+  if (!old) throw new Error('no_member');
+  if (lc(unameOf(old)) === lc(a.username)) throw new Error('own_login');
+  await wixData.bulkRemove(STAFF, [old._id], SA);
+  await dropAccess(String(unameOf(old)), '', false);
+  await audit(a, 'login removed', String(unameOf(old)), staffKind(old));
+  return { ok: true };
+});
+
 /* ---------- one-time database setup ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });
 const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };
@@ -2495,6 +2800,10 @@ function collectionDefs() {
   return [
     def(STAFF, ['username', 'password', 'role', 'desks', 'race', 'name', 'failCount', 'lockUntil']),
     def(SESS, ['token', 'username', 'desk', 'expires']),
+    def(PRES, ['username', 'desk', 'seen']),
+    def(EXPO_CONFIG, ['name', 'json']),
+    def(EXPO_CHECKS, ['event', 'bib', 'name', 'pickupBy', 'friendName', 'friendPhone', 'method', 'selfie', 'at', 'desk']),
+    def(AUDIT, ['at', 'by', 'action', 'target', 'detail']),
     def(RUNNERS, ['event', 'bib', 'name', 'bibName', 'cat', 'size', 'phone', 'email', 'example', 'checkedInAt', 'checkedInDesk', 'bibAt', 'bibDesk', 'shirtSize', 'shirtAt', 'shirtDesk']),
     def(EVENTS, ['name', 'date', 'venue', 'expoId', 'status', 'json']),
     def(SHIFTS, ['event', 'role', 'location', 'date', 'start', 'end', 'need', 'notes']),
@@ -2538,11 +2847,28 @@ async function ensureCollections() {
   collectionsChecked = true;
 }
 
-// Creates the Director collections (skips ones that exist, including the Expo ones) and, only if there is no
-// login yet, the first admin. Needs SETUP_KEY.
+// Creates every RaceOS collection (the Expo desk's too; skips ones that exist) and, only if there is no login yet,
+// the first admin. Needs SETUP_KEY, and refuses further guesses for an hour after 10 wrong ones.
+const SETUP_TRIES_PER_HOUR = 10;
+const setupMisses = new Map();
 export const ensureSetup = webMethod(Permissions.Anyone, async (arg) => {
   if (SETUP_KEY === 'change-this-key') throw new Error('Edit SETUP_KEY at the top of racedir.web.js first');
+  // Ten tries an hour, however fast they are sent (slots, see takeSlot). Before the first setup the collection for the
+  // slots does not exist yet, so then this server's own count is used.
+  const hour = nowIso().slice(0, 13);
+  let slot = '';
+  try {
+    slot = await takeSlot(wixData, RATE, 'setup', SETUP_TRIES_PER_HOUR, 3600000, SA);
+  } catch (e) {
+    const n = setupMisses.get(hour) || 0;
+    setupMisses.set(hour, n + 1);
+    slot = n < SETUP_TRIES_PER_HOUR ? 'memory' : '';
+  }
+  if (!slot) throw new Error('busy_try_later');
   if (!arg || !same(String(arg.key || ''), SETUP_KEY)) throw new Error('Wrong setup key');
+  // Only wrong keys use up the tries: the owner running the setup again is not held back.
+  if (slot === 'memory') setupMisses.set(hour, Math.max(0, (setupMisses.get(hour) || 1) - 1));
+  else await wixData.bulkRemove(RATE, [slot], SA).catch(() => null);
   const notes = await makeCollections(true);
   collectionsChecked = true;
   let have = [];
@@ -2551,11 +2877,12 @@ export const ensureSetup = webMethod(Permissions.Anyone, async (arg) => {
   } catch (e) {
     have = [];
   }
-  const username = clean(arg.username, 40);
+  const username = lc(clean(arg.username, 40));
   const password = String(arg.password || '');
   if (!have.length) {
-    if (username.length < 3 || password.length < 6) throw new Error('Username needs 3+ characters and password 6+');
-    await wixData.insert(STAFF, { username, password, role: 'admin', desks: '', race: '', name: '', failCount: '0', lockUntil: '' }, SA);
+    if (!USERNAME_RE.test(username) || password.length < 6 || password.length > 72) throw new Error('Username needs 3 to 30 letters, digits, dots, dashes or underscores, and the password 6+ characters');
+    if (WEAK.includes(lc(password)) || lc(password) === username) throw new Error('That password is too easy to guess');
+    await wixData.insert(STAFF, { username, password: hashPassword(password), role: 'admin', desks: '', race: '', name: '', failCount: '0', lockUntil: '' }, SA);
     notes.push('admin ' + username + ' added');
   } else notes.push('logins already exist, none added');
   return { summary: notes.join(' · ') };
