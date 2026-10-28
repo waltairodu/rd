@@ -4,6 +4,7 @@
 import * as rd from 'backend/racedir.web';
 import * as expo from 'backend/exposoft.web';
 import * as train from 'backend/training.web';
+import * as fin from 'backend/finance.web';
 
 // Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
 function pickFrame(byId) {
@@ -23,6 +24,10 @@ const EXPO_ALLOWED = ['health', 'enter', 'whoami', 'chooseDesk', 'loadPage', 'lo
 
 // The Coaching tab calls these Training methods, tagged mod:'train'. Staff sessions are shared, so the same login works.
 const TRAIN_ALLOWED = ['listAthletes', 'listCoaches', 'assignCoach', 'declineCoaching', 'stopCoaching'];
+
+// The Finance tab (invoices, claims, cash, orders, the ledger). Calls arrive tagged mod:'fin' with the session token added by
+// the screen. The backend decides who may use each one (directors everything; a lead only their own claims).
+const FIN_ALLOWED = ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finListClaims', 'finSaveClaim', 'finDecideClaim', 'finPayClaim', 'finCancelClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid'];
 
 $w.onReady(function () {
   const frame = pickFrame($w('#dirFrame'));
@@ -70,6 +75,20 @@ $w.onReady(function () {
       }
       try {
         const result = await train[msg.method](msg.arg || {});
+        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+      } catch (e) {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
+      }
+      return;
+    }
+    if (msg.mod === 'fin') {
+      if (FIN_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+      if (typeof fin[msg.method] !== 'function') {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+        return;
+      }
+      try {
+        const result = await fin[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });

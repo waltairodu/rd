@@ -1,0 +1,34 @@
+shell-believes-desk-answers	KILLED	pentest-ui.mjs: U3 an answer forged by the desk frame is not believed by the RaceOS page
+desk-believes-any-answer	KILLED	pentest-ui.mjs: U3 an answer forged by another window, by nobody, by the Wix page or by the grand-parent is not
+desk-shows-any-selfie	KILLED	pentest-ui.mjs: U2 proof of who collected (friend name, phone, desk) with the payload makes nothing live (inlin
+banner-any-address	KILLED	pentest-ui.mjs: U1 no screen turned the payload into a live element, handler, script address or style (ev1/over
+proof-link-any-scheme	KILLED	pentest-ui.mjs: U1 no screen turned the payload into a live element, handler, script address or style (ev1/qual
+banner-saved-without-check	KILLED	pentest-ui.mjs: U1 the server refuses the banner address "https://example.com/a.jpg');position:fix" (accepted)
+odd-race-data-not-tidied	KILLED	pentest-ui.mjs
+no-escaping	KILLED	pentest-ui.mjs: U1 no screen turned the payload into a live element, handler, script address or style (ev1/over
+frame-can-set-token	KILLED	pentest-ui.mjs: U3 the page puts its own session token on every call, whatever token the frame sent
+frame-can-pick-module	KILLED	pentest-ui.mjs: U3 whatever the desk frame asks for goes to the server as an Expo call only (mod is fixed by th
+anyone-can-call-through-shell	KILLED	pentest-ui.mjs: U3 a "call" message from the page itself, nowhere or a stranger window makes the page call noth
+open-team-from-anyone	KILLED	pentest-ui.mjs: U3 "open-team" from the Wix page, nowhere or a stranger window does nothing
+csv-formulas-run	KILLED	pentest-ui.mjs: U6 RaceOS: "=1+1" becomes text ("=1+1")
+csv-formulas-run-desk	KILLED	pentest-ui.mjs: U6 Expo desk: "=1+1" becomes text ("=1+1")
+pin-stays-after-tab-change	KILLED	pentest-ui.mjs: U5 coming back does not show it again
+pin-stays-after-logout	KILLED	pentest-ui.mjs: U5 the next login on the same screen is not shown the PIN card of the last one
+login-gate-removed	KILLED	pentest.mjs: A4 60 guesses at one account at the same instant: at most 5 are even looked at (60)
+coach-login-gate-removed	KILLED	pentest.mjs: A4 60 guesses split between the RaceOS and the coach login: at most 5 are looked at in all (32)
+athlete-login-gate-removed	KILLED	pentest.mjs: A4 60 PIN guesses at one athlete at the same instant: at most 5 are looked at (60)
+change-pin-gate-removed	KILLED	pentest.mjs: A4 40 guesses at the old PIN of changePin at the same instant: at most 5 are looked at, the rig
+setup-key-gate-removed	KILLED	pentest.mjs: H2 40 setup-key guesses at the same instant: at most 10 are looked at (39)
+reset-keeps-login-slots	KILLED	unit-team.mjs
+new-password-keeps-login-slots	KILLED	unit-team.mjs
+good-login-keeps-slots	KILLED	pentest.mjs
+plan-status-before-login-check	KILLED	security.mjs: S1 RaceOS: the methods that need no login are exactly the expected ones   [got ["ensureSetup","
+decide-qual-before-login-check	KILLED	security.mjs: S1 RaceOS: the login is the first thing every other method checks: nothing is read, written, th
+collections-readable-by-visitors	KILLED	security.mjs: S7 every RaceOS collection can be read, added to, changed and emptied only by the site admin (n
+viewer-sees-money	KILLED	security.mjs: S3 a viewer cannot even read "budget" items   [wanted not_allowed, got no_event]
+setup-open-with-placeholder-key	KILLED	security.mjs: S7 RaceOS setup with the placeholder key left in the file refuses everyone, even with that key:
+manage-check-removed	KILLED	security.mjs: S3 RaceOS: lead1 on all 69 methods [saveEvent -> no_event (wanted director_only); removeShift -
+desk-allowed-in-raceos	KILLED	security.mjs: S3 RaceOS: desk1 on all 69 methods [listEvents -> no error (wanted not_allowed); listShifts -> 
+expo-lets-everyone-in	KILLED	security.mjs: S3 Expo: lead1 on all 15 methods [enter -> no error (wanted not_allowed); whoami -> no error (w
+double-handover	KILLED	pentest.mjs
+# 33 mutants, 33 killed, 0 survived

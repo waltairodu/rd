@@ -125,6 +125,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline
  .topbar{position:static;padding:10px 14px}.content{padding:14px 14px 56px}
  #expoWrap:not([hidden]){position:static;padding:0 14px 56px}
 }
+/* finance */
+.num{text-align:right;white-space:nowrap}
+.strike{text-decoration:line-through;opacity:.55}
+td input,td select{min-height:34px}
 </style>
 </head>
 <body>
@@ -178,7 +182,7 @@ function api(method,arg,ms,mod){
   });
 }
 // Back to the login page: the session is over (logged out, expired, or ended by a director).
-function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.loginErr=why?msg(why):'';render()}
+function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -221,6 +225,7 @@ async function loadTab(){
     else if(t==='setup'&&man()){try{S.expoRaces=(await api('expoRaces')).races}catch(x){S.expoRaces=[]}}
     else if(t==='coaching'&&man()){var cc=await Promise.all([api('listAthletes',{},undefined,'train'),api('listCoaches',{},undefined,'train')]);S.coachL=cc[0];S.coaches=cc[1].coaches}
     else if(t==='approvals'){S.tplErr='';var ap=await Promise.all([api('listPlan',{kinds:planKindsFor(t)}),man()?api('approvalTemplate').catch(function(x){S.tplErr=x.message;return null}):Promise.resolve(null)]);S.plan=ap[0];S.tpl=ap[1]}
+    else if(t==='fin'&&(man()||isLead()))await finLoad();
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -241,11 +246,12 @@ function loginView(){
    +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
    +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
 }
-var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2'};
+var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
+  if(id==='fin')return man()||isLead();
   if(id==='coaching'||id==='setup'||id==='team')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
@@ -253,7 +259,7 @@ function navShown(id){
 function head(){
   return '<aside class="side"><div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+IC.logo+'"/></svg>RaceOS</div><div class="orgname">VTRA<small>Visakha Trail Running Association</small></div>'
    +'<nav class="tabs" role="tablist" aria-label="Sections">'+NAV.map(function(g){var items=g[1].filter(function(t){return navShown(t[0])});if(!items.length)return '';
-     return (g[0]?'<div class="navgrp">'+g[0]+'</div>':'')+items.map(function(t){return '<button class="tab" role="tab" data-act="tab" data-tab="'+t[0]+'" aria-selected="'+(S.tab===t[0])+'">'+ico(t[2])+'<span>'+t[1]+'</span></button>'}).join('')}).join('')+'</nav></aside>';
+     return (g[0]?'<div class="navgrp">'+g[0]+'</div>':'')+items.map(function(t){return '<button class="tab" role="tab" data-act="tab" data-tab="'+t[0]+'" aria-selected="'+(S.tab===t[0])+'">'+ico(t[2])+'<span>'+navLabel(t)+'</span></button>'}).join('')}).join('')+'</nav></aside>';
 }
 function topbar(){
   var ev=S.events.find(function(e){return e.id===S.ev});
@@ -542,7 +548,7 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
   app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
 }
@@ -804,7 +810,7 @@ function formData(f){var o={};Array.prototype.forEach.call(f.elements,function(e
 function download(name,text,mime){try{var b=new Blob([text],{type:mime||'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
 /* A spreadsheet runs a cell that starts with = + - @ as a formula, so a volunteer who types "=HYPERLINK(...)" as a name could run it on the director's computer. Such a cell gets a ' in front. Plain numbers and phone numbers such as +91 98765 43210 are left alone. */
 function csvCell(v){var s=String(v==null?'':v);if(/^[=@\t\r]/.test(s)||(/^[+\-]/.test(s)&&!/^[+\-][\d\s().\-]*$/.test(s)))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
-async function doTab(t){S.tab=t;S.teamSecret=null;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
+async function doTab(t){S.tab=t;if(S.fin){S.fin.form=null;S.fin.open=''}S.teamSecret=null;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||b.tagName==='INPUT')return;
   var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
@@ -813,6 +819,7 @@ document.addEventListener('click',function(e){
   var go=function(fn){run(async function(){await fn();render()})};
   var reload=function(){return loadTab()};
   if(act==='tab')doTab(b.getAttribute('data-tab'));
+  else if(act.indexOf('fin-')===0)finAct(b,act,id);
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
@@ -929,8 +936,402 @@ document.addEventListener('submit',function(e){
     S.teamSecret=r.secret?{username:r.member.username,role:r.member.role,secret:r.secret}:null;S.tf=null;
     toast(r.warn==='race_column_missing'?'Saved, but the race could not be stored: add a text column named race to the ExpoStaff collection in the CMS, then save again.':tf.edit?'Saved':'Login created',r.warn==='race_column_missing');
     await loadTab();if(S.teamSecret){var sc2=$('#secretCard');if(sc2&&sc2.scrollIntoView)sc2.scrollIntoView({block:'start'})}});
+  else if(id==='finForm'||id==='finSetForm')finSubmit(f,id,d);
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
+/* ---------- finance: invoices, orders, claims, cash, the ledger (FINANCE-BEGIN) ---------- */
+/* Everything for the Finance tab lives in this block. It talks to finance.web.js through the page (calls tagged mod:'fin').
+   A director sees all of it; a lead sees only "My claims". The server decides who may do what; this only hides what would be refused. */
+S.fin=null;S.fsub='';
+var FSUBS=[['sum','Summary'],['inv','Invoices'],['ord','Orders'],['clm','Claims'],['cash','Cash'],['led','Ledger'],['set','Details']];
+var FMODES=[['bank','Bank transfer'],['upi','UPI'],['cash','Cash'],['cheque','Cheque'],['card','Card'],['other','Other']];
+var FIN_ST={issued:['Unpaid',''],part:['Part paid','warn'],paid:['Paid','good'],cancelled:['Cancelled','bad'],estimate:['Estimate only',''],advance:['Advance paid','warn'],billed:['Billed','warn'],settled:['Settled','good'],refund:['Refund due','bad'],submitted:['Waiting','warn'],approved:['Approved',''],rejected:['Rejected','bad']};
+Object.assign(ERR,{bad_money:'Enter an amount of more than zero, with up to two decimals (for example 1250.50).',bad_fdate:'That date is not allowed here. Use a real date that is not in the future and not before the invoice.',bad_lines:'Check the lines: each needs a description (2 or more letters) and a valid quantity and amount, and there can be at most 30.',bad_gstin:'That GSTIN does not look right (15 characters, for example 37AAATV1234K1Z5).',bad_pan:'That PAN does not look right (10 characters, for example AAATV1234K).',bad_upi:'That UPI id does not look right (for example name@bank).',bad_prefix:'The invoice prefix is letters, digits, dash or slash, up to 12 characters.',bad_mode:'Pick how it was paid.',bad_pay_phase:'Pick advance or payment.',bad_type:'That kind of entry is not allowed.',bad_decision:'Approve or reject.',bad_key:'That request could not be read. Reload the page and try again.',no_such_sponsor:'That sponsor was not found in this race.',holder_needed:'A cash payment needs the name of the person holding the cash.',reason_needed:'Please write a short reason (3 or more letters).',too_much:'That is more than what is left to pay or receive.',not_enough_cash:'That person does not hold that much cash. Record the cash withdrawal first, or pick another way of paying.',cash_already_spent:'That cash has already been spent. Void the payments made from it first.',already_void:'That entry is already voided.',already_cancelled:'That is already cancelled.',already_paid:'That is already paid in full.',has_payments:'Payments are recorded against it. Void them first.',has_activity:'Bills or payments are recorded against it. Void them first.',invoice_cancelled:'That invoice is cancelled.',order_cancelled:'That order is cancelled.',estimate_below_paid:'The estimate cannot be lower than what is already paid.',not_editable:'It can only be changed while it is waiting for a decision.',not_open:'That claim has already been decided.',claim_not_approved:'Only an approved claim can be paid.',below_paid:'The approved amount cannot be less than what is already paid.',busy_try_again:'Another change happened at the same moment. Try again.'});
+function isLead(){return !!(S.me&&S.me.role==='lead')}
+function finSub(){return man()?(S.fsub||'sum'):'clm'}
+function fa(m,a){return api(m,a,undefined,'fin')}
+function newKey(){return 'k'+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}
+function fm(n){n=Number(n)||0;var a=Math.abs(n);return (n<0?'-':'')+'₹'+a.toLocaleString('en-IN',{minimumFractionDigits:Math.round(a)===a?0:2,maximumFractionDigits:2})}
+function fdy(d){if(!d)return '';var x=new Date(d+'T00:00:00');return isNaN(x)?d:x.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
+function finToday(){return new Date(Date.now()+19800000).toISOString().slice(0,10)}
+function amtStr(v){return String(v==null?'':v).trim()}
+function fpill(st,extra){var p=FIN_ST[st]||[st,''];return pill(p[0],p[1])+(extra||'')}
+function fmode(m){for(var i=0;i<FMODES.length;i++)if(FMODES[i][0]===m)return FMODES[i][1];return m||''}
+function raceName(){var e=S.events.find(function(x){return x.id===S.ev});return e?e.name:''}
+function fi(label,name,val,o){o=o||{};return '<label class="f"'+(o.span?' style="grid-column:1/-1"':'')+'>'+esc(label)+'<input name="'+name+'"'+(o.type?' type="'+o.type+'"':'')+' value="'+esc(val==null?'':val)+'"'+(o.attr?' '+o.attr:'')+(o.list?' list="'+o.list+'"':'')+(o.req?' required':'')+'></label>'}
+function famt(label,name,val,o){return fi(label,name,val,Object.assign({type:'number',attr:'min="0" step="0.01" inputmode="decimal"'},o||{}))}
+function fsel(label,name,val,opts){return '<label class="f">'+esc(label)+'<select name="'+name+'">'+opts.map(function(p){return '<option value="'+esc(p[0])+'"'+(String(val)===String(p[0])?' selected':'')+'>'+esc(p[1])+'</option>'}).join('')+'</select></label>'}
+function farea(label,name,val,max){return '<label class="f" style="grid-column:1/-1">'+esc(label)+'<textarea name="'+name+'" rows="2" maxlength="'+(max||400)+'">'+esc(val==null?'':val)+'</textarea></label>'}
+function fholders(){var seen={},out=[];function add(h){var k=String(h||'').trim().toLowerCase();if(k&&!seen[k]){seen[k]=1;out.push(String(h).trim())}}
+  var F=S.fin||{};if(F.cash&&F.cash.cash)F.cash.cash.holders.forEach(function(h){add(h.holder)});if(F.led&&F.led.holders)F.led.holders.forEach(add);if(S.me)add(S.me.name);return out}
+function fdl(){return '<datalist id="finHold">'+fholders().map(function(h){return '<option value="'+esc(h)+'">'}).join('')+'</datalist><datalist id="finCat">'+CATS.budget.map(function(c){return '<option value="'+esc(c)+'">'}).join('')+'</datalist>'}
+function fpay(fo,o){o=o||{};return fsel('Paid how','mode',fo.mode||'bank',FMODES)+fi('Date','date',fo.date||finToday(),{type:'date',req:1})+fi('Reference (UTR, cheque no.)','ref',fo.ref||'',{attr:'maxlength="80"'})+fi('Cash held by (for cash)','holder',fo.holder||'',{list:'finHold',attr:'maxlength="40"'})+(o.noNote?'':fi('Note','note',fo.note||'',{attr:'maxlength="200"'}))}
+function fsmall(t){return '<small class="muted">'+t+'</small>'}
+function ftable(heads,rowsHtml){return '<div class="scroll"><table><tr>'+heads.map(function(h){return '<th'+(h.charAt&&h.charAt(0)==='>'?' class="num"':'')+'>'+esc(String(h).replace(/^>/,''))+'</th>'}).join('')+'</tr>'+rowsHtml+'</table></div>'}
+function nm(v,strong){return '<td class="num">'+(strong?'<b>':'')+fm(v)+(strong?'</b>':'')+'</td>'}
+function fnone(t){return '<p class="muted" style="margin-top:8px">'+t+'</p>'}
+
+/* ---------- loading ---------- */
+async function finLoad(){
+  if(!S.fin||S.fin.ev!==S.ev)S.fin={ev:S.ev,open:'',form:null,q:'',lf:'all'};
+  var f=S.fin,sub=finSub();f.err='';
+  try{
+    if(sub==='sum')f.sum=(await fa('finOverview')).summary;
+    else if(sub==='inv'){var r=await fa('finListInvoices');f.inv=r.invoices;f.org=r.org;try{f.sponsors=(await api('listPlan',{kinds:['sponsor']})).items.sponsor||[]}catch(x){f.sponsors=[]}}
+    else if(sub==='ord')f.ord=(await fa('finListOrders')).orders;
+    else if(sub==='clm')f.clm=await fa('finListClaims');
+    else if(sub==='cash')f.cash=await fa('finCash');
+    else if(sub==='led')f.led=await fa('finLedger');
+    else if(sub==='set')f.org=(await fa('finSettings')).org;
+  }catch(e){f.err=msg(e.message);toast(f.err,true)}
+}
+
+/* ---------- the screen ---------- */
+function finView(){
+  finKeep();var f=S.fin;if(!f||f.ev!==S.ev)return planLoading();
+  var sub=finSub();
+  var nav=man()?'<div class="row" role="tablist" aria-label="Finance sections">'+FSUBS.map(function(t){return '<button class="btn sm'+(sub===t[0]?' pri':'')+'" role="tab" aria-selected="'+(sub===t[0])+'" data-act="fin-sub" data-sub="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>':'';
+  var body=f.err?'<div class="card"><p class="muted" role="alert">'+esc(f.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="retry">Try again</button></div></div>'
+    :sub==='sum'?finSumView():sub==='inv'?finInvView():sub==='ord'?finOrdView():sub==='clm'?finClmView():sub==='cash'?finCashView():sub==='led'?finLedView():finSetView();
+  return '<div class="stack">'+nav+body+fdl()+'</div>';
+}
+function finSumView(){
+  var s=S.fin.sum;if(!s)return planLoading();
+  var I=s.income,E=s.expenses,R=s.result,C=s.cash,sg=function(n){return (n<0?'-':'')+fm(Math.abs(n))};
+  var k1='<div class="grid g4">'+sumCard('Income received',fm(I.total),'tickets '+fm(I.registrations.revenue)+' · sponsors and other '+fm(I.received+I.other))
+   +sumCard('Paid out',fm(E.paid),'still owed on bills and claims '+fm(E.owed))
+   +sumCard('Net so far',sg(R.net),'income received less money paid out',R.net<0)
+   +sumCard('Projected result',sg(R.projected),'if every invoice is paid and every order and claim settled',R.projected<0)+'</div>';
+  var k2='<div class="grid g4">'+sumCard('Cash in hand',fm(C.inHand),'withdrawn '+fm(C.withdrawn)+' · spent '+fm(C.spent),C.holders.some(function(h){return h.inHand<0}))
+   +sumCard('Invoices to collect',fm(I.outstanding),I.invoices.overdueCount?I.invoices.overdueCount+' overdue ('+fm(I.invoices.overdueAmount)+')':'none overdue',I.invoices.overdueCount>0)
+   +sumCard('Claims waiting',s.claims.pending.count,fm(s.claims.pending.amount)+' to approve'+(s.claims.approved.count?' · '+s.claims.approved.count+' approved, to pay '+fm(s.claims.approved.balance):''),false)
+   +sumCard('Owed to vendors',fm(s.orders.balance),s.orders.refundDue>0?'refund due from vendors '+fm(s.orders.refundDue):'on billed orders')+'</div>';
+  var inc='<div class="card"><h3>Income</h3>'+ftable(['','>Amount'],
+    '<tr><td>Tickets (paid registrations at their price)<br>'+fsmall(I.registrations.paid+' paid'+(I.registrations.unpaid?' · '+I.registrations.unpaid+' unpaid worth '+fm(I.registrations.pending):''))+'</td>'+nm(I.registrations.revenue)+'</tr>'
+   +'<tr><td>Invoices raised<br>'+fsmall(I.invoices.count+' invoice'+(I.invoices.count===1?'':'s'))+'</td>'+nm(I.invoiced)+'</tr>'
+   +'<tr><td>&nbsp;&nbsp;Received</td>'+nm(I.received)+'</tr><tr><td>&nbsp;&nbsp;Tax withheld by payers (TDS)</td>'+nm(I.tds)+'</tr><tr><td>&nbsp;&nbsp;Still to collect</td>'+nm(I.outstanding)+'</tr>'
+   +'<tr><td>Other income (donations, stall rent, anything entered directly)</td>'+nm(I.other)+'</tr>'
+   +'<tr><td><b>Total received</b></td>'+nm(I.total,1)+'</tr>')+'</div>';
+  var exp='<div class="card"><h3>Expenses</h3>'+ftable(['','>Amount'],
+    '<tr><td><b>Paid out so far</b><br>'+fsmall('after refunds from vendors')+'</td>'+nm(E.paid,1)+'</tr>'
+   +'<tr><td>Owed on vendor bills and approved claims</td>'+nm(E.owed)+'</tr>'
+   +'<tr><td>Committed, not yet billed (orders, less advances paid)</td>'+nm(E.committed)+'</tr>'
+   +'<tr><td>Claims waiting for approval</td>'+nm(E.pendingClaims)+'</tr>'
+   +'<tr><td>Refund due from vendors (advance above the bill)</td>'+nm(-E.refundDue)+'</tr>'
+   +'<tr><td><b>Expected total cost</b></td>'+nm(E.projected,1)+'</tr>'
+   +'<tr><td>Budget for costs (from the plan)</td>'+nm(s.budget.cost)+'</tr>')+'</div>';
+  var tb=0,te=0,ta=0;
+  var cats=s.byCat.length?'<div class="card"><div class="row between"><h3>Costs by category</h3><button class="btn sm" data-act="fin-csv-sum">Download CSV</button></div>'+ftable(['Category','>Budget','>Ordered (estimates)','>Actual cost','Against budget'],
+    s.byCat.map(function(c){tb+=c.budget;te+=c.estimate;ta+=c.actual;
+      var d=c.budget>0?(c.actual>c.budget?pill('over by '+fm(c.actual-c.budget),'bad'):pill(fm(c.budget-c.actual)+' left','good')):(c.actual>0?pill('not budgeted','warn'):'');
+      return '<tr><td>'+esc(c.cat)+'</td>'+nm(c.budget)+nm(c.estimate)+nm(c.actual)+'<td>'+d+'</td></tr>'}).join('')
+    +'<tr><td><b>Total</b></td>'+nm(tb,1)+nm(te,1)+nm(ta,1)+'<td></td></tr>')+'<p class="muted" style="margin-top:6px">Actual cost is what vendors billed, what claims were approved for and what was entered directly. An order with no bill yet counts under "Ordered" and "Committed" only.</p></div>':'';
+  return '<div class="stack">'+k1+k2+'<div class="grid g2">'+inc+exp+'</div>'+cats+'</div>';
+}
+
+/* ---------- invoices ---------- */
+function finLineRow(l){l=l||{};return '<tr class="fl"><td><input class="fl-d" value="'+esc(l.desc||'')+'" maxlength="160" aria-label="Description"></td><td><input class="fl-q" type="number" min="1" step="1" value="'+esc(l.qty==null?1:l.qty)+'" aria-label="Quantity" style="width:5em"></td><td><input class="fl-r" type="number" min="0" step="0.01" value="'+esc(l.rate==null?'':l.rate)+'" aria-label="Rate in rupees" style="width:9em"></td><td><input class="fl-t" type="number" min="0" max="100" step="0.01" value="'+esc(l.taxPct==null?0:l.taxPct)+'" aria-label="Tax percent" style="width:5.5em"></td><td class="num fl-a"></td><td><button type="button" class="btn sm" data-act="fin-lineDel" aria-label="Remove line">×</button></td></tr>'}
+function finInvForm(fo){
+  var sp=(S.fin.sponsors||[]).filter(function(x){return x.status!=='declined'});
+  var date=fo.date||finToday(),lines=fo.lines||[{desc:'',qty:1,rate:'',taxPct:0}];
+  return '<form id="finForm" class="card" data-kind="inv-new" data-id=""><h3>Raise an invoice</h3><div class="form" style="margin-top:8px">'
+   +(sp.length?'<label class="f">From the sponsor list (optional)<select name="sponsorId" id="finSp"><option value="">Not linked</option>'+sp.map(function(x){return '<option value="'+esc(x.id)+'"'+(fo.sponsorId===x.id?' selected':'')+' data-name="'+esc(x.party||x.title)+'" data-amt="'+esc(x.amount==null||x.amount===''?'':x.amount)+'">'+esc((x.party||x.title)+(Number(x.amount)>0?' · '+fm(Number(x.amount)):''))+'</option>'}).join('')+'</select></label>':'')
+   +fi('Bill to (company or person)','party',fo.party||'',{req:1,attr:'maxlength="100"'})+fsel('Type','invKind',fo.invKind||'sponsor',[['sponsor','Sponsor'],['partner','Partner'],['other','Other']])
+   +fi('Invoice date','date',date,{type:'date',req:1})+fi('Due date','due',fo.due||addDaysIso(date,15),{type:'date'})
+   +fi('Their GSTIN (if any)','partyGstin',fo.partyGstin||'',{attr:'maxlength="20"'})+fi('Their email','partyEmail',fo.partyEmail||'',{type:'email',attr:'maxlength="80"'})
+   +fi('Their address','partyAddr',fo.partyAddr||'',{span:1,attr:'maxlength="240"'})+'</div>'
+   +'<div class="sec" style="margin-top:12px">Lines</div><div class="scroll"><table id="finLines"><tr><th>Description</th><th>Qty</th><th>Rate (₹)</th><th>Tax %</th><th class="num">Amount</th><th></th></tr>'+lines.map(finLineRow).join('')+'</table></div>'
+   +'<div class="row" style="margin-top:6px"><button type="button" class="btn sm" data-act="fin-lineAdd" data-t="inv">Add a line</button><b id="finTot" class="muted"></b></div>'
+   +'<div class="form" style="margin-top:8px">'+farea('Notes printed on the invoice (optional)','notes',fo.notes||'')+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Raise invoice</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">It takes the next invoice number. A raised invoice is never edited: cancel it and raise a new one.</span></div></form>';
+}
+function finInvTot(f){var sub=0,tax=0;[].forEach.call(f.querySelectorAll('tr.fl'),function(r){var q=parseInt(r.querySelector('.fl-q').value,10),rt=Math.round(Number(r.querySelector('.fl-r').value)*100),pc=Math.round(Number(r.querySelector('.fl-t').value||0)*100);var a=isFinite(q)&&isFinite(rt)&&q>0&&rt>0?q*rt:0;var t=Math.round(a*(isFinite(pc)?pc:0)/10000);sub+=a;tax+=t;r.querySelector('.fl-a').textContent=a?fm(a/100):''});var o=$('#finTot');if(o)o.textContent='Subtotal '+fm(sub/100)+' · Tax '+fm(tax/100)+' · Total '+fm((sub+tax)/100)}
+function finInvDetail(i){
+  var ln=ftable(['Description','>Qty','>Rate','>Amount','>Tax %','>Tax'],i.lines.map(function(l){return '<tr><td>'+esc(l.desc)+'</td><td class="num">'+l.qty+'</td>'+nm(l.rate)+nm(l.amount)+'<td class="num">'+l.taxPct+'</td>'+nm(l.tax)+'</tr>'}).join('')+'<tr><td colspan="3"><b>Total</b> <small class="muted">'+esc(i.totalWords)+'</small></td>'+nm(i.subtotal,1)+'<td></td>'+nm(i.tax,1)+'</tr>');
+  var pays=i.payments.length?ftable(['Date','Paid how','Reference','>Received','>TDS',''],i.payments.map(function(p){return '<tr'+(p.void?' class="strike"':'')+'><td>'+esc(fdy(p.date))+'</td><td>'+esc(fmode(p.mode))+(p.holder?' · '+esc(p.holder):'')+'</td><td>'+esc(p.ref)+(p.note?' <small class="muted">'+esc(p.note)+'</small>':'')+'</td>'+nm(p.amount)+nm(p.tds)+'<td>'+(p.void?esc('voided by '+p.voidBy+': '+p.voidReason):'<button class="btn sm bad" data-act="fin-void" data-id="'+esc(p.id)+'" data-label="payment on '+esc(i.number)+'">Void</button>')+'</td></tr>'}).join('')):fnone('No payments yet.');
+  return '<tr><td colspan="9" style="background:var(--surface-2)"><div class="stack"><div><b>'+esc(i.party)+'</b>'+(i.partyGstin?' · GSTIN '+esc(i.partyGstin):'')+(i.partyEmail?' · '+esc(i.partyEmail):'')+(i.partyAddr?'<br><small class="muted">'+esc(i.partyAddr)+'</small>':'')+(i.notes?'<br><small class="muted">'+esc(i.notes)+'</small>':'')+(i.status==='cancelled'?'<br>'+pill('Cancelled: '+i.cancelReason,'bad'):'')+'</div>'+ln+'<div class="sec">Payments</div>'+pays+'</div></td></tr>';
+}
+function finInvView(){
+  var f=S.fin,list=f.inv;if(!list)return planLoading();var fo=f.form,form='';
+  if(fo)form=fo.kind==='inv-new'?finInvForm(fo):fo.kind==='inv-pay'?finPayInvForm(fo):fo.kind==='void'||fo.kind==='cancel'?finReasonForm(fo):'';
+  var live=list.filter(function(i){return i.status!=='cancelled'}),tot=0,got=0,bal=0;live.forEach(function(i){tot+=i.total;got+=i.received+i.tds;bal+=i.balance});
+  var rows=list.map(function(i){var open=f.open===i.id;
+    return '<tr'+(i.status==='cancelled'?' class="strike"':'')+'><td><b>'+esc(i.number)+'</b></td><td>'+esc(fdy(i.date))+'</td><td>'+esc(i.party)+'<br><small class="muted">'+esc({sponsor:'Sponsor',partner:'Partner',other:'Other'}[i.kind]||'')+'</small></td>'+nm(i.total)+nm(i.received+i.tds)+nm(i.balance)
+     +'<td>'+fpill(i.status,i.overdue?' '+pill('overdue since '+fdy(i.due),'bad'):(i.status==='issued'||i.status==='part'?' <small class="muted">due '+esc(fdy(i.due))+'</small>':''))+'</td>'
+     +'<td style="white-space:nowrap"><button class="btn sm" data-act="fin-open" data-id="'+esc(i.id)+'">'+(open?'Hide':'Details')+'</button> <button class="btn sm" data-act="fin-print-inv" data-id="'+esc(i.id)+'">Print</button> <button class="btn sm" data-act="fin-word-inv" data-id="'+esc(i.id)+'">Word</button>'
+     +((i.status==='issued'||i.status==='part')?' <button class="btn sm pri" data-act="fin-new" data-k="inv-pay" data-id="'+esc(i.id)+'">Receive payment</button>':'')
+     +((i.status!=='cancelled'&&!i.payments.some(function(p){return !p.void}))?' <button class="btn sm bad" data-act="fin-cancel" data-what="invoice" data-id="'+esc(i.id)+'" data-label="'+esc(i.number)+'">Cancel</button>':'')+'</td><td></td></tr>'+(open?finInvDetail(i):'')}).join('');
+  return '<div class="stack"><div class="grid g4">'+sumCard('Invoiced',fm(tot),live.length+' invoice'+(live.length===1?'':'s'))+sumCard('Received',fm(got),'money plus tax withheld')+sumCard('To collect',fm(bal),'',list.some(function(i){return i.overdue}))+sumCard('Overdue',list.filter(function(i){return i.overdue}).length,'past their due date')+'</div>'
+   +form+'<div class="card"><div class="row between"><h3>Invoices</h3><button class="btn sm pri" data-act="fin-new" data-k="inv-new">Raise an invoice</button></div>'
+   +(list.length?ftable(['No.','Date','To','>Total','>Received','>Balance','Status','',''],rows):fnone('No invoices yet. Raise one for a sponsor or partner and it gets the next number in the year.'))+'</div></div>';
+}
+function finPayInvForm(fo){
+  var i=(S.fin.inv||[]).find(function(x){return x.id===fo.id});if(!i)return '';
+  return '<form id="finForm" class="card" data-kind="inv-pay" data-id="'+esc(i.id)+'"><h3>Receive a payment on '+esc(i.number)+'</h3><p class="muted">'+esc(i.party)+' · total '+fm(i.total)+' · balance '+fm(i.balance)+'</p><div class="form" style="margin-top:8px">'
+   +famt('Money received (₹)','amount',fo.amount==null?i.balance:fo.amount)+famt('Tax withheld by the payer, TDS (₹)','tds',fo.tds||'0')+fpay(fo)+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Record payment</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">Money plus TDS can be at most the balance. A wrong entry is voided, never edited.</span></div></form>';
+}
+function finReasonForm(fo){
+  var v=fo.kind==='void';
+  return '<form id="finForm" class="card" data-kind="'+fo.kind+'" data-id="'+esc(fo.id||'')+'"><h3>'+(v?'Void ':'Cancel ')+esc(fo.label||'')+'</h3><p class="muted">'+(v?'The entry stays in the list, struck through, with your name and the reason. It stops counting.':'It stays in the list as cancelled. Its number is not used again.')+'</p>'
+   +'<div class="form" style="margin-top:8px">'+fi('Reason','reason','',{req:1,span:1,attr:'maxlength="160" minlength="3"'})+'</div><div class="row" style="margin-top:10px"><button class="btn bad" type="submit">'+(v?'Void it':'Cancel it')+'</button><button class="btn" type="button" data-act="fin-cancelForm">Keep it</button></div></form>';
+}
+
+/* ---------- orders: estimate, advance, actual ---------- */
+function pv(fo,k,d){return fo[k]!=null?fo[k]:d}
+function finOrdForm(fo){
+  var o=fo.id?(S.fin.ord||[]).find(function(x){return x.id===fo.id}):null;
+  return '<form id="finForm" class="card" data-kind="ord-new" data-id="'+esc(fo.id||'')+'"><h3>'+(o?'Change order '+esc(o.number):'New order')+'</h3><div class="form" style="margin-top:8px">'
+   +fi('Vendor','vendor',pv(fo,'vendor',o?o.vendor:''),{req:1,attr:'maxlength="100"'})+fi('What is ordered','title',pv(fo,'title',o?o.title:''),{req:1,attr:'maxlength="120"'})+fi('Category','cat',pv(fo,'cat',o?o.cat:''),{list:'finCat',attr:'maxlength="40"'})
+   +famt('Estimate (₹)','estimate',pv(fo,'estimate',o?o.estimate:''),{req:1})+fi('Order date','date',pv(fo,'date',o?o.date:finToday()),{type:'date'})+fi('Vendor phone or email','vendorContact',pv(fo,'vendorContact',o?o.vendorContact:''),{attr:'maxlength="120"'})+farea('Notes','notes',pv(fo,'notes',o?o.notes:''))+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">'+(o?'Save':'Create order')+'</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">The estimate is what you expect to pay. Record the advance, the vendor\'s bill and the payments on the order afterwards.</span></div></form>';
+}
+function finOrdActForm(fo){
+  var o=(S.fin.ord||[]).find(function(x){return x.id===fo.id});if(!o)return '';var k=fo.kind;
+  var head=o.number+' · '+o.vendor+' · '+o.title,facts='estimate '+fm(o.estimate)+' · paid '+fm(o.paid)+(o.actual!==null?' · billed '+fm(o.actual):'')+' · left to pay '+fm(o.balance);
+  var fields=k==='ord-bill'?famt('Vendor\'s bill (₹)','amount',fo.amount==null?'':fo.amount,{req:1})+fi('Bill number','no',fo.no||'',{attr:'maxlength="80"'})+fi('Bill date','date',fo.date||finToday(),{type:'date'})+fi('Note','note',fo.note||'',{attr:'maxlength="200"'})
+   :k==='ord-pay'?fsel('This payment is','phase',fo.phase||(o.actual===null?'advance':'payment'),[['advance','An advance'],['payment','A payment on the bill']])+famt('Amount (₹)','amount',fo.amount==null?(o.balance||''):fo.amount,{req:1})+fpay(fo)
+   :famt('Refund received from the vendor (₹)','amount',fo.amount==null?(o.refundDue||''):fo.amount,{req:1})+fpay(fo);
+  var title=k==='ord-bill'?'Add the vendor\'s bill':k==='ord-pay'?'Pay the vendor':'Record a refund from the vendor';
+  return '<form id="finForm" class="card" data-kind="'+k+'" data-id="'+esc(o.id)+'"><h3>'+title+'</h3><p class="muted">'+esc(head)+'<br>'+esc(facts)+'</p><div class="form" style="margin-top:8px">'+fields+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">'+(k==='ord-pay'?'Payments cannot go beyond the bill (or the estimate while there is no bill).':k==='ord-refund'?'A refund cannot be more than what was paid.':'Once the bill is in, "actual" replaces the estimate in the figures.')+'</span></div></form>';
+}
+function finOrdDetail(o){
+  var rows=o.bills.map(function(b){return '<tr'+(b.void?' class="strike"':'')+'><td>'+esc(fdy(b.date))+'</td><td>Bill '+esc(b.ref)+(b.note?' <small class="muted">'+esc(b.note)+'</small>':'')+'</td>'+nm(b.amount)+'<td>'+(b.void?esc('voided by '+b.voidBy+': '+b.voidReason):'<button class="btn sm bad" data-act="fin-void" data-id="'+esc(b.id)+'" data-label="bill on '+esc(o.number)+'">Void</button>')+'</td></tr>'}).join('')
+   +o.payments.map(function(p){return '<tr'+(p.void?' class="strike"':'')+'><td>'+esc(fdy(p.date))+'</td><td>'+(p.type==='income'?'Refund received':p.phase==='advance'?'Advance paid':'Payment')+' · '+esc(fmode(p.mode))+(p.holder?' · '+esc(p.holder):'')+(p.ref?' · '+esc(p.ref):'')+'</td>'+nm(p.amount)+'<td>'+(p.void?esc('voided by '+p.voidBy+': '+p.voidReason):'<button class="btn sm bad" data-act="fin-void" data-id="'+esc(p.id)+'" data-label="payment on '+esc(o.number)+'">Void</button>')+'</td></tr>'}).join('');
+  return '<tr><td colspan="11" style="background:var(--surface-2)">'+(rows?ftable(['Date','What','>Amount',''],rows):fnone('No bills or payments yet.'))+(o.notes?'<p class="muted">'+esc(o.notes)+'</p>':'')+(o.vendorContact?'<p class="muted">Vendor: '+esc(o.vendorContact)+'</p>':'')+(o.cancelled?'<p>'+pill('Cancelled: '+o.cancelReason,'bad')+'</p>':'')+'</td></tr>';
+}
+function finOrdView(){
+  var f=S.fin,list=f.ord;if(!list)return planLoading();var fo=f.form,form='';
+  if(fo)form=fo.kind==='ord-new'?finOrdForm(fo):/^ord-(bill|pay|refund)$/.test(fo.kind)?finOrdActForm(fo):fo.kind==='void'||fo.kind==='cancel'?finReasonForm(fo):'';
+  var live=list.filter(function(o){return !o.cancelled}),T={e:0,a:0,b:0,p:0,l:0,r:0};live.forEach(function(o){T.e+=o.estimate;T.a+=o.advance;if(o.actual!==null)T.b+=o.actual;T.p+=o.paid;T.l+=o.balance;T.r+=o.refundDue});
+  var rows=list.map(function(o){var open=f.open===o.id,v=o.variance;
+    return '<tr'+(o.cancelled?' class="strike"':'')+'><td><b>'+esc(o.number)+'</b><br><small class="muted">'+esc(fdy(o.date))+'</small></td><td><b>'+esc(o.vendor)+'</b><br>'+esc(o.title)+'</td><td>'+esc(o.cat)+'</td>'+nm(o.estimate)+nm(o.advance)+'<td class="num">'+(o.actual===null?'<span class="muted">no bill yet</span>':'<b>'+fm(o.actual)+'</b>')+'</td>'+nm(o.paid)
+     +'<td class="num">'+(o.refundDue>0?pill('refund due '+fm(o.refundDue),'bad'):fm(o.balance)+(o.actual===null&&o.balance>0?' <small class="muted">est.</small>':''))+'</td><td class="num">'+(v===null?'':v>0?pill('+'+fm(v)+' over','bad'):v<0?pill(fm(-v)+' under','good'):'on estimate')+'</td><td>'+fpill(o.status)+'</td>'
+     +'<td style="white-space:nowrap"><button class="btn sm" data-act="fin-open" data-id="'+esc(o.id)+'">'+(open?'Hide':'Details')+'</button>'
+     +(o.cancelled?'':' <button class="btn sm pri" data-act="fin-new" data-k="ord-pay" data-id="'+esc(o.id)+'">Pay</button> <button class="btn sm" data-act="fin-new" data-k="ord-bill" data-id="'+esc(o.id)+'">Add bill</button>'+(o.paid>0?' <button class="btn sm" data-act="fin-new" data-k="ord-refund" data-id="'+esc(o.id)+'">Refund</button>':'')+' <button class="btn sm" data-act="fin-new" data-k="ord-new" data-id="'+esc(o.id)+'">Edit</button>'+((!o.bills.some(function(b){return !b.void})&&!o.payments.some(function(p){return !p.void}))?' <button class="btn sm bad" data-act="fin-cancel" data-what="order" data-id="'+esc(o.id)+'" data-label="'+esc(o.number)+'">Cancel</button>':''))+'</td></tr>'+(open?finOrdDetail(o):'')}).join('');
+  var table=list.length?ftable(['Order','Vendor and item','Category','>Estimate','>Advance paid','>Actual (bill)','>Paid','>To pay','>Against estimate','Status',''],rows+'<tr><td colspan="3"><b>Total (live orders)</b></td>'+nm(T.e,1)+nm(T.a,1)+nm(T.b,1)+nm(T.p,1)+'<td class="num"><b>'+fm(T.l)+'</b></td><td></td><td></td><td></td></tr>'):fnone('No orders yet. Raise one for each purchase from a vendor (medals, bibs, timing, banners) and track the advance and the final bill against the estimate.');
+  return '<div class="stack"><div class="grid g4">'+sumCard('Estimated',fm(T.e),live.length+' order'+(live.length===1?'':'s'))+sumCard('Billed (actual)',fm(T.b),'what vendors have billed')+sumCard('Paid so far',fm(T.p),'advances '+fm(T.a))+sumCard('To pay',fm(T.l),T.r>0?'refund due from vendors '+fm(T.r):'')+'</div>'+form
+   +'<div class="card"><div class="row between"><h3>Orders: estimate, advance and actual</h3><button class="btn sm pri" data-act="fin-new" data-k="ord-new">New order</button></div>'+table+'</div></div>';
+}
+
+/* ---------- claims (a lead sees and raises only their own) ---------- */
+function fat(iso){if(!iso)return '';var x=new Date(iso);return isNaN(x)?String(iso).slice(0,10):x.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'})}
+function finClmLineRow(l){l=l||{};return '<tr class="cl"><td><input class="cl-dt" type="date" value="'+esc(l.date||finToday())+'" aria-label="Date of the expense"></td><td><input class="cl-d" value="'+esc(l.desc||'')+'" maxlength="160" aria-label="What it was for"></td><td><input class="cl-c" list="finCat" value="'+esc(l.cat||'')+'" maxlength="40" aria-label="Category" style="width:9em"></td><td><input class="cl-a" type="number" min="0" step="0.01" inputmode="decimal" value="'+esc(l.amount==null?'':l.amount)+'" aria-label="Amount in rupees" style="width:8em"></td><td><input class="cl-b" value="'+esc(l.bill||'')+'" maxlength="120" aria-label="Bill number or note" style="width:9em"></td><td><button type="button" class="btn sm" data-act="fin-lineDel" aria-label="Remove line">×</button></td></tr>'}
+function finClmTot(f){var t=0;[].forEach.call(f.querySelectorAll('tr.cl'),function(r){var a=Math.round(Number(r.querySelector('.cl-a').value)*100);if(isFinite(a)&&a>0)t+=a});var o=$('#finTot');if(o)o.textContent='Total '+fm(t/100)}
+function finClmFind(id){return ((S.fin.clm&&S.fin.clm.claims)||[]).find(function(x){return x.id===id})}
+function finClmForm(fo){
+  var c=fo.id?finClmFind(fo.id):null;
+  var lines=fo.clines||(c?c.lines.map(function(l){return {date:l.date,desc:l.desc,cat:l.cat,amount:l.amount,bill:l.bill}}):[{date:finToday(),desc:'',cat:'',amount:'',bill:''}]);
+  var payee=fo.payee!=null?fo.payee:(c?c.payee:(S.me?S.me.name:'')),payTo=fo.payTo!=null?fo.payTo:(c?c.payTo:''),notes=fo.notes!=null?fo.notes:(c?c.notes:'');
+  return '<form id="finForm" class="card" data-kind="clm-new" data-id="'+esc(fo.id||'')+'"><h3>'+(c?'Change claim '+esc(c.number):'Claim back money you spent')+'</h3><p class="muted">One line for each bill or payment. Keep the bills: the director may ask to see them.</p><div class="form" style="margin-top:8px">'
+   +fi('Pay to (name)','payee',payee,{req:1,attr:'maxlength="80"'})+fi('Where to pay (UPI id or bank account)','payTo',payTo,{attr:'maxlength="160"'})+'</div>'
+   +'<div class="sec" style="margin-top:12px">What was spent</div><div class="scroll"><table id="finLines"><tr><th>Date</th><th>What it was for</th><th>Category</th><th>Amount (₹)</th><th>Bill no. or note</th><th></th></tr>'+lines.map(finClmLineRow).join('')+'</table></div>'
+   +'<div class="row" style="margin-top:6px"><button type="button" class="btn sm" data-act="fin-lineAdd" data-t="clm">Add a line</button><b id="finTot" class="muted"></b></div>'
+   +'<div class="form" style="margin-top:8px">'+farea('Notes (optional)','notes',notes)+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">'+(c?'Save changes':'Send claim')+'</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">It can be changed until it is approved or rejected.</span></div></form>';
+}
+function finClmLines(c){
+  return ftable(['Date','What it was for','Category','>Amount','Bill no. or note'],c.lines.map(function(l){return '<tr><td>'+esc(fdy(l.date))+'</td><td>'+esc(l.desc)+'</td><td>'+esc(l.cat)+'</td>'+nm(l.amount)+'<td>'+esc(l.bill)+'</td></tr>'}).join('')+'<tr><td colspan="3"><b>Total claimed</b> <small class="muted">'+esc(c.totalWords)+'</small></td>'+nm(c.total,1)+'<td></td></tr>');
+}
+function finClmDetail(c,dir){
+  var dec=c.decidedBy?'<p class="muted">'+(c.status==='rejected'?'Rejected':'Approved')+' by '+esc(c.decidedBy)+(c.decidedAt?' on '+esc(fat(c.decidedAt)):'')+(c.status==='approved'&&c.approved<c.total?' for '+fm(c.approved)+' of '+fm(c.total):'')+(c.decisionNote?': '+esc(c.decisionNote):'')+'</p>':'';
+  var pays=c.payments.length?ftable(['Date','Paid how','Reference','>Amount',''],c.payments.map(function(p){return '<tr'+(p.void?' class="strike"':'')+'><td>'+esc(fdy(p.date))+'</td><td>'+esc(fmode(p.mode))+(p.holder?' · '+esc(p.holder):'')+'</td><td>'+esc(p.ref)+(p.note?' <small class="muted">'+esc(p.note)+'</small>':'')+'</td>'+nm(p.amount)+'<td>'+(p.void?esc('voided by '+p.voidBy+': '+p.voidReason):(dir?'<button class="btn sm bad" data-act="fin-void" data-id="'+esc(p.id)+'" data-label="payment on '+esc(c.number)+'">Void</button>':''))+'</td></tr>'}).join('')):'';
+  return '<tr><td colspan="8" style="background:var(--surface-2)"><div class="stack">'+finClmLines(c)+(c.payTo?'<p class="muted">Pay to: '+esc(c.payee)+' · '+esc(c.payTo)+'</p>':'')+(c.notes?'<p class="muted">Notes: '+esc(c.notes)+'</p>':'')+dec+(pays?'<div class="sec">Payments</div>'+pays:'')+'</div></td></tr>';
+}
+function finClmDecideForm(fo){
+  var c=finClmFind(fo.id);if(!c)return '';
+  return '<form id="finForm" class="card" data-kind="clm-decide" data-id="'+esc(c.id)+'"><h3>Decide on '+esc(c.number)+'</h3><p class="muted">'+esc(c.byName||c.by)+' claims '+fm(c.total)+', to be paid to '+esc(c.payee)+'.'+(c.mine?' <b>This is your own claim.</b> It will be marked as approved by the person who claimed.':'')+'</p>'+finClmLines(c)
+   +'<div class="form" style="margin-top:8px">'+famt('Approve for (₹)','approved',fo.approved==null?(c.status==='submitted'?c.total:c.approved):fo.approved)+fi('Note (needed when rejecting)','note',fo.note!=null?fo.note:c.decisionNote,{span:1,attr:'maxlength="200"'})+'</div>'
+   +'<div class="row" style="margin-top:10px"><button type="button" class="btn pri" data-act="fin-approve">Approve</button><button type="button" class="btn bad" data-act="fin-reject">Reject</button><button type="button" class="btn" data-act="fin-cancelForm">Close</button><span class="muted">Approving for less than claimed cuts every line in proportion.</span></div></form>';
+}
+function finClmPayForm(fo){
+  var c=finClmFind(fo.id);if(!c)return '';
+  return '<form id="finForm" class="card" data-kind="clm-pay" data-id="'+esc(c.id)+'"><h3>Pay '+esc(c.number)+' to '+esc(c.payee)+'</h3><p class="muted">Approved '+fm(c.approved)+' · paid '+fm(c.paid)+' · left to pay '+fm(c.balance)+(c.payTo?'<br>Pay to: '+esc(c.payTo):'')+'</p><div class="form" style="margin-top:8px">'
+   +famt('Amount (₹)','amount',fo.amount==null?c.balance:fo.amount,{req:1})+fpay(fo)+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Record payment</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">You can pay in parts. Cash must come from a person who holds that much cash: record the cash withdrawal first.</span></div></form>';
+}
+function finClmView(){
+  var f=S.fin,d=f.clm;if(!d)return planLoading();var dir=man(),list=d.claims,fo=f.form,form='';
+  if(fo)form=fo.kind==='clm-new'?finClmForm(fo):(dir&&fo.kind==='clm-decide')?finClmDecideForm(fo):(dir&&fo.kind==='clm-pay')?finClmPayForm(fo):(dir&&fo.kind==='void')?finReasonForm(fo):'';
+  var T={wait:0,waitN:0,appr:0,paid:0,bal:0,all:0};
+  list.forEach(function(c){if(c.status==='cancelled'||c.status==='rejected')return;T.all+=c.total;if(c.status==='submitted'){T.wait+=c.total;T.waitN++}else{T.appr+=c.approved;T.paid+=c.paid;T.bal+=c.balance}});
+  var rows=list.map(function(c){var open=f.open===c.id,dead=c.status==='cancelled'||c.status==='rejected';
+    var live=c.payments.some(function(p){return !p.void});
+    var acts='<button class="btn sm" data-act="fin-open" data-id="'+esc(c.id)+'">'+(open?'Hide':'Details')+'</button> <button class="btn sm" data-act="fin-print-clm" data-id="'+esc(c.id)+'">Print</button> <button class="btn sm" data-act="fin-word-clm" data-id="'+esc(c.id)+'">Word</button>';
+    if(c.status==='submitted'&&(c.mine||dir))acts+=' <button class="btn sm" data-act="fin-new" data-k="clm-new" data-id="'+esc(c.id)+'">Edit</button>';
+    if(dir&&(c.status==='submitted'||c.status==='approved'||c.status==='part'))acts+=' <button class="btn sm pri" data-act="fin-new" data-k="clm-decide" data-id="'+esc(c.id)+'">'+(c.status==='submitted'?'Decide':'Change approval')+'</button>';
+    if(dir&&(c.status==='approved'||c.status==='part')&&c.balance>0)acts+=' <button class="btn sm pri" data-act="fin-new" data-k="clm-pay" data-id="'+esc(c.id)+'">Pay</button>';
+    if((!dir&&c.mine&&c.status==='submitted')||(dir&&(c.status==='submitted'||c.status==='approved')&&!live))acts+=' '+arm('cc'+c.id,dir?'Cancel':'Withdraw','fin-cclaim','data-id="'+esc(c.id)+'"');
+    return '<tr'+(dead?' class="strike"':'')+'><td><b>'+esc(c.number)+'</b><br><small class="muted">'+esc(fat(c.at))+'</small></td><td>'+(dir?esc(c.byName||c.by)+'<br>':'')+'<span'+(dir?' class="muted"':'')+'>'+esc(c.payee)+'</span></td>'+nm(c.total)+(dead?'<td class="num">–</td><td class="num">–</td><td class="num">–</td>':nm(c.status==='submitted'?0:c.approved).replace('<td class="num">₹0</td>','<td class="num muted">–</td>')+nm(c.paid)+nm(c.balance))
+     +'<td>'+fpill(c.status,c.selfApproved?' '+pill('approved by the claimant','warn'):'')+'</td><td style="white-space:nowrap">'+acts+'</td></tr>'+(open?finClmDetail(c,dir):'')}).join('');
+  var k=dir?'<div class="grid g4">'+sumCard('Waiting for a decision',T.waitN,fm(T.wait),T.waitN>0)+sumCard('Approved',fm(T.appr),'to pay '+fm(T.bal))+sumCard('Paid',fm(T.paid),'to team members and others')+sumCard('Claimed in all',fm(T.all),'not counting rejected or cancelled')+'</div>'
+    :'<div class="grid g4">'+sumCard('Waiting for a decision',T.waitN,fm(T.wait))+sumCard('Approved',fm(T.appr))+sumCard('Paid to you',fm(T.paid))+sumCard('Still to be paid',fm(T.bal))+'</div>';
+  var empty=dir?'No claims yet. Core team members raise their own from their login (My claims), or you can raise one here with their name as "Pay to".':'You have not raised a claim. When you spend your own money on the race, add the bills here; the director approves and pays you back.';
+  return '<div class="stack">'+k+form+'<div class="card"><div class="row between"><h3>'+(dir?'Reimbursement claims':'My claims')+'</h3><button class="btn sm pri" data-act="fin-new" data-k="clm-new">'+(dir?'New claim':'Claim money I spent')+'</button></div>'
+   +(list.length?ftable(['Claim',dir?'Raised by and pay to':'Pay to','>Claimed','>Approved','>Paid','>To pay','Status',''],rows):fnone(empty))+'</div></div>';
+}
+
+/* ---------- cash ---------- */
+function finCashForm(fo){
+  return '<form id="finForm" class="card" data-kind="cash" data-id=""><h3>'+(fo.type==='deposit'?'Put cash back in the bank':'Take cash from the bank')+'</h3><div class="form" style="margin-top:8px">'
+   +fsel('What happened','type',fo.type||'withdrawal',[['withdrawal','Cash taken from the bank'],['deposit','Cash put back in the bank']])+fi('Cash held by','holder',fo.holder||'',{list:'finHold',req:1,attr:'maxlength="40"'})+famt('Amount (₹)','amount',fo.amount==null?'':fo.amount,{req:1})
+   +fi('Date','date',fo.date||finToday(),{type:'date',req:1})+fi('Reference (cheque or slip no.)','ref',fo.ref||'',{attr:'maxlength="80"'})+fi('Note','note',fo.note||'',{attr:'maxlength="200"'})+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">Cash payments to vendors and team members must come out of cash held by a named person.</span></div></form>';
+}
+function finCashView(){
+  var f=S.fin,d=f.cash;if(!d)return planLoading();var c=d.cash,fo=f.form,form='';
+  if(fo)form=fo.kind==='cash'?finCashForm(fo):fo.kind==='void'?finReasonForm(fo):'';
+  var k='<div class="grid g4">'+sumCard('Cash in hand',fm(c.inHand),'with the team right now',c.holders.some(function(h){return h.inHand<0}))+sumCard('Taken from the bank',fm(c.withdrawn),'put back '+fm(c.deposited))+sumCard('Spent in cash',fm(c.spent),'bills, claims and expenses paid in cash')+sumCard('Received in cash',fm(c.received),'sponsor and other money received in cash')+'</div>';
+  var hold=c.holders.length?ftable(['Held by','>Taken','>Received','>Spent','>Put back','>In hand'],c.holders.map(function(h){return '<tr><td><b>'+esc(h.holder)+'</b></td>'+nm(h.withdrawn)+nm(h.received)+nm(h.spent)+nm(h.deposited)+'<td class="num">'+(h.inHand<0?pill(fm(h.inHand),'bad'):'<b>'+fm(h.inHand)+'</b>')+'</td></tr>'}).join('')):fnone('No cash recorded yet. Take cash from the bank first, then pay from it.');
+  var ents=d.entries.length?ftable(['Date','What','Reference','>Amount',''],d.entries.map(function(r){
+    var what=r.type==='withdrawal'?'Cash taken from the bank · '+esc(r.holder):r.type==='deposit'?'Cash put back in the bank · '+esc(r.holder):r.type==='income'?'Cash received by '+esc(r.holder)+(r.party?' from '+esc(r.party):'')+(r.sourceNo?' · '+esc(r.sourceNo):''):'Cash spent by '+esc(r.holder)+(r.party?' on '+esc(r.party):'')+(r.sourceNo?' · '+esc(r.sourceNo):'');
+    return '<tr'+(r.void?' class="strike"':'')+'><td>'+esc(fdy(r.date))+'</td><td>'+what+'</td><td>'+esc(r.ref)+(r.note?' <small class="muted">'+esc(r.note)+'</small>':'')+'</td>'+nm(r.amount)+'<td>'+(r.void?esc('voided by '+r.voidBy+': '+r.voidReason):'<button class="btn sm bad" data-act="fin-void" data-id="'+esc(r.id)+'" data-label="cash entry of '+esc(fm(r.amount))+'">Void</button>')+'</td></tr>'}).join('')):fnone('Nothing yet.');
+  return '<div class="stack">'+k+form+'<div class="card"><div class="row between"><h3>Who holds the cash</h3><span class="row"><button class="btn sm pri" data-act="fin-new" data-k="cash" data-t="withdrawal">Take cash from the bank</button><button class="btn sm" data-act="fin-new" data-k="cash" data-t="deposit">Put cash back</button></span></div>'+hold+'</div><div class="card"><h3>Cash movements</h3>'+ents+'</div></div>';
+}
+
+/* ---------- the ledger: every rupee in and out ---------- */
+var LTYPES=[['all','Everything'],['income','Money in'],['expense','Money out'],['bill','Vendor bills'],['withdrawal','Cash taken'],['deposit','Cash put back'],['void','Voided entries']];
+function finTypeLabel(t){return {income:'Money in',expense:'Money out',bill:'Vendor bill',withdrawal:'Cash taken',deposit:'Cash put back'}[t]||t}
+function finLedRows(){var f=S.fin,d=f.led;if(!d)return [];var q=String(f.q||'').trim().toLowerCase(),lf=f.lf||'all';
+  return d.rows.filter(function(r){if(lf==='void'){if(!r.void)return false}else if(lf!=='all'&&r.type!==lf)return false;if(!q)return true;return [r.party,r.cat,r.ref,r.note,r.sourceNo,r.holder,r.date,r.by,r.mode,finTypeLabel(r.type)].join(' ').toLowerCase().indexOf(q)>=0})}
+function finEntryForm(fo){
+  var t=fo.type==='income'?'income':'expense';
+  return '<form id="finForm" class="card" data-kind="entry" data-id=""><h3>'+(t==='income'?'Add money received':'Add a payment made')+'</h3><p class="muted">For anything that is not an invoice, an order or a claim: a donation, a stall rent, a bank charge, a small purchase.</p><div class="form" style="margin-top:8px">'
+   +fsel('This is','type',t,[['income','Money received'],['expense','A payment made']])+fi(t==='income'?'Received from':'Paid to','party',fo.party||'',{req:1,attr:'maxlength="80"'})+fi('Category','cat',fo.cat||'',{list:'finCat',attr:'maxlength="40"'})+famt('Amount (₹)','amount',fo.amount==null?'':fo.amount,{req:1})+fpay(fo)+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" data-act="fin-cancelForm">Cancel</button><span class="muted">A wrong entry is voided, never edited or deleted.</span></div></form>';
+}
+function finLedView(){
+  var f=S.fin,d=f.led;if(!d)return planLoading();var fo=f.form,form='';
+  if(fo)form=fo.kind==='entry'?finEntryForm(fo):fo.kind==='void'?finReasonForm(fo):'';
+  var rows=finLedRows(),inn=0,out=0;
+  rows.forEach(function(r){if(r.void)return;if(r.type==='income')inn+=Math.round(r.amount*100);else if(r.type==='expense')out+=Math.round(r.amount*100)});
+  var body=rows.map(function(r){
+    return '<tr'+(r.void?' class="strike"':'')+'><td>'+esc(fdy(r.date))+'</td><td>'+pill(finTypeLabel(r.type),r.type==='income'?'good':r.type==='expense'?'bad':'')+'</td><td><b>'+esc(r.party)+'</b><br><small class="muted">'+esc(r.cat)+(r.phase?' · '+esc(r.phase):'')+'</small></td><td>'+(r.type==='bill'?'':esc(fmode(r.mode))+(r.holder?' · '+esc(r.holder):''))+'</td><td>'+esc(r.ref)+(r.note?' <small class="muted">'+esc(r.note)+'</small>':'')+'</td><td>'+esc(r.sourceNo)+'</td>'+nm(r.amount)+'<td class="num">'+(r.tds?fm(r.tds):'')+'</td>'
+     +'<td>'+(r.void?'<small>'+esc('voided by '+r.voidBy+': '+r.voidReason)+'</small>':'<button class="btn sm bad" data-act="fin-void" data-id="'+esc(r.id)+'" data-label="'+esc(finTypeLabel(r.type).toLowerCase()+' of '+fm(r.amount))+'">Void</button>')+'</td></tr>'}).join('');
+  return '<div class="stack">'+form+'<div class="card"><div class="row between"><h3>Ledger</h3><span class="row"><button class="btn sm pri" data-act="fin-new" data-k="entry" data-t="income">Add money received</button><button class="btn sm" data-act="fin-new" data-k="entry" data-t="expense">Add a payment made</button><button class="btn sm" data-act="fin-csv-led">Download CSV</button></span></div>'
+   +'<div class="row" style="margin-top:8px"><select id="finLf" aria-label="Show">'+LTYPES.map(function(t){return '<option value="'+t[0]+'"'+((f.lf||'all')===t[0]?' selected':'')+'>'+t[1]+'</option>'}).join('')+'</select><input id="finQ" type="search" placeholder="Search name, reference, bill number" value="'+esc(f.q||'')+'" aria-label="Search the ledger" style="min-width:240px"><span class="muted">'+rows.length+' shown · money in '+fm(inn/100)+' · money out '+fm(out/100)+'</span></div>'
+   +(d.truncated?'<p class="muted" style="margin-top:6px">Showing the latest 3,000 entries. Download the CSV for these; older ones stay stored.</p>':'')
+   +(rows.length?ftable(['Date','Kind','Party and category','How paid','Reference and note','Linked to','>Amount','>TDS',''],body):fnone(d.rows.length?'Nothing matches.':'No entries yet. Invoices, orders and claims add their payments here as you record them.'))+'</div></div>';
+}
+
+/* ---------- details printed on invoices ---------- */
+function finSetView(){
+  var o=S.fin.org;if(!o)return planLoading();
+  return '<form id="finSetForm" class="card"><h3>Details printed on invoices</h3><p class="muted">They appear at the top and bottom of every invoice. An invoice keeps the details it was raised with, so changing them later does not change old invoices. Numbers run for each financial year (April to March), for example '+esc(o.invPrefix)+'/2026-27/0001.</p><div class="form" style="margin-top:8px">'
+   +fi('Name of the organisation','name',o.name,{req:1,attr:'maxlength="100"'})+fi('PAN','pan',o.pan,{attr:'maxlength="12"'})+fi('GSTIN (if registered)','gstin',o.gstin,{attr:'maxlength="20"'})+fi('UPI id for payments','upi',o.upi,{attr:'maxlength="60"'})+fi('Invoice number prefix','invPrefix',o.invPrefix,{attr:'maxlength="12"'})+fi('Name of the person who signs','signatory',o.signatory,{attr:'maxlength="80"'})
+   +farea('Address','address',o.address,240)+farea('Bank details (name, account number, IFSC)','bank',o.bank,200)+farea('Terms printed at the bottom','terms',o.terms,400)+'</div>'
+   +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save details</button></div></form>';
+}
+
+/* ---------- printing and Word: invoices and claim vouchers ---------- */
+function finDocHtml(title,body){return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{size:A4;margin:16mm}body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;color:#111;line-height:1.35}h1{font-size:18pt;margin:0 0 2pt}h2{font-size:12pt;margin:14pt 0 4pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:4pt 6pt;vertical-align:top;font-size:10pt}th{background:#eee;text-align:left}.r{text-align:right}.nb td{border:0;padding:1pt 0}.m{color:#555}.tot td{font-weight:bold}.stamp{display:inline-block;border:2px solid #b00;color:#b00;padding:2pt 10pt;font-weight:bold;letter-spacing:2pt;margin-top:4pt}.sig td{border:0;padding-top:34pt;text-align:center}</style></head><body>'+body+'</body></html>'}
+function finBr(t){return esc(t).replace(/\n/g,'<br>')}
+function invoiceHtml(i){
+  var o=i.org||{};
+  var head='<table class="nb"><tr><td><h1>'+esc(o.name||'')+'</h1>'+(o.address?'<div class="m">'+finBr(o.address)+'</div>':'')+((o.pan||o.gstin)?'<div class="m">'+(o.pan?'PAN '+esc(o.pan):'')+(o.pan&&o.gstin?' · ':'')+(o.gstin?'GSTIN '+esc(o.gstin):'')+'</div>':'')+'</td><td class="r"><h1>INVOICE</h1><div><b>'+esc(i.number)+'</b></div><div>Date: '+esc(fdy(i.date))+'</div><div>Due: '+esc(fdy(i.due))+'</div>'+(i.status==='cancelled'?'<div class="stamp">CANCELLED</div>':i.status==='paid'?'<div class="stamp" style="color:#060;border-color:#060">PAID</div>':'')+'</td></tr></table>';
+  var to='<h2>Bill to</h2><div><b>'+esc(i.party)+'</b></div>'+(i.partyAddr?'<div>'+finBr(i.partyAddr)+'</div>':'')+(i.partyGstin?'<div>GSTIN '+esc(i.partyGstin)+'</div>':'')+(i.partyEmail?'<div>'+esc(i.partyEmail)+'</div>':'');
+  var tbl='<table style="margin-top:10pt"><tr><th>#</th><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th><th class="r">Tax %</th><th class="r">Tax</th></tr>'+i.lines.map(function(l,n){return '<tr><td>'+(n+1)+'</td><td>'+esc(l.desc)+'</td><td class="r">'+l.qty+'</td><td class="r">'+fm(l.rate)+'</td><td class="r">'+fm(l.amount)+'</td><td class="r">'+l.taxPct+'</td><td class="r">'+fm(l.tax)+'</td></tr>'}).join('')
+   +'<tr class="tot"><td colspan="4" class="r">Subtotal and tax</td><td class="r">'+fm(i.subtotal)+'</td><td></td><td class="r">'+fm(i.tax)+'</td></tr><tr class="tot"><td colspan="6" class="r">Total</td><td class="r">'+fm(i.total)+'</td></tr></table><p>'+esc(i.totalWords)+'</p>';
+  var paid=(i.received+i.tds>0)?'<table class="nb" style="width:50%;margin-left:auto"><tr><td>Received</td><td class="r">'+fm(i.received)+'</td></tr>'+(i.tds?'<tr><td>Tax withheld (TDS)</td><td class="r">'+fm(i.tds)+'</td></tr>':'')+'<tr><td><b>Balance due</b></td><td class="r"><b>'+fm(i.balance)+'</b></td></tr></table>':'';
+  var pay=(o.bank||o.upi)?'<h2>How to pay</h2>'+(o.bank?'<div>'+finBr(o.bank)+'</div>':'')+(o.upi?'<div>UPI: '+esc(o.upi)+'</div>':''):'';
+  var foot=(i.notes?'<h2>Notes</h2><div>'+finBr(i.notes)+'</div>':'')+(o.terms?'<h2>Terms</h2><div>'+finBr(o.terms)+'</div>':'')+'<table class="sig"><tr><td style="width:50%"></td><td>For '+esc(o.name||'')+'<br>'+esc(o.signatory||'Authorised signatory')+'</td></tr></table>';
+  return finDocHtml(i.number,head+to+tbl+paid+pay+foot);
+}
+function voucherHtml(c){
+  var live=c.payments.filter(function(p){return !p.void});
+  var body='<h1>Reimbursement voucher</h1><div class="m">'+esc(raceName())+'</div><table class="nb" style="margin-top:8pt"><tr><td><b>'+esc(c.number)+'</b></td><td class="r">Raised on '+esc(fat(c.at))+'</td></tr><tr><td>Raised by: '+esc(c.byName||c.by)+'</td><td class="r">Status: '+esc((FIN_ST[c.status]||[c.status])[0])+'</td></tr><tr><td colspan="2">Pay to: <b>'+esc(c.payee)+'</b>'+(c.payTo?' · '+esc(c.payTo):'')+'</td></tr></table>'
+   +'<table style="margin-top:10pt"><tr><th>Date</th><th>What it was for</th><th>Category</th><th>Bill no. or note</th><th class="r">Amount</th></tr>'+c.lines.map(function(l){return '<tr><td>'+esc(fdy(l.date))+'</td><td>'+esc(l.desc)+'</td><td>'+esc(l.cat)+'</td><td>'+esc(l.bill)+'</td><td class="r">'+fm(l.amount)+'</td></tr>'}).join('')+'<tr class="tot"><td colspan="4" class="r">Total claimed</td><td class="r">'+fm(c.total)+'</td></tr></table><p>'+esc(c.totalWords)+'</p>'
+   +(c.decidedBy?'<p>'+(c.status==='rejected'?'Rejected':'Approved')+' by '+esc(c.decidedBy)+(c.decidedAt?' on '+esc(fat(c.decidedAt)):'')+(c.status!=='rejected'&&c.status!=='submitted'&&c.status!=='cancelled'?' for '+fm(c.approved)+(c.approvedWords?' ('+esc(c.approvedWords)+')':''):'')+(c.decisionNote?'. '+esc(c.decisionNote):'')+'</p>':'')
+   +(live.length?'<h2>Payments</h2><table><tr><th>Date</th><th>Paid how</th><th>Reference</th><th class="r">Amount</th></tr>'+live.map(function(p){return '<tr><td>'+esc(fdy(p.date))+'</td><td>'+esc(fmode(p.mode))+(p.holder?' · '+esc(p.holder):'')+'</td><td>'+esc(p.ref)+'</td><td class="r">'+fm(p.amount)+'</td></tr>'}).join('')+'</table>':'')
+   +(c.notes?'<h2>Notes</h2><div>'+finBr(c.notes)+'</div>':'')
+   +'<table class="sig"><tr><td>Claimed by<br>'+esc(c.byName||c.by)+'</td><td>Approved by<br>'+esc(c.decidedBy||'')+'</td><td>Received by<br>'+esc(c.payee)+'</td></tr></table>';
+  return finDocHtml(c.number,body);
+}
+function finFile(n){return String(n||'file').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'file'}
+function finCsv(name,head,rows){download(name,[head].concat(rows).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
+
+/* ---------- forms: keep what was typed when the screen redraws ---------- */
+function finKeep(){
+  var f=S.fin,fo=f&&f.form,el=$('#finForm');
+  if(!fo||!el||el.getAttribute('data-kind')!==fo.kind||el.getAttribute('data-id')!==(fo.id||''))return;
+  var d=formData(el);Object.keys(d).forEach(function(k){fo[k]=d[k]});
+  var fl=el.querySelectorAll('tr.fl');if(fl.length)fo.lines=[].map.call(fl,function(r){return {desc:r.querySelector('.fl-d').value,qty:r.querySelector('.fl-q').value,rate:r.querySelector('.fl-r').value,taxPct:r.querySelector('.fl-t').value}});
+  var cl=el.querySelectorAll('tr.cl');if(cl.length)fo.clines=[].map.call(cl,function(r){return {date:r.querySelector('.cl-dt').value,desc:r.querySelector('.cl-d').value,cat:r.querySelector('.cl-c').value,amount:r.querySelector('.cl-a').value,bill:r.querySelector('.cl-b').value}});
+}
+function finFormUp(){
+  var el=$('#finForm');if(!el)return;
+  if(el.querySelector('tr.fl'))finInvTot(el);if(el.querySelector('tr.cl'))finClmTot(el);
+  if(el.scrollIntoView)try{el.scrollIntoView({block:'center'})}catch(x){}
+  var first=el.querySelector('input:not([type=hidden]):not([type=date]),select,textarea');if(first&&first.focus)try{first.focus({preventScroll:true})}catch(x){}
+}
+function finOpenForm(k,id,pre){var f=S.fin;if(!f)return;f.form=Object.assign({kind:k,id:id||'',key:newKey()},pre||{});S.armed=null;render();finFormUp()}
+function finInvLines(f){var out=[];[].forEach.call(f.querySelectorAll('tr.fl'),function(r){var d=r.querySelector('.fl-d').value.trim(),q=r.querySelector('.fl-q').value.trim(),rt=r.querySelector('.fl-r').value.trim(),t=r.querySelector('.fl-t').value.trim();if(!d&&!rt)return;out.push({desc:d,qty:q,rate:amtStr(rt),taxPct:t===''?'0':t})});return out}
+function finClmRead(f){var out=[];[].forEach.call(f.querySelectorAll('tr.cl'),function(r){var d=r.querySelector('.cl-d').value.trim(),a=r.querySelector('.cl-a').value.trim();if(!d&&!a)return;out.push({date:r.querySelector('.cl-dt').value,desc:d,cat:r.querySelector('.cl-c').value.trim(),amount:amtStr(a),bill:r.querySelector('.cl-b').value.trim()})});return out}
+
+/* ---------- what the buttons do ---------- */
+function finAct(b,act,id){
+  var F=S.fin;if(!F)return;
+  var done=function(msgText,keepOpen){return async function(){F.form=null;if(keepOpen)F.open=keepOpen;await finLoad();render();if(!F.err)toast(msgText)}};
+  if(act==='fin-sub'){if(!man())return;S.fsub=b.getAttribute('data-sub')||'sum';F.form=null;F.open='';F.err='';S.armed=null;render();loadTab()}
+  else if(act==='fin-open'){F.open=F.open===id?'':id;render()}
+  else if(act==='fin-new'){var t=b.getAttribute('data-t');finOpenForm(b.getAttribute('data-k'),id,t?{type:t}:null)}
+  else if(act==='fin-void')finOpenForm('void',id,{label:b.getAttribute('data-label')||''});
+  else if(act==='fin-cancel')finOpenForm('cancel',id,{what:b.getAttribute('data-what')||'',label:b.getAttribute('data-label')||''});
+  else if(act==='fin-cancelForm'){F.form=null;render()}
+  else if(act==='fin-lineAdd'){var tb=$('#finLines');if(!tb)return;var cl=b.getAttribute('data-t')==='clm',n=tb.querySelectorAll(cl?'tr.cl':'tr.fl').length;if(n>=30){toast('Thirty lines is the most.',true);return}
+    var tmp=document.createElement('table');tmp.innerHTML='<tbody>'+(cl?finClmLineRow():finLineRow())+'</tbody>';var tr=tmp.querySelector('tr');(tb.tBodies&&tb.tBodies[0]||tb).appendChild(tr);var fi0=tr.querySelector('input.fl-d,input.cl-d');if(fi0)fi0.focus()}
+  else if(act==='fin-lineDel'){var r=b.closest('tr'),tbl=r&&r.closest('table');if(!r||!tbl)return;var f0=tbl.closest('form'),rs=tbl.querySelectorAll('tr.fl,tr.cl');
+    if(rs.length>1)r.remove();else[].forEach.call(r.querySelectorAll('input'),function(x){x.value=x.className==='fl-q'?'1':x.className==='fl-t'?'0':x.className==='cl-dt'?x.value:''});
+    if(f0){if(f0.querySelector('tr.fl'))finInvTot(f0);if(f0.querySelector('tr.cl'))finClmTot(f0)}}
+  else if(act==='fin-approve'||act==='fin-reject'){var fo=F.form,el=$('#finForm');if(!fo||fo.kind!=='clm-decide'||!el||!man())return;var d=formData(el),ap=act==='fin-approve';
+    run(async function(){await fa('finDecideClaim',{id:fo.id,decision:ap?'approve':'reject',approved:ap?amtStr(d.approved):undefined,note:d.note});await done(ap?'Approved':'Rejected')()})}
+  else if(act==='fin-cclaim')run(async function(){await fa('finCancelClaim',{id:id});await done('Claim '+(man()?'cancelled':'withdrawn'))()});
+  else if(act==='fin-print-inv'||act==='fin-word-inv'){var iv=((F.inv)||[]).find(function(x){return x.id===id});if(!iv)return;if(act==='fin-print-inv')printHtml(invoiceHtml(iv));else download(finFile(iv.number)+'.doc',invoiceHtml(iv),'application/msword')}
+  else if(act==='fin-print-clm'||act==='fin-word-clm'){var cm=finClmFind(id);if(!cm)return;if(act==='fin-print-clm')printHtml(voucherHtml(cm));else download(finFile(cm.number)+'.doc',voucherHtml(cm),'application/msword')}
+  else if(act==='fin-csv-led'){var rs2=finLedRows();finCsv('ledger.csv',['Date','Kind','Party','Category','How paid','Cash held by','Reference','Note','Amount','TDS','Linked to','Entered by','Voided']
+    ,rs2.map(function(r){return [r.date,finTypeLabel(r.type),r.party,r.cat,fmode(r.mode),r.holder,r.ref,r.note,r.amount,r.tds||'',r.sourceNo,r.by,r.void?'voided by '+r.voidBy+': '+r.voidReason:'']}))}
+  else if(act==='fin-csv-sum'){var s=F.sum;if(!s)return;finCsv('costs-by-category.csv',['Category','Budget','Ordered (estimates)','Actual cost'],s.byCat.map(function(c){return [c.cat,c.budget,c.estimate,c.actual]}))}
+}
+function finSubmit(f,id,d){
+  var F=S.fin;if(!F)return;
+  if(id==='finSetForm'){if(!man())return;run(async function(){var r=await fa('finSaveSettings',{name:d.name,pan:d.pan,gstin:d.gstin,upi:d.upi,invPrefix:d.invPrefix,signatory:d.signatory,address:d.address,bank:d.bank,terms:d.terms});F.org=r.org;render();toast('Details saved')});return}
+  var fo=F.form;if(!fo||f.getAttribute('data-kind')!==fo.kind)return;
+  var k=fo.kind,pay={mode:d.mode,date:d.date,ref:d.ref,holder:d.holder,note:d.note},m='Saved',call=null,open='';
+  if(k==='inv-new'){var a={key:fo.key,party:d.party,kind:d.invKind,date:d.date,due:d.due,partyGstin:d.partyGstin,partyEmail:d.partyEmail,partyAddr:d.partyAddr,notes:d.notes,lines:finInvLines(f)};if(d.sponsorId)a.sponsorId=d.sponsorId;call=['finRaiseInvoice',a]}
+  else if(k==='inv-pay'){call=['finPayInvoice',Object.assign({id:fo.id,key:fo.key,amount:amtStr(d.amount),tds:amtStr(d.tds)},pay)];m='Payment recorded';open=fo.id}
+  else if(k==='ord-new'){call=['finSaveOrder',{id:fo.id||undefined,key:fo.key,vendor:d.vendor,title:d.title,cat:d.cat,estimate:amtStr(d.estimate),date:d.date,vendorContact:d.vendorContact,notes:d.notes}]}
+  else if(k==='ord-bill'){call=['finAddBill',{id:fo.id,key:fo.key,amount:amtStr(d.amount),no:d.no,date:d.date,note:d.note}];m="Bill added";open=fo.id}
+  else if(k==='ord-pay'){call=['finPayOrder',Object.assign({id:fo.id,key:fo.key,amount:amtStr(d.amount),phase:d.phase},pay)];m='Payment recorded';open=fo.id}
+  else if(k==='ord-refund'){call=['finRefundOrder',Object.assign({id:fo.id,key:fo.key,amount:amtStr(d.amount)},pay)];m='Refund recorded';open=fo.id}
+  else if(k==='clm-new'){call=['finSaveClaim',{id:fo.id||undefined,key:fo.key,payee:d.payee,payTo:d.payTo,notes:d.notes,lines:finClmRead(f)}];m=fo.id?'Claim changed':'Claim sent'}
+  else if(k==='clm-pay'){if(!man())return;call=['finPayClaim',Object.assign({id:fo.id,key:fo.key,amount:amtStr(d.amount)},pay)];m='Payment recorded';open=fo.id}
+  else if(k==='cash'){if(!man())return;call=['finAddCash',{key:fo.key,type:d.type,holder:d.holder,amount:amtStr(d.amount),date:d.date,ref:d.ref,note:d.note}]}
+  else if(k==='entry'){if(!man())return;call=['finAddEntry',Object.assign({key:fo.key,type:d.type,party:d.party,cat:d.cat,amount:amtStr(d.amount)},pay)]}
+  else if(k==='void'){if(!man())return;call=['finVoid',{id:fo.id,reason:d.reason}];m='Voided'}
+  else if(k==='cancel'){if(!man())return;call=[fo.what==='invoice'?'finCancelInvoice':'finCancelOrder',{id:fo.id,reason:d.reason}];m=fo.what==='invoice'?'Invoice cancelled':'Order cancelled'}
+  if(!call)return;
+  run(async function(){var r=await fa(call[0],call[1]);if(k==='inv-new'){m=r.number?'Invoice '+r.number+' raised':'Invoice raised';open=r.id}if(k==='ord-new'&&!fo.id)m=r.number?'Order '+r.number+' created':'Order created';
+    F.form=null;if(open)F.open=open;await finLoad();render();if(!F.err)toast(m)});
+}
+
+/* ---------- listeners for the Finance forms ---------- */
+document.addEventListener('change',function(e){
+  var t=e.target,F=S.fin;if(!t||!F)return;
+  if(t.id==='finSp'){var o=t.options[t.selectedIndex],f=t.form;if(o&&o.value&&f){var nmv=o.getAttribute('data-name')||'',amt=o.getAttribute('data-amt')||'';if(f.elements.party&&!f.elements.party.value.trim())f.elements.party.value=nmv;
+    var r=f.querySelector('tr.fl');if(r&&!r.querySelector('.fl-d').value.trim()&&!r.querySelector('.fl-r').value){r.querySelector('.fl-d').value='Sponsorship: '+nmv;if(amt&&Number(amt)>0)r.querySelector('.fl-r').value=amt}finInvTot(f)}}
+  else if(t.id==='finLf'){F.lf=t.value;render()}
+  else if(t.form&&t.form.id==='finForm'&&t.name==='type'&&F.form&&(F.form.kind==='cash'||F.form.kind==='entry')){finKeep();F.form.type=t.value;render();finFormUp()}
+});
+document.addEventListener('input',function(e){
+  var t=e.target,F=S.fin,f=t&&t.form;if(!t)return;
+  if(f&&f.id==='finForm'){if(f.querySelector('tr.fl'))finInvTot(f);if(f.querySelector('tr.cl'))finClmTot(f)}
+  if(t.id==='finQ'&&F){F.q=t.value;var p=t.selectionStart;render();var n=$('#finQ');if(n){n.focus();try{n.setSelectionRange(p,p)}catch(x){}}}
+});
+/* ---------- finance: end (FINANCE-END) ---------- */
+
+function navLabel(t){return t[0]==='fin'&&!man()?'My claims':t[1]}
+
 render();
 })();
 </script>

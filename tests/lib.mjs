@@ -5,8 +5,10 @@ export function suite(name) {
   let fail = 0;
   const failed = [];
   const ok = (cond, msg) => {
-    if (cond) pass++;
-    else {
+    if (cond) {
+      pass++;
+      if (process.env.VERBOSE) console.log('  ok', msg);
+    } else {
       fail++;
       failed.push(msg);
       console.log('  FAIL', msg);

@@ -140,7 +140,7 @@ async function session(arg) {
   } catch (e) {
     throw new Error('setup_needed');
   }
-  if (!sess || Date.parse(sess.expires) < Date.now()) throw new Error('not_logged_in');
+  if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');
   const u = (await staffRows()).find((r) => lc(unameOf(r)) === lc(sess.username));
   if (!u) throw new Error('not_logged_in');
   const role = roleOf(u);
