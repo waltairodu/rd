@@ -1042,7 +1042,10 @@ export const importRegs = webMethod(Permissions.Anyone, async (arg) => {
     if (!r.at || isNaN(Date.parse(r.at))) r.at = oldAt.get(id) || nowIso();
   });
   const add = ids.filter((i) => !have.has(i)).map((i) => byId.get(i));
-  const upd = ids.filter((i) => have.has(i)).map((i) => byId.get(i));
+  // Wix replaces the whole row on an update, so each row sent back starts from the stored one: whatever the team added to a
+  // registration (its bib number) survives a refresh. Only the fields that come from Wix Events are refreshed.
+  const oldBy = new Map(old.map((o) => [o._id, o]));
+  const upd = ids.filter((i) => have.has(i)).map((i) => Object.assign({}, oldBy.get(i), byId.get(i)));
   if (add.length) await wixData.bulkInsert(REGS, add, SA);
   if (upd.length) await wixData.bulkUpdate(REGS, upd, SA);
   return { done: !h.next, next: h.next, added: add.length, updated: upd.length, skipped };

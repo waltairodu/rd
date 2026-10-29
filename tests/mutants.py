@@ -99,6 +99,8 @@ MUTANTS = [
     ('fin-screens-no-escaping', DIR, 'function esc(s){return String(s==null?\'\':s).replace(/[&<>"\']/g,function(c){return {\'&\':\'&amp;\',\'<\':\'&lt;\',\'>\':\'&gt;\',\'"\':\'&quot;\',"\'":\'&#39;\'}[c]})}', "function esc(s){return String(s==null?'':s)}", ['pentest-finance-ui.mjs']),
     ('fin-csv-formulas-run', DIR, 'if(/^[=@\\t\\r]/.test(s)||(/^[+\\-]/.test(s)&&!/^[+\\-][\\d\\s().\\-]*$/.test(s)))s="\'"+s;', '', ['pentest-finance-ui.mjs']),
     ('fin-print-unescaped', DIR, "function finBr(t){return esc(t).replace(/\\n/g,'<br>')}", "function finBr(t){return String(t==null?'':t).replace(/\\n/g,'<br>')}", ['pentest-finance-ui.mjs']),
+    # --- Package 3
+    ('import-refresh-wipes-bibs', RD, 'const upd = ids.filter((i) => have.has(i)).map((i) => Object.assign({}, oldBy.get(i), byId.get(i)));', 'const upd = ids.filter((i) => have.has(i)).map((i) => byId.get(i));', ['director.mjs']),
 ]
 
 

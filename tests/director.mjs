@@ -322,6 +322,15 @@ lr = await D.listRegs({ token: T.v, ev: E });
 ok(lr.rows.find((r) => r.name === 'Asha Rao').inExpo === true, 'wix: a registration matches its findmybib runner by phone');
 const imp2 = await D.importRegs({ token: T.b, ev: E, cursor: '' });
 ok(imp2.updated === 5, 'wix: re-import updates in place');
+// Wix replaces a whole row on update: a refresh must never wipe what the team added to a registration (the bib number).
+await D.setBib({ token: T.b, ev: E, id: ashaReg.id, bib: '2501' });
+global.__EV.guests.find((g) => g._id === 'g1').guestDetails.formResponse.inputValues[0].value = 'xl';
+const imp3 = await D.importRegs({ token: T.b, ev: E, cursor: '' });
+const asha3 = (await D.listRegs({ token: T.v, ev: E })).rows.find((r) => r.name === 'Asha Rao');
+ok(imp3.updated === 5 && asha3.bib === '2501', 'wix: a refresh keeps the bib number the team gave (Wix replaces whole rows)');
+ok(asha3.size === 'XL', 'wix: and still refreshes what Wix Events holds (size M became XL)');
+global.__EV.guests.find((g) => g._id === 'g1').guestDetails.formResponse.inputValues[0].value = 'm';
+await D.importRegs({ token: T.b, ev: E, cursor: '' });
 global.__EV.guests.push(G(10, 'Page', 'Two', '25 K')); global.__EV.guests.push(...Array.from({ length: 210 }, (_, k) => G(100 + k, 'Bulk' + k, 'R', '10 K')));
 let cur = '', added = 0, pages = 0;
 do { const r = await D.importRegs({ token: T.b, ev: E, cursor: cur }); added += r.added; cur = r.next; pages++; if (r.done) break; } while (pages < 10);
