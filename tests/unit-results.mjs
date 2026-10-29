@@ -17,7 +17,7 @@ const noThrow = (fn) => HOSTILE.every((h) => { try { fn(h); return true; } catch
   eq([L.fmtTime(633000), L.fmtTime(633050), L.fmtTime(633005), L.fmtTime(633000, true), L.fmtTime(6000), L.fmtTime(0), L.fmtTime(-5), L.fmtTime(NaN), L.fmtTime('x'), L.fmtTime(null)], ['1:45:30', '1:45:30.50', '1:45:30.05', '1:45:30.00', '0:01:00', '', '', '', '', ''], 'U1 times are written back as h:mm:ss, with hundredths only when there are some');
   ok(noThrow(L.fmtTime) && noThrow(L.parseTime), 'U1 neither time function throws on hostile input');
   eq([L.catKm('25 K - Debut Trail', []), L.catKm('10K', []), L.catKm('Half Marathon', []), L.catKm('Marathon', []), L.catKm('Fun Run', []), L.catKm('10 K', [{ name: '10 K', km: 9.8 }]), L.catKm('0 K', []), L.catKm('900 K', [])], [25, 10, 21.0975, 42.195, null, 9.8, null, null], 'U1 the distance comes from the category list first, then from the name');
-  eq([L.paceWarn(100000, 10), L.paceWarn(330000, 10), L.paceWarn(2000000, 10), L.paceWarn(0, 10), L.paceWarn(330000, null)], ['fast', '', 'slow', '', ''], 'U1 a pace under 2:30 or over 40:00 a km is flagged as a typing slip');
+  eq([L.paceWarn(100000, 10), L.paceWarn(330000, 10), L.paceWarn(2500000, 10), L.paceWarn(0, 10), L.paceWarn(330000, null)], ['fast', '', 'slow', '', ''], 'U1 a pace under 2:30 or over 40:00 a km is flagged as a typing slip');
 }
 
 /* ---------- U2 bibs ---------- */
@@ -27,6 +27,8 @@ const noThrow = (fn) => HOSTILE.every((h) => { try { fn(h); return true; } catch
   const m = new Map([['123', 'x'], ['A9', 'y']]);
   eq([L.findByBib(m, '123'), L.findByBib(m, '0123'), L.findByBib(m, 'A9'), L.findByBib(m, '0A9'), L.findByBib(m, ''), L.findByBib(m, '124')], ['x', 'x', 'y', null, null, null], 'U2 a timing file that drops leading zeros still finds the bib');
   ok(noThrow(L.bibKey), 'U2 bibKey never throws');
+  const m2 = new Map([['0102', 'p'], ['7', 'q'], ['007', 'r'], ['00', 's']]);
+  eq([L.findByBib(m2, '102'), L.findByBib(m2, '0102'), L.findByBib(m2, '00102'), L.findByBib(m2, '7'), L.findByBib(m2, '07'), L.findByBib(m2, '007'), L.findByBib(m2, '0'), L.findByBib(m2, 'X1'), L.findByBib(null, '1'), L.findByBib(m2, 5)], ['p', 'p', 'p', 'q', null, 'r', 's', null, null, null], 'U2 a file that drops a leading zero finds the registered bib; with two registered bibs of the same number ("7" and "007") nothing is guessed');
 }
 
 /* ---------- U3 gender, date of birth, age ---------- */
@@ -202,7 +204,7 @@ const MAP = { gender: 'Gender', dob: 'Date of birth', age: 'Age', seed: 'Expecte
   const ctx = { regs, known: ['10 K - Trail', '21 K'], rankBy: 'chip' };
   const rd = (t, c) => L.readResults(t, c || ctx);
   const a = rd('Bib,Name,Time,Category\n101,Whoever,"1:05:30",10K\n102,,59:10.5,\n201,,2:05:00.25,21 K\n');
-  eq(a.items.map((i) => [i.bib, i.name, i.cat, i.status, i.chipCs, i.gunCs, i.matched]), [['101', 'Asha', '10 K - Trail', 'fin', 393000, 0, true], ['0102', 'Bina', '10 K - Trail', 'fin', 354050, 0, true], ['201', 'Indu', '21 K', 'fin', 750025, 0, true]], 'U9 a plain results file is read; the registration decides the name; "10K" is matched to "10 K - Trail"; a dropped zero in the bib still matches');
+  eq(a.items.map((i) => [i.bib, i.name, i.cat, i.status, i.chipCs, i.gunCs, i.matched]), [['101', 'Asha', '10 K - Trail', 'fin', 393000, 0, true], ['0102', 'Bina', '10 K - Trail', 'fin', 355050, 0, true], ['201', 'Indu', '21 K', 'fin', 750025, 0, true]], 'U9 a plain results file is read; the registration decides the name; "10K" is matched to "10 K - Trail"; a dropped zero in the bib still matches');
   eq(a.errors, [], 'U9 a good file has no errors');
   eq(rd('bib,time\n101,1:05:30', Object.assign({}, ctx, { rankBy: 'gun' })).items[0].gunCs, 393000, 'U9 a plain time is taken as the gun time when ranking by gun');
   const b = rd('bib;chip;gun;status\n101;1:00:00;1:00:05;\n102;;;DNF\n201;;;dns\n');
@@ -224,7 +226,7 @@ const MAP = { gender: 'Gender', dob: 'Date of birth', age: 'Age', seed: 'Expecte
   ok(rd('bib,time\n' + Array.from({ length: L.MAX_ROWS + 1 }, (_, i) => i + ',1:00:00').join('\n')).errors[0].text.includes('Too many'), 'U9 more than 5000 lines is refused');
   ok(rd(Array.from({ length: L.MAX_COLS + 1 }, (_, i) => 'c' + i).join(',') + '\n').errors[0].text.includes('Too many columns'), 'U9 more than 20 columns is refused');
   const h = rd('bib,time,name\n101,1:00:00,"=HYPERLINK(""http://x"")"\n555,1:00:00,"<img src=x onerror=alert(1)>"\n', Object.assign({}, ctx));
-  eq(h.items.map((i) => i.name), ['Asha', ''], 'U9 text in the file cannot become a name for a registered runner');
+  eq(h.items.map((i) => i.name), ['Asha'], 'U9 text in the file cannot become a name for a registered runner (the other line has no category, so it is refused)');
   ok(h.errors.length === 1 && !h.errors[0].text.includes('<'), 'U9 an error never repeats markup back');
   const hs = rd('bib,time,name,category\n555,1:00:00,"=1+1\u202e<b>x",21 K\n');
   ok(!hs.items[0].name.includes('\u202e') && hs.items[0].name === '=1+1<b>x', 'U9 direction-changing characters are dropped from names (formula and markup are escaped later, where they are shown)');

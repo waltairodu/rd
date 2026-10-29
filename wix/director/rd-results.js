@@ -15,7 +15,10 @@ export const DEFAULT_SETTINGS = { rankBy: 'chip', ageRule: 'raceday', bands: [18
 /* ---------- small helpers ---------- */
 // Text typed by a person: control characters (including line and paragraph separators) become a space, the characters that
 // flip the direction of text are dropped, and the rest is cut to length. Objects and lists give ''.
-export const cleanText = (v, n) => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, n || 200);
+// Any value as text, safely: text and numbers and true/false are written out; everything else (objects, lists, null, functions, a
+// value whose own toString throws) gives ''.
+export const T = (v) => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '');
+export const cleanText = (v, n) => T(v).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, n || 200);
 export const lc = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : '');
 export const catKey = (c) => lc(c).replace(/[^a-z0-9]/g, '');
 export const sOnly = (v) => (typeof v === 'string' ? v : '');
@@ -47,8 +50,8 @@ export function bibKey(v) {
 }
 // Numbers in number order, before bibs with letters.
 export function bibCmp(a, b) {
-  const x = String(a);
-  const y = String(b);
+  const x = T(a);
+  const y = T(b);
   const nx = /^\d+$/.test(x);
   const ny = /^\d+$/.test(y);
   if (nx && ny) return parseInt(x, 10) - parseInt(y, 10) || (x < y ? -1 : x > y ? 1 : 0);
@@ -56,13 +59,32 @@ export function bibCmp(a, b) {
   if (ny) return 1;
   return x < y ? -1 : x > y ? 1 : 0;
 }
-// A timing file may drop leading zeros ("0123" becomes "123"): try the exact bib, then without leading zeros.
+// "0123" and "123" are the same bib number: a timing file may drop the leading zeros of a registered bib, or add them. The exact
+// bib wins; otherwise the one registered bib with the same number is used. If two registered bibs have the same number
+// ("0123" and "123"), nothing is guessed and the bib is "not found". The index is made once per map.
+const ZERO_IDX = new WeakMap();
+function zeroIndex(map) {
+  let e = ZERO_IDX.get(map);
+  if (!e || e.size !== map.size) {
+    const idx = new Map();
+    for (const k of map.keys()) {
+      if (typeof k === 'string' && /^\d+$/.test(k)) {
+        const t = String(parseInt(k, 10));
+        if (!idx.has(t)) idx.set(t, []);
+        idx.get(t).push(k);
+      }
+    }
+    e = { size: map.size, idx };
+    ZERO_IDX.set(map, e);
+  }
+  return e.idx;
+}
 export function findByBib(map, key) {
-  if (!key) return null;
+  if (!key || typeof key !== 'string' || !map || typeof map.has !== 'function') return null;
   if (map.has(key)) return map.get(key);
   if (/^\d+$/.test(key)) {
-    const t = String(parseInt(key, 10));
-    if (t !== key && map.has(t)) return map.get(t);
+    const list = zeroIndex(map).get(String(parseInt(key, 10)));
+    if (list && list.length === 1) return map.get(list[0]);
   }
   return null;
 }
@@ -94,7 +116,7 @@ export function fmtTime(cs, always) {
 }
 // The distance in a category name: "25 K - Debut Trail" is 25, "Half Marathon" is 21.0975. null when it cannot be told.
 export function catKm(name, cats) {
-  const n = String(name || '');
+  const n = T(name);
   const hit = (Array.isArray(cats) ? cats : []).find((c) => c && catKey(c.name) && catKey(c.name) === catKey(n));
   if (hit && Number(hit.km) > 0) return Number(hit.km);
   const m = /(\d+(?:\.\d+)?)\s*k(?:m|ms)?\b/i.exec(n);
@@ -254,7 +276,7 @@ export function regInfo(reg, map) {
   const pick = (k) => (m[k] ? a.get(m[k]) || '' : '');
   const seed = parseTime(pick('seed').trim());
   return {
-    id: String((reg && reg._id) || ''),
+    id: T((reg && reg._id) || ''),
     bib: bibKey(reg && reg.bib),
     name: cleanText(reg && reg.name, 80),
     cat: cleanText(reg && reg.cat, 60),
@@ -303,7 +325,7 @@ export function placeAll(list) {
   });
   return out;
 }
-const byCatName = (a, b) => String(a).localeCompare(String(b), 'en', { numeric: true, sensitivity: 'base' });
+const byCatName = (a, b) => T(a).localeCompare(T(b), 'en', { numeric: true, sensitivity: 'base' });
 const ORDER = { fin: 0, dnf: 1, dsq: 2, dns: 3 };
 
 // Joins stored result rows with the registrations and gives each its places.
@@ -419,15 +441,16 @@ export function board(results, regs, ctx) {
 // takes an overall place is left out of the age-group list when settings.overallExcl is true. A tie at the last place takes
 // everyone who is tied. Runners with no gender are listed as missing (no award can be given), and runners with no age are
 // left out of the age-group lists and listed too.
-export function computeAwards(boardRows, st) {
-  const od = Math.min(10, Math.max(1, st.overallDepth || 3));
-  const gd = Math.min(10, Math.max(1, st.groupDepth || 3));
+export function computeAwards(boardRows, st0) {
+  const st = st0 && typeof st0 === 'object' ? st0 : {};
+  const od = Math.min(10, Math.max(1, P(st.overallDepth) || 3));
+  const gd = Math.min(10, Math.max(1, P(st.groupDepth) || 3));
   const excl = st.overallExcl !== false;
-  const fin = boardRows.filter((x) => x.status === 'fin' && x.t > 0);
+  const fin = (Array.isArray(boardRows) ? boardRows : []).filter((x) => x && typeof x === 'object' && x.status === 'fin' && typeof x.t === 'number' && x.t > 0);
   const byCat = new Map();
   fin.forEach((x) => {
     const k = catKey(x.cat) || 'other';
-    if (!byCat.has(k)) byCat.set(k, { cat: x.cat || '(no category)', list: [] });
+    if (!byCat.has(k)) byCat.set(k, { cat: cleanText(x.cat, 60) || '(no category)', list: [] });
     byCat.get(k).list.push(x);
   });
   const pick = (x, place) => ({ place, id: x.id, bib: x.bib, name: x.name, age: x.age, ageGroup: x.ageGroup, time: fmtTime(x.t), t: x.t });
@@ -490,8 +513,8 @@ export function cleanWaves(list, ctx) {
       if (!k) throw new Error('bad_waves');
       cat = k;
     }
-    const name = cleanText(sOnly(w.name), 30);
-    if (!WAVE_NAME.test(name)) throw new Error('bad_waves');
+    const name = cleanText(sOnly(w.name), 200);
+    if (name.length > 30 || !WAVE_NAME.test(name)) throw new Error('bad_waves');
     const nk = catKey(cat) + '|' + lc(name);
     if (names.has(nk)) throw new Error('bad_waves');
     names.add(nk);
@@ -502,9 +525,9 @@ export function cleanWaves(list, ctx) {
     const corrals = [];
     for (const x of rc) {
       if (typeof x !== 'string' && typeof x !== 'number') throw new Error('bad_waves');
-      const t = cleanText(String(x), 12);
+      const t = cleanText(x, 200);
       if (!t) continue;
-      if (!CORRAL_NAME.test(t) || corrals.some((y) => lc(y) === lc(t))) throw new Error('bad_waves');
+      if (t.length > 12 || !CORRAL_NAME.test(t) || corrals.some((y) => lc(y) === lc(t))) throw new Error('bad_waves');
       corrals.push(t);
     }
     if (corrals.length > MAX_CORRALS) throw new Error('bad_waves');
@@ -538,9 +561,11 @@ export function wavesOf(stored) {
 //   waves: this category's waves [{ id, corrals, cap }] in the order they fill (start time order)
 //   mode: 'seed' (fastest expected time first, no time last) or 'bib' (bib order); redo: place the automatic ones again
 // Manual placements never move and use up room. Returns { placed: { id: { wave, corral } }, unplaced: [id] }.
-export function autoAssign(runners, waves, opts) {
-  const o = opts || {};
-  const ws = waves.slice();
+export function autoAssign(runners0, waves0, opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  // Everything is read through T and P first, so a damaged row can never make this throw.
+  const ws = (Array.isArray(waves0) ? waves0 : []).filter((w) => w && typeof w === 'object').map((w) => ({ id: T(w.id), corrals: Array.isArray(w.corrals) ? w.corrals.map(T).filter(Boolean) : [], cap: P(w.cap) }));
+  const runners = (Array.isArray(runners0) ? runners0 : []).filter((r) => r && typeof r === 'object').map((r) => ({ id: T(r.id), bib: T(r.bib), seedCs: P(r.seedCs), wave: T(r.wave), corral: T(r.corral), how: T(r.how) }));
   const wid = new Set(ws.map((w) => w.id));
   const kept = runners.filter((r) => r.wave && wid.has(r.wave) && (r.how === 'manual' || !o.redo));
   const keptIds = new Set(kept.map((r) => r.id));
@@ -551,7 +576,7 @@ export function autoAssign(runners, waves, opts) {
       const sb = b.seedCs > 0 ? b.seedCs : Infinity;
       if (sa !== sb) return sa < sb ? -1 : 1;
     }
-    return bibCmp(a.bib || '~', b.bib || '~') || String(a.id).localeCompare(String(b.id));
+    return bibCmp(a.bib || '~', b.bib || '~') || T(a.id).localeCompare(T(b.id));
   });
   const room = new Map(ws.map((w) => [w.id, w.cap > 0 ? w.cap : Infinity]));
   kept.forEach((r) => room.set(r.wave, room.get(r.wave) - 1));
@@ -672,7 +697,7 @@ const HEADERS = {
   dob: ['dob', 'dateofbirth', 'birthdate', 'birthday'],
   age: ['age'],
 };
-const hkey = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const hkey = (s) => T(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 const STATUS_WORDS = { fin: ['fin', 'finished', 'finisher', 'ok', 'official'], dnf: ['dnf', 'did not finish', 'retired', 'ret', 'rtd', 'withdrawn'], dns: ['dns', 'did not start', 'absent', 'no show', 'noshow'], dsq: ['dsq', 'dq', 'disqualified'] };
 // "DNF", "retired", "finished" become dnf, dnf, fin. Blank gives '' (the time decides). null for anything else.
 export function normStatus(v) {
@@ -709,7 +734,7 @@ export function readResults(text, ctx) {
     err(0, 'A quotation mark is not closed. Check the file.');
     return out;
   }
-  const filled = rows.map((r, i) => ({ r, line: lines[i] })).filter((x) => x.r.some((c) => String(c).trim() !== ''));
+  const filled = rows.map((r, i) => ({ r, line: lines[i] })).filter((x) => x.r.some((c) => T(c).trim() !== ''));
   if (!filled.length) {
     err(0, 'Nothing to read. Paste the results with the column names on the first line, for example: bib,time');
     return out;
@@ -745,7 +770,7 @@ export function readResults(text, ctx) {
     return out;
   }
   const seen = new Map();
-  const cell = (r, k) => (col[k] === undefined ? '' : String(r[col[k]] === undefined ? '' : r[col[k]]).trim());
+  const cell = (r, k) => (col[k] === undefined ? '' : T(r[col[k]]).trim());
   filled.slice(1).forEach(({ r, line }) => {
     const rawBib = cell(r, 'bib');
     const bib = bibKey(rawBib);
