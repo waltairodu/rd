@@ -31,4 +31,33 @@ manage-check-removed	KILLED	security.mjs: S3 RaceOS: lead1 on all 69 methods [sa
 desk-allowed-in-raceos	KILLED	security.mjs: S3 RaceOS: desk1 on all 69 methods [listEvents -> no error (wanted not_allowed); listShifts -> 
 expo-lets-everyone-in	KILLED	security.mjs: S3 Expo: lead1 on all 15 methods [enter -> no error (wanted not_allowed); whoami -> no error (w
 double-handover	KILLED	pentest.mjs
-# 33 mutants, 33 killed, 0 survived
+fin-overpay-allowed	KILLED	finance.mjs: F2 paying more than the balance is refused   [wanted too_much, got no error]
+fin-lead-sees-all-claims	KILLED	security.mjs: S4 a lead's claim list holds their own claim and not the director's   [got ["clm~2026-27~000002
+fin-lead-edits-others-claims	KILLED	pentest-finance.mjs: FB3 lead two cannot change lead one's claim   [wanted no_item, got no error]
+fin-cash-check-removed	KILLED	finance.mjs: F5 spending more cash than the holder has is refused   [wanted not_enough_cash, got no error]
+fin-void-deletes-the-row	KILLED	finance.mjs
+fin-other-race-ids-work	KILLED	pentest-finance.mjs: FB4 an invoice, order, claim or ledger row of the OTHER race, named on this race, is "no_item" 
+fin-session-expiry-fails-open	KILLED	pentest-finance.mjs: FA3 a session with a blank or damaged expiry (10 kinds) is refused by Finance, RaceOS, the Expo
+raceos-session-expiry-fails-open	KILLED	pentest-finance.mjs: FA3 a session with a blank or damaged expiry (10 kinds) is refused by Finance, RaceOS, the Expo
+expo-session-expiry-fails-open	KILLED	pentest-finance.mjs: FA3 a session with a blank or damaged expiry (10 kinds) is refused by Finance, RaceOS, the Expo
+coach-session-expiry-fails-open	KILLED	pentest-finance.mjs: FA3 a session with a blank or damaged expiry (10 kinds) is refused by Finance, RaceOS, the Expo
+athlete-session-expiry-fails-open	KILLED	pentest-finance.mjs: FA3 a session with a blank or damaged expiry (10 kinds) is refused by Finance, RaceOS, the Expo
+fin-role-check-removed	KILLED	security.mjs: S3 Finance: view1 on all 23 methods [finListClaims -> no_event (wanted not_allowed); finSaveCla
+fin-director-only-removed	KILLED	security.mjs: S3 Finance: lead1 on all 23 methods [finOverview -> no_event (wanted director_only); finSetting
+fin-repeat-key-any-login	KILLED	pentest-finance.mjs: FE4 another director using my key gets nothing of mine and makes nothing   [wanted busy_try_aga
+fin-repeat-key-not-checked	KILLED	pentest-finance.mjs: FE3 repeat keys that are too short, too long, hold spaces, "~", "/", ".", quotes, markup, null 
+fin-text-not-cleaned	KILLED	unit-finance.mjs: cleanText strips control characters, ignores objects, cuts to length   [got ["hi\u0000there",""
+fin-zero-money-allowed	KILLED	unit-finance.mjs: toPaise refuses all 33 odd or hostile amounts (text, commas, symbols, negatives, exponents, NaN
+fin-choice-from-any-type	KILLED	pentest-finance.mjs: FC3 an order payment given the phase ["advance"] (to pass as a refund or a bill) is refused   [
+fin-claim-owner-from-call	KILLED	pentest-finance.mjs: FC1 a claim raised with its id, race, number, status, approval, owner, time and total in the ca
+fin-collections-readable-by-visitors	KILLED	security.mjs: S7 Finance makes its 5 collections on first use, each readable, changeable and emptied only by 
+fin-write-without-suppress-auth	KILLED	security.mjs: S8 every Finance read and write of a locked collection passes suppressAuth (the collections are
+fin-page-relay-list-open	KILLED	pentest-finance.mjs: FH1 on the Finance side of the relay, a method that is not one of the 23 (a login, a setup, an 
+fin-void-cash-recheck-removed	KILLED	finance.mjs: F5 two withdrawals of the same person voided at the same moment never leave them below zero (in
+fin-refund-over-paid	KILLED	pentest-finance.mjs: FD4 a refund one paisa more than has been paid to that vendor (10010) is "too_much"   [wanted t
+fin-pay-unapproved-claim	KILLED	pentest-finance.mjs: FB7 a claim that is not approved cannot be paid   [wanted claim_not_approved, got already_paid]
+fin-cancel-paid-invoice	KILLED	pentest-finance.mjs: FB7 an invoice that has been paid cannot be cancelled to make the money disappear   [wanted has
+fin-screens-no-escaping	KILLED	pentest-finance-ui.mjs: UF1 the seven Finance sections (Summary, Invoices, Orders, Claims, Cash, Ledger, Details) show 
+fin-csv-formulas-run	KILLED	pentest-finance-ui.mjs: UF3 not one cell of the exported ledger starts with "=", "+", "-", "@", a tab or a line break i
+fin-print-unescaped	KILLED	pentest-finance-ui.mjs: UF2 not one printed page or Word file holds the attack text as markup: no image, script, style,
+# 62 mutants, 62 killed, 0 survived

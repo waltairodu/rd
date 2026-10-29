@@ -19,13 +19,13 @@ ROOT = os.path.dirname(HERE)
 
 # kind of test -> (title, what it shows, suites)
 GROUPS = [
-    ('unit', '1. Unit tests', 'one piece on its own: password hashing, PINs, roles, the Team screen rules',
+    ('unit', '1. Unit tests', 'one piece on its own: password hashing, PINs, roles, the Team screen rules, and the Finance rules (money arithmetic, numbering, text cleaning)',
      ['unit-auth.mjs', 'unit-team.mjs']),
-    ('pentest', '2. Penetration tests', 'attacks on logins, tokens, roles, the desk and the page relay; every attack must fail',
+    ('pentest', '2. Penetration tests', 'attacks on logins, tokens, roles, the desk, the page relay and the Finance tab (money, claims, cash, the screens and what they print); every attack must fail',
      ['pentest.mjs', 'pentest-ui.mjs']),
-    ('integration', '3. Integration tests', 'whole journeys across RaceOS, the Expo desk and the coach pages',
+    ('integration', '3. Integration tests', 'whole journeys across RaceOS, the Expo desk, the coach pages and Finance (invoice to payment, order to refund, claim to payout, cash)',
      ['integration-flow.mjs', 'integration-ui.mjs', 'expo-int.mjs', 'scen.mjs']),
-    ('security', '4. Security tests', 'an audit of every method against the written role table, secrets, locks and shipped files',
+    ('security', '4. Security tests', 'an audit of every method, Finance included, against the written role table, secrets, locks and shipped files',
      ['security.mjs']),
     ('component', 'Component tests (older suites)', 'each backend method and each screen, one by one; these also form the regression set',
      ['director.mjs', 'plan.mjs', 'dash.mjs', 'ai.mjs', 'approvals.mjs', 'training.mjs', 'director-ui.mjs', 'plan-ui.mjs', 'dash-ui.mjs',
@@ -41,8 +41,8 @@ if os.path.exists(p):
             EXTRA.append((g, s))
 for g, s in EXTRA:
     for grp in GROUPS:
-        if grp[0] == g and s not in grp[4]:
-            grp[4].append(s)
+        if grp[0] == g and s not in grp[3]:
+            grp[3].append(s)
 
 
 def baseline():

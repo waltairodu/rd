@@ -30,6 +30,9 @@ RD = 'wix/director/racedir.web.js'
 XB = 'wix/expo/exposoft.web.js'
 AUTH = 'wix/director/rd-auth.js'
 TR = 'wix/training/training.web.js'
+FIN = 'wix/director/finance.web.js'
+FINLIB = 'wix/director/rd-finance.js'
+FINPAGE = 'wix/director/director-page-code.js'
 
 # name, file, old text (must occur exactly once), new text, suites that must fail
 MUTANTS = [
@@ -66,6 +69,36 @@ MUTANTS = [
     ('desk-allowed-in-raceos', RD, "  const a = await session(arg);\n  if (a.role === 'desk') throw new Error('not_allowed');\n", "  const a = await session(arg);\n", ['security.mjs']),
     ('expo-lets-everyone-in', XB, "return k === 'director' ? 'admin' : k === 'desk' ? 'desk' : 'none';", "return k === 'director' ? 'admin' : 'desk';", ['security.mjs']),
     ('double-handover', XB, "if (await claimItem(it, item, desk, now)) taken.push(item);", "taken.push(item);", ['pentest.mjs']),
+    # --- Package 2: Finance (and the session-expiry fix in all four backends)
+    ('fin-overpay-allowed', FIN, "        if (st.settled + amount + tds > inv.total) throw new Error('too_much');\n", '', ['finance.mjs', 'pentest-finance.mjs']),
+    ('fin-lead-sees-all-claims', FIN, "const mine = clm.map(normClaim).filter((c) => a.role === 'director' || c.by === a.username);", 'const mine = clm.map(normClaim);', ['security.mjs', 'pentest-finance.mjs']),
+    ('fin-lead-edits-others-claims', FIN, "    if (a.role !== 'director' && old.by !== a.username) throw new Error('no_item');\n", '', ['pentest-finance.mjs']),
+    ('fin-cash-check-removed', FIN, '  if (h && h.inHand < 0) {\n    await wixData.bulkRemove(LED, [newId], SA);', '  if (false) {\n    await wixData.bulkRemove(LED, [newId], SA);', ['finance.mjs', 'pentest-finance.mjs']),
+    ('fin-void-deletes-the-row', FIN, "  await wixData.update(LED, Object.assign({}, row, { void: 'yes', voidBy: a.username, voidAt: nowIso(), voidReason: reason }), SA);\n", '  await wixData.bulkRemove(LED, [row._id], SA);\n', ['finance.mjs']),
+    ('fin-other-race-ids-work', FIN, "  if (!row || row.event !== e._id) throw new Error('no_item');", "  if (!row) throw new Error('no_item');", ['pentest-finance.mjs']),
+    ('fin-session-expiry-fails-open', FIN, "  if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", "  if (!sess || Date.parse(sess.expires) < Date.now()) throw new Error('not_logged_in');", ['pentest-finance.mjs']),
+    ('raceos-session-expiry-fails-open', RD, "  if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", "  if (!sess || Date.parse(sess.expires) < Date.now()) throw new Error('not_logged_in');", ['pentest-finance.mjs']),
+    ('expo-session-expiry-fails-open', XB, "  if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", "  if (!sess || Date.parse(sess.expires) < Date.now()) throw new Error('not_logged_in');", ['pentest-finance.mjs']),
+    ('coach-session-expiry-fails-open', TR, "  if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", "  if (!sess || Date.parse(sess.expires) < Date.now()) throw new Error('not_logged_in');", ['pentest-finance.mjs']),
+    ('athlete-session-expiry-fails-open', TR, "  if (!row || !(Date.parse(row.expires) > Date.now())) throw new Error('not_logged_in');", "  if (!row || Date.parse(row.expires) < Date.now()) throw new Error('not_logged_in');", ['pentest-finance.mjs']),
+    ('fin-role-check-removed', FIN, "  if (kind !== 'director' && kind !== 'lead') throw new Error('not_allowed');\n", '', ['security.mjs', 'pentest-finance.mjs']),
+    ('fin-director-only-removed', FIN, "  if (need === 'director' && kind !== 'director') throw new Error('director_only');\n", '', ['security.mjs', 'pentest-finance.mjs']),
+    ('fin-repeat-key-any-login', FIN, '    if (old.by === a.username && old.ref) return { id: old.ref, again: true };', '    if (old.ref) return { id: old.ref, again: true };', ['pentest-finance.mjs']),
+    ('fin-repeat-key-not-checked', FIN, "  if (!isKey(key)) throw new Error('bad_key');\n", '', ['pentest-finance.mjs']),
+    ('fin-text-not-cleaned', FINLIB, ".replace(/[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]/g, ' ')", '', ['unit-finance.mjs', 'pentest-finance.mjs']),
+    ('fin-zero-money-allowed', FINLIB, '  if (p > MAX_PAISE || (p === 0 && !zeroOk)) return null;', '  if (p > MAX_PAISE) return null;', ['unit-finance.mjs', 'pentest-finance.mjs']),
+    ('fin-choice-from-any-type', FIN, "const sOnly = (v) => (typeof v === 'string' ? v : '');", "const sOnly = (v) => String(v || '');", ['pentest-finance.mjs']),
+    ('fin-claim-owner-from-call', FIN, "status: 'submitted', by: a.username, byName: a.name", "status: 'submitted', by: arg.by || a.username, byName: a.name", ['pentest-finance.mjs', 'security.mjs']),
+    ('fin-collections-readable-by-visitors', FIN, "const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };", "const LOCKED = { read: 'ANYONE', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };", ['security.mjs']),
+    ('fin-write-without-suppress-auth', FIN, 'detail: cleanText(detail, 200) }, SA);', 'detail: cleanText(detail, 200) });', ['security.mjs']),
+    ('fin-page-relay-list-open', FINPAGE, '      if (FIN_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);\n', '', ['pentest-finance.mjs', 'pagecode.mjs']),
+    ('fin-void-cash-recheck-removed', FIN, "    if (h2 && h2.inHand < 0) {\n      await wixData.update(LED, row, SA);\n      throw new Error('cash_already_spent');\n    }\n", '', ['finance.mjs']),
+    ('fin-refund-over-paid', FIN, "        if (amount > st.paid) throw new Error('too_much');\n", '', ['pentest-finance.mjs']),
+    ('fin-pay-unapproved-claim', FIN, "  if (clm.status !== 'approved') throw new Error('claim_not_approved');\n", '', ['pentest-finance.mjs', 'finance.mjs']),
+    ('fin-cancel-paid-invoice', FIN, "  if (led.some((r) => !r.void && r.type === 'income')) throw new Error('has_payments');\n", '', ['pentest-finance.mjs']),
+    ('fin-screens-no-escaping', DIR, 'function esc(s){return String(s==null?\'\':s).replace(/[&<>"\']/g,function(c){return {\'&\':\'&amp;\',\'<\':\'&lt;\',\'>\':\'&gt;\',\'"\':\'&quot;\',"\'":\'&#39;\'}[c]})}', "function esc(s){return String(s==null?'':s)}", ['pentest-finance-ui.mjs']),
+    ('fin-csv-formulas-run', DIR, 'if(/^[=@\\t\\r]/.test(s)||(/^[+\\-]/.test(s)&&!/^[+\\-][\\d\\s().\\-]*$/.test(s)))s="\'"+s;', '', ['pentest-finance-ui.mjs']),
+    ('fin-print-unescaped', DIR, "function finBr(t){return esc(t).replace(/\\n/g,'<br>')}", "function finBr(t){return String(t==null?'':t).replace(/\\n/g,'<br>')}", ['pentest-finance-ui.mjs']),
 ]
 
 

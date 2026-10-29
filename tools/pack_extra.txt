@@ -1,0 +1,4 @@
+# More files for the Wix pack (tools/make_pack.py reads this): "backend path" or "page folder embed pagecode"
+# Package 2: Finance
+backend wix/director/finance.web.js
+backend wix/director/rd-finance.js

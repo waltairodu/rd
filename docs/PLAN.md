@@ -38,3 +38,6 @@ Race date; the VHM bib and size column names from findmybib; the registration to
 - Navigation: / (home), /rd (login, then Director; Setup tab = races setup), /volunteer, /train, /coach. Free plan 8 weeks, coached free for now with director-set price text.
 - Training module built (athlete page, coach desk, backend, 165 tests).
 - Expo desk incorporated into /rd (Expo desk tab for director/admin, desk logins routed straight to it, one page and one login). Built by tools/build_rd.py into rd-embed.html.
+- Finance built (Package 2): invoices to sponsors and partners, reimbursement claims for core staff, cash withdrawals held by a named person, orders with estimate, advance and actual, and the race's income and expenses (Finance tab). Directors do everything; a lead can raise and see only their own claims. Nothing is edited or deleted: a mistake is voided. Not a GST tax invoice yet (no tax split, HSN/SAC).
+- Standing rule (26 Oct): every change is tested five ways and reported by kind: unit, penetration, integration, security, regression (tests/report.py writes docs/TESTING.md).
+- Out of scope for now: Strava, Polar and Garmin syncing, new AI features, BIB scanning on phones, QR check-in, direct WhatsApp or SMS sending, payments, PIN reset by email, an online store link.

@@ -3,7 +3,8 @@
 
   1-backend/   every backend file, named exactly as it must be in Wix (the .web.js files, and the plain files)
   2-pages/     per page: the embed to paste into the HTML element, and the page code
-  SETUP.md     the steps
+  SETUP.md     the steps for a first install
+  UPGRADE.md   what to add or replace if the previous package is already installed
   TESTING.md   the last test report
 
 usage: python3 tools/make_pack.py [--name vtra-wix]
@@ -55,6 +56,9 @@ for page, (embed, code) in PAGES.items():
 shutil.copy(os.path.join(ROOT, 'docs', 'SETUP.md'), os.path.join(out, 'SETUP.md'))
 if os.path.exists(os.path.join(ROOT, 'docs', 'TESTING.md')):
     shutil.copy(os.path.join(ROOT, 'docs', 'TESTING.md'), os.path.join(out, 'TESTING.md'))
+# docs/UPGRADE.md says which files to add or replace on a site that already runs the previous package
+if os.path.exists(os.path.join(ROOT, 'docs', 'UPGRADE.md')):
+    shutil.copy(os.path.join(ROOT, 'docs', 'UPGRADE.md'), os.path.join(out, 'UPGRADE.md'))
 
 z = os.path.join(dist, name + '-files.zip')
 if os.path.exists(z):

@@ -116,6 +116,14 @@ A new race starts with a starter list for tasks, budget, supplies, approvals, ce
 Who can do what: directors read and write everything and delete; leads read money and write everything except money; viewers read everything except money and contacts (phone numbers). Overview shows overdue items, permits not approved, race-day sign-offs due, short supplies and overspend. Each list downloads as CSV.
 
 
+## Finance (new)
+Tab **Finance** (directors; a lead sees only Claims). Backend `finance.web.js` (23 methods) with `rd-finance.js` (money arithmetic and rules, no Wix imports) and five locked collections made on first use: RDInvoices, RDOrders, RDClaims, RDLedger, RDFinSet. What each tab does and the limits are in docs/SETUP.md.
+- Money is held in whole paise inside; the methods take and return rupees. The ledger is append-only: a mistake is voided with a reason, never edited. Numbers (`INV/2026-27/0001`) come from rows whose `_id` carries the number, so two people cannot get the same one.
+- Director only: `finOverview`, `finSettings`, `finSaveSettings`, `finListInvoices`, `finRaiseInvoice`, `finCancelInvoice`, `finPayInvoice`, `finListOrders`, `finSaveOrder`, `finAddBill`, `finPayOrder`, `finRefundOrder`, `finCancelOrder`, `finDecideClaim`, `finPayClaim`, `finCash`, `finAddCash`, `finLedger`, `finAddEntry`, `finVoid`. Director or a lead's own: `finListClaims`, `finSaveClaim`, `finCancelClaim`.
+- Every create takes a one-time `key`: the same key from the same login answers `{again:true}`; from another login `busy_try_again`.
+- The page code relays only these 23 (`FIN_ALLOWED`, `mod:'fin'`). Anything else is refused; `page_code_old` when the page code is older than the embed, `backend_old` when the backend is older.
+- Tests: `unit-finance.mjs`, `finance.mjs`, `finance-ui.mjs`, `pentest-finance.mjs`, `pentest-finance-ui.mjs`, the Finance part of `security.mjs`, and 29 break-it checks in `mutants.py`.
+
 ## Approvals template (new)
 Approvals tab > **Approvals template** (directors). One screen sets the race details (edition, name, date, venue, organiser, signatory, times, route, expo date), asks eleven yes/no questions about what the race involves, and lists the approvals that follow, each with its authority, days before the race and due date, all editable. **Add selected approvals** writes them to the list.
 - **Library** (`rd-approvals.js`, no Wix imports): 16 permits (police, municipal, venue, fire, medical, insurance, sound, music licences, drone, food safety, power, banners, forest, village consent, highway or defence land, AIMS certificate) and 9 race-day sign-offs. Ten permits and eight sign-offs are on by default. Each permit has its authority, lead time in days, documents to attach, tips, and a letter.

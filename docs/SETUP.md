@@ -4,16 +4,18 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## A. The files and where each one goes
 
-**Backend files** (code sidebar > Backend). The first three are web modules (`.web.js`); the other three are plain files: create them with **+ > Add a .js file** and give them exactly these names.
+**Backend files** (code sidebar > Backend). The first four are web modules (`.web.js`); the other four are plain files: create them with **+ > Add a .js file** and give them exactly these names.
 
 | File in this pack | Name in Wix | Notes |
 |---|---|---|
 | 1-backend/racedir.web.js | racedir.web.js | RaceOS. **Change SETUP_KEY near the top to a secret of your own.** Until you do, setup refuses to run for anyone |
 | 1-backend/exposoft.web.js | exposoft.web.js | The Expo desk's server side. Has no key and no login of its own |
 | 1-backend/training.web.js | training.web.js | Coach and athlete pages. Has its own SETUP_KEY, used only by its optional manual setup (the collections are also made by the first coach login) |
+| 1-backend/finance.web.js | finance.web.js | **New.** Finance: invoices, orders, claims, cash, ledger. Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/rd-auth.js | **rd-auth.js** | New. Passwords, PINs, roles. All three `.web.js` files import it |
 | 1-backend/ai-core.js | **ai-core.js** | Optional AI helper (works without a key) |
 | 1-backend/rd-approvals.js | **rd-approvals.js** | Approvals library and the letter writer |
+| 1-backend/rd-finance.js | **rd-finance.js** | **New.** Finance rules and money arithmetic. `finance.web.js` imports it |
 
 **Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code in the page's code panel)
 
@@ -29,7 +31,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 ## B. First-time steps
 
 1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets).
-2. **Backend.** Add the six files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
+2. **Backend.** Add the eight files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
 3. **Pages.** Create /rd, /volunteer, /train, /coach (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
 4. **Publish** the site. Everything works on the published site only.
 5. **First login at /rd.** Open "First-time setup (owner only)" on the login screen and enter the setup key plus a new admin username and password. This creates every collection (the Expo desk's too) locked to the site admin, and the first admin login. It does nothing to logins that already exist. Check that the new collections appear in the **live** CMS data.
@@ -37,7 +39,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
    - *Collections that already exist* (made by the old Expo setup) are not changed. Add these text columns by hand if they are missing: `Runners`: `bibName`; `ExpoStaff`: `desks`, `race`, `name`, `failCount`, `lockUntil`.
 6. **Make the team's logins: /rd > Team > Add a login.** Type a name and a username, choose the role, and for desk staff choose the desk or desks and the race. RaceOS makes a PIN (desk staff) or a password (everyone else) and shows it **once**: hand it over there and then. It cannot be looked up later; use **New PIN** / **New password** if it is lost. The roles:
    - **Director**: everything, including Team, races and money.
-   - **Lead**: volunteers, race day, pacers, safety and plans. No Team, no deleting, no money changes.
+   - **Lead**: volunteers, race day, pacers, safety and plans. No Team, no deleting, no money changes. The one exception: under **Finance > Claims** a lead can raise a reimbursement claim and see, change or withdraw their own claims (nothing else in Finance).
    - **Viewer**: look only (sponsors, partners). Sees no money and no phone numbers.
    - **Coach**: the coach page only.
    - **Desk**: works the Expo desk and nothing else. Give each desk its own login (Desk 1 - BIB, Desk 2 - Tshirt, Desk 3 - Misc), tied to one race. Staff log in at /rd and land on their desk.
@@ -74,6 +76,35 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## Planning tabs
 After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.
+
+
+## Finance (/rd > Finance)
+A **Finance** tab sits after **Money**. It uses the same login. The only set-up is two backend files, `finance.web.js` and `rd-finance.js`: add them **before** you paste the new /rd page code (the page code imports `finance.web.js`, so Wix will not save the page code until that file exists). The five collections it keeps (RDInvoices, RDOrders, RDClaims, RDLedger, RDFinSet) are made by themselves the first time a director or lead opens it, locked to the site admin. Look for them in the **live** CMS data. Nobody edits them by hand.
+
+**Who can do what** (the server decides, the screen only mirrors it): a **director** does everything. A **lead** sees only the **Claims** tab: they raise a reimbursement claim and see, change or withdraw their own claims while it is still waiting for a decision. Viewers, desk staff and coaches are refused. A director can approve their own claim; the log marks it "own claim".
+
+| Tab | What it does |
+|---|---|
+| Summary | The race's income and expenses on one page: ticket takings, invoiced, received (and tax withheld at source), other income; paid, owed, committed and claims waiting; net so far and projected; by category, budget against estimate against actual; cash in hand. CSV download. |
+| Invoices | Raise an invoice to a sponsor, partner or anyone (lines, due date, notes). Invoices, claims and orders are numbered like `INV/2026-27/0001`, by financial year (April to March), and a number is never reused. Record part or full payments with date, mode, reference and any TDS the payer withheld. Overdue invoices show in red. Print, or download for Word. |
+| Orders | A purchase from a vendor with three figures: the **estimate** (what you expect), the **advance** (what you have paid so far) and the **actual** (what the vendor really billed). The screen shows estimate against actual, the balance still to pay, and a refund due when you paid more than the final bill. You cannot pay more than the bill (or more than the estimate until a bill is added). A refund from the vendor is recorded against the order. |
+| Claims | Money that core staff or others spent for the race and want back: lines with date, category, amount and bill reference. The director approves all or part (a reason is needed to reject), then pays it, in one go or in parts. Print the claim, or download for Word. |
+| Cash | Cash taken from the bank is held by a named person. Cash they pay out or take in changes what they hold, and they can put cash back. The screen shows what each person should have in hand. **Record the withdrawal first**: a cash payment larger than what that person holds is refused. |
+| Ledger | Every rupee in and out, in order, with who recorded it. **Nothing is edited or deleted.** A mistake is **voided** with a reason (the row stays, struck through) and then entered again correctly. Other income or expenses (a prize cheque, a bank charge) are added here. CSV download. |
+| Details | Printed on every invoice: organisation name, address, PAN, GSTIN, bank account, UPI id, terms, who signs and the invoice prefix. Name, terms and prefix start filled in; add the rest before the first invoice. |
+
+**Safe to repeat.** Every action that creates something carries a one-time key, so a double tap or a bad network never makes two invoices, claims or payments. If two people act on the same item at the same moment, one may see "busy, try again": press again.
+
+**Rules the server enforces:** amounts are whole paise (no negatives, no exponents, no text, just under 100 crore at most); a payment never exceeds what is owed; an invoice that has been paid cannot be cancelled; a claim must be approved before it is paid; cash in hand cannot go below zero, even when two payments or two voids happen together; an id from another race is refused; every create, void and payment is logged with who did it.
+
+**Limits to know**
+- An invoice cannot be edited once raised. Cancel it (only while no payment is recorded on it) and raise a new one.
+- **It is not a GST tax invoice.** There is no CGST/SGST/IGST split, HSN/SAC code or place of supply; it prints the GSTIN you enter under Details. If VTRA must charge GST, have your accountant check the layout before you send one.
+- Ticket takings come from the registrations imported from Wix Events, at the category prices in Settings (the dashboard's rule). Coupons, discounts and refunds made inside Wix are not seen.
+- A sponsor's "Received" on Plan > Money is not updated by Finance. Use the Finance Summary for what has really come in.
+- The cash checks are optimistic, not locked. Two cash payments or voids by the same person at the very same instant may both be turned back ("busy, try again" or "not enough cash"): press again. They never overspend.
+- Logins last 12 hours. A session whose expiry is blank or damaged is now refused everywhere (RaceOS, Finance, the Expo desk, coach and athlete pages); earlier versions let it live on.
+- The /rd page, and the volunteer, athlete and coach pages, accept replies to their calls from any frame on the same page. Keep these pages free of third-party embedded content (chat widgets, ad banners). The Expo desk frame already checks who is talking to it.
 
 
 ## Approvals template (/rd > Approvals)

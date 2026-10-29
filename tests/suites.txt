@@ -1,0 +1,7 @@
+# Suites added by later packages: "group suite.mjs". tests/report.py adds each one to its group.
+# Package 2: Finance
+unit unit-finance.mjs
+integration finance.mjs
+integration finance-ui.mjs
+pentest pentest-finance.mjs
+pentest pentest-finance-ui.mjs
