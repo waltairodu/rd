@@ -17,6 +17,10 @@ if [ -f ../wix/director/finance.web.js ]; then
   cp ../wix/director/rd-finance.js rd-finance.test.mjs
   sed "s#'./rd-auth.js'#'./rd-auth.test.mjs'#; s#'./rd-finance.js'#'./rd-finance.test.mjs'#" ../wix/director/finance.web.js > finance.test.mjs
 fi
+if [ -f ../wix/director/results.web.js ]; then
+  cp ../wix/director/rd-results.js rd-results.test.mjs
+  sed "s#'./rd-auth.js'#'./rd-auth.test.mjs'#; s#'./rd-results.js'#'./rd-results.test.mjs'#" ../wix/director/results.web.js > results.test.mjs
+fi
 mkdir -p node_modules
 for m in wix-web-module wix-data wix-auth wix-data.v2 wix-events.v2 wix-fetch wix-secrets-backend; do rm -rf node_modules/$m; ln -s ../mocks/$m node_modules/$m; done
 node "$@"

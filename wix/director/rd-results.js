@@ -15,14 +15,16 @@ export const DEFAULT_SETTINGS = { rankBy: 'chip', ageRule: 'raceday', bands: [18
 /* ---------- small helpers ---------- */
 // Text typed by a person: control characters (including line and paragraph separators) become a space, the characters that
 // flip the direction of text are dropped, and the rest is cut to length. Objects and lists give ''.
-export const cleanText = (v, n) => String(v === undefined || v === null || typeof v === 'object' ? '' : v).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, n || 200);
-export const lc = (v) => String(v || '').trim().toLowerCase();
+export const cleanText = (v, n) => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, n || 200);
+export const lc = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : '');
 export const catKey = (c) => lc(c).replace(/[^a-z0-9]/g, '');
 export const sOnly = (v) => (typeof v === 'string' ? v : '');
 export const isInt = (v) => typeof v === 'number' && Number.isInteger(v);
+// A repeat key: 8 to 40 letters, digits, dashes and underscores (the page makes one for every create).
+export const isKey = (k) => typeof k === 'string' && /^[A-Za-z0-9_-]{8,40}$/.test(k);
 // A stored number (text or number) as a whole number above zero, else 0.
 export const P = (v) => {
-  const x = typeof v === 'number' ? v : parseInt(String(v === undefined || v === null ? '' : v), 10);
+  const x = typeof v === 'number' ? v : typeof v === 'string' ? parseInt(v, 10) : NaN;
   return Number.isFinite(x) && x > 0 ? Math.trunc(x) : 0;
 };
 export function parseJson(s, dflt) {
@@ -83,7 +85,7 @@ export function parseTime(v) {
 }
 // Centiseconds as h:mm:ss, with .cc only when there are hundredths (or always when asked).
 export function fmtTime(cs, always) {
-  const t = Math.trunc(Number(cs));
+  const t = Math.trunc(typeof cs === 'number' ? cs : typeof cs === 'string' && cs.trim() !== '' ? Number(cs) : NaN);
   if (!Number.isFinite(t) || t <= 0) return '';
   const c = t % 100;
   const total = Math.trunc(t / 100);
@@ -331,8 +333,8 @@ export function board(results, regs, ctx) {
       if (!(st.rankBy === 'gun' ? P(r.gunCs) : P(r.chipCs))) flags.push(st.rankBy === 'gun' ? 'nogun' : 'nochip');
     }
     const row = {
-      id: String(r._id || ''),
-      bib: key || String(r.bib || ''),
+      id: cleanText(r._id, 120),
+      bib: key || cleanText(r.bib, 12),
       name: reg ? reg.name : cleanText(r.name, 80),
       cat,
       gender,
@@ -614,7 +616,7 @@ function pickDelim(s) {
 }
 // Text with quotes, commas or tabs between the columns, as a list of rows (with the line each row began on).
 export function parseCsv(text) {
-  let s = String(text === undefined || text === null ? '' : text);
+  let s = typeof text === 'string' ? text : '';
   if (s.charCodeAt(0) === 0xfeff) s = s.slice(1);
   const d = pickDelim(s);
   const rows = [];
@@ -697,7 +699,7 @@ export function canonCat(typed, known) {
 export function readResults(text, ctx) {
   const out = { items: [], errors: [], ignored: [], columns: [] };
   const err = (line, t) => out.errors.push({ line, text: t });
-  const s = String(text === undefined || text === null ? '' : text);
+  const s = typeof text === 'string' ? text : '';
   if (s.length > MAX_CSV_CHARS) {
     err(0, 'The file is too big. Paste at most ' + Math.round(MAX_CSV_CHARS / 1000) + ' thousand characters at a time.');
     return out;
@@ -751,8 +753,10 @@ export function readResults(text, ctx) {
       err(line, rawBib ? 'Bib "' + cleanText(rawBib, 20) + '" is not a bib number (letters, digits and dashes, up to 12).' : 'There is no bib number on this line.');
       return;
     }
-    if (seen.has(bib)) {
-      err(line, 'Bib ' + bib + ' is on line ' + seen.get(bib) + ' already. Only the first is used.');
+    const reg = findByBib(ctx.regs, bib);
+    const key = reg && reg.bib ? reg.bib : bib;
+    if (seen.has(key)) {
+      err(line, 'Bib ' + key + ' is on line ' + seen.get(key) + ' already. Only the first is used.');
       return;
     }
     const status0 = normStatus(cell(r, 'status'));
@@ -786,7 +790,6 @@ export function readResults(text, ctx) {
       err(line, 'Bib ' + bib + ': a finisher needs a time.');
       return;
     }
-    const reg = findByBib(ctx.regs, bib);
     const name = cleanText(cell(r, 'name'), 80);
     const catTyped = cell(r, 'cat');
     const cat = canonCat(catTyped, ctx.known) || (reg ? reg.cat : '');
@@ -809,10 +812,10 @@ export function readResults(text, ctx) {
       err(line, 'Bib ' + bib + ': age "' + cleanText(ageTyped, 10) + '" is not a number from 3 to 110.');
       return;
     }
-    seen.set(bib, line);
+    seen.set(key, line);
     out.items.push({
       line,
-      bib,
+      bib: key,
       name: reg ? reg.name : name,
       cat,
       gender: normGender(genderTyped),
