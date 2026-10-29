@@ -5,6 +5,7 @@ import * as rd from 'backend/racedir.web';
 import * as expo from 'backend/exposoft.web';
 import * as train from 'backend/training.web';
 import * as fin from 'backend/finance.web';
+import * as res from 'backend/results.web';
 
 // Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
 function pickFrame(byId) {
@@ -28,6 +29,10 @@ const TRAIN_ALLOWED = ['listAthletes', 'listCoaches', 'assignCoach', 'declineCoa
 // The Finance tab (invoices, claims, cash, orders, the ledger). Calls arrive tagged mod:'fin' with the session token added by
 // the screen. The backend decides who may use each one (directors everything; a lead only their own claims).
 const FIN_ALLOWED = ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finListClaims', 'finSaveClaim', 'finDecideClaim', 'finPayClaim', 'finCancelClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid'];
+
+// The Waves & results tab (waves and corrals, the start list, importing results, the board, awards). Calls arrive tagged mod:'res'
+// with the session token added by the screen. The backend decides who may use each one (directors everything; leads only look).
+const RES_ALLOWED = ['resOverview', 'resFormFields', 'resSaveSettings', 'resSaveWaves', 'resAssign', 'resPlace', 'resStartList', 'resImport', 'resBoard', 'resSaveRow', 'resVoid', 'resAwards'];
 
 $w.onReady(function () {
   const frame = pickFrame($w('#dirFrame'));
@@ -75,6 +80,20 @@ $w.onReady(function () {
       }
       try {
         const result = await train[msg.method](msg.arg || {});
+        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+      } catch (e) {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
+      }
+      return;
+    }
+    if (msg.mod === 'res') {
+      if (RES_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+      if (typeof res[msg.method] !== 'function') {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+        return;
+      }
+      try {
+        const result = await res[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });

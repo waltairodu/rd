@@ -182,7 +182,7 @@ function api(method,arg,ms,mod){
   });
 }
 // Back to the login page: the session is over (logged out, expired, or ended by a director).
-function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.loginErr=why?msg(why):'';render()}
+function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -226,6 +226,7 @@ async function loadTab(){
     else if(t==='coaching'&&man()){var cc=await Promise.all([api('listAthletes',{},undefined,'train'),api('listCoaches',{},undefined,'train')]);S.coachL=cc[0];S.coaches=cc[1].coaches}
     else if(t==='approvals'){S.tplErr='';var ap=await Promise.all([api('listPlan',{kinds:planKindsFor(t)}),man()?api('approvalTemplate').catch(function(x){S.tplErr=x.message;return null}):Promise.resolve(null)]);S.plan=ap[0];S.tpl=ap[1]}
     else if(t==='fin'&&(man()||isLead()))await finLoad();
+    else if(t==='res'&&(man()||isLead()))await resLoad();
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -248,10 +249,10 @@ function loginView(){
 }
 var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
-  if(id==='fin')return man()||isLead();
+  if(id==='fin'||id==='res')return man()||isLead();
   if(id==='coaching'||id==='setup'||id==='team')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
@@ -548,7 +549,7 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
   app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
 }
@@ -810,7 +811,7 @@ function formData(f){var o={};Array.prototype.forEach.call(f.elements,function(e
 function download(name,text,mime){try{var b=new Blob([text],{type:mime||'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
 /* A spreadsheet runs a cell that starts with = + - @ as a formula, so a volunteer who types "=HYPERLINK(...)" as a name could run it on the director's computer. Such a cell gets a ' in front. Plain numbers and phone numbers such as +91 98765 43210 are left alone. */
 function csvCell(v){var s=String(v==null?'':v);if(/^[=@\t\r]/.test(s)||(/^[+\-]/.test(s)&&!/^[+\-][\d\s().\-]*$/.test(s)))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
-async function doTab(t){S.tab=t;if(S.fin){S.fin.form=null;S.fin.open=''}S.teamSecret=null;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
+async function doTab(t){S.tab=t;if(S.fin){S.fin.form=null;S.fin.open=''}if(S.res)S.res.form=null;S.teamSecret=null;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||b.tagName==='INPUT')return;
   var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
@@ -820,6 +821,7 @@ document.addEventListener('click',function(e){
   var reload=function(){return loadTab()};
   if(act==='tab')doTab(b.getAttribute('data-tab'));
   else if(act.indexOf('fin-')===0)finAct(b,act,id);
+  else if(act.indexOf('res-')===0)resAct(b,act,id);
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
@@ -937,6 +939,7 @@ document.addEventListener('submit',function(e){
     toast(r.warn==='race_column_missing'?'Saved, but the race could not be stored: add a text column named race to the ExpoStaff collection in the CMS, then save again.':tf.edit?'Saved':'Login created',r.warn==='race_column_missing');
     await loadTab();if(S.teamSecret){var sc2=$('#secretCard');if(sc2&&sc2.scrollIntoView)sc2.scrollIntoView({block:'start'})}});
   else if(id==='finForm'||id==='finSetForm')finSubmit(f,id,d);
+  else if(id==='resForm'||id==='resSetForm'||id==='resPlaceForm')resSubmit(f,id,d);
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
 /* ---------- finance: invoices, orders, claims, cash, the ledger (FINANCE-BEGIN) ---------- */
@@ -1329,6 +1332,223 @@ document.addEventListener('input',function(e){
   if(t.id==='finQ'&&F){F.q=t.value;var p=t.selectionStart;render();var n=$('#finQ');if(n){n.focus();try{n.setSelectionRange(p,p)}catch(x){}}}
 });
 /* ---------- finance: end (FINANCE-END) ---------- */
+
+/* ---------- Results: waves and corrals, results, awards (RESULTS-START) ----------
+   Everything for the Results tab lives in this block. It talks to results.web.js through the page (calls tagged mod:'res').
+   A director can change things; a lead can only look. The server decides who may do what; this only hides what would be refused.
+   A date of birth is never shown here: the server sends ages and age groups only. */
+S.res=null;
+var RSUBS=[['board','Results'],['imp','Import'],['aw','Awards'],['wav','Waves'],['sl','Start list'],['set','Setup']];
+var RSUBS_LEAD=[['board','Results'],['aw','Awards'],['sl','Start list']];
+var RST={fin:'Finished',dnf:'DNF',dns:'DNS',dsq:'Disqualified'};
+var RFLAG={nogender:'no gender',nochip:'no chip time',nogun:'no gun time',noage:'no age',fast:'very fast',slow:'very slow',unmatched:'not registered'};
+(function(){var add={bad_settings:'Those settings are not valid. Age groups are whole numbers that rise (for example 18, 30, 40); the number of places is 1 to 10.',
+  bad_waves:'Check the waves: each needs a category of this race, a name, a start time like 06:30, up to 8 short corral names and a capacity from 0 to 5000. A name cannot repeat inside a category.',
+  changed_reload:'Someone else changed the waves. Open the Waves tab again and redo your change.',bad_mode:'Choose how the runners are placed.',bad_cat:'That category is not one of this race\'s.',
+  not_paid:'This runner has not paid, so cannot be placed.',wrong_category:'That wave is for another category.',bad_corral:'That corral is not in this wave.',bad_wave:'That wave does not exist.',wave_full:'That wave is full.',
+  bad_text:'Paste the results as text.',nothing_to_save:'There is nothing to save in this file.',has_errors:'Some lines have problems. Correct them, or tick "skip lines with problems".',
+  bad_status:'Status must be Finished, DNF, DNS or Disqualified.',bad_time:'A time looks like 1:45:30 or 45:30 (hours, minutes, seconds).',bad_gender:'Gender must be M, F or X.',bad_age:'An age is a whole number from 3 to 110.',
+  bad_dob:'That date of birth is not a real date. Use dd/mm/yyyy.',bad_field:'Those fields are not valid.',time_needed:'A finisher needs a chip time or a gun time.',voided:'That result is voided. Restore it first.',not_voided:'That result is not voided.'};
+  Object.keys(add).forEach(function(k){if(!ERR[k])ERR[k]=add[k]})})();
+function rsubs(){return man()?RSUBS:RSUBS_LEAD}
+function ra(m,a,ms){return api(m,a,ms,'res')}
+function rsub(){var f=S.res,l=rsubs(),s=(f&&f.sub)||'board';for(var i=0;i<l.length;i++)if(l[i][0]===s)return s;return 'board'}
+function rnew(){return {ev:S.ev,sub:'board',cat:'',form:null,err:'',ov:null,board:null,aw:null,sl:null,ff:null,imp:{text:'',dry:null,skip:false,replace:false,key:''},pl:{mode:'seed',cat:'',redo:false,out:null},wdraft:null}}
+function ropt(v,label,cur){return '<option value="'+esc(v)+'"'+(String(cur)===String(v)?' selected':'')+'>'+esc(label)+'</option>'}
+function rflags(a){return (a||[]).map(function(k){return pill(RFLAG[k]||k,'warn')}).join(' ')}
+function rcatSel(cats,cur,id){return '<label class="f">Category<select id="'+id+'">'+ropt('','All categories',cur)+(cats||[]).map(function(c){return ropt(c,c,cur)}).join('')+'</select></label>'}
+
+/* ---------- loading ---------- */
+async function resLoad(){
+  if(!S.res||S.res.ev!==S.ev)S.res=rnew();
+  var f=S.res,sub=rsub();f.err='';
+  try{
+    if(sub==='board')f.board=await ra('resBoard');
+    else if(sub==='aw')f.aw=await ra('resAwards');
+    else if(sub==='sl'){var r=await Promise.all([ra('resStartList'),ra('resOverview')]);f.sl=r[0];f.ov=r[1]}
+    else if(sub==='wav'){f.ov=await ra('resOverview');if(!f.wdraft||f.wdraft.rev!==f.ov.rev)f.wdraft=wavDraft(f.ov)}
+    else if(sub==='set'){var q=await Promise.all([ra('resOverview'),ra('resFormFields')]);f.ov=q[0];f.ff=q[1]}
+    else if(sub==='imp')f.ov=await ra('resOverview');
+  }catch(e){f.err=msg(e.message);toast(f.err,true)}
+}
+function wavDraft(ov){return {rev:ov.rev,rows:ov.waves.map(function(w){return {id:w.id,cat:w.cat,name:w.name,start:w.start,corrals:w.corrals.join(', '),cap:String(w.cap)}})}}
+
+/* ---------- the screen ---------- */
+function resView(){
+  var f=S.res;if(!f||f.ev!==S.ev)return planLoading();
+  var sub=rsub(),list=rsubs();
+  var nav='<div class="row" role="tablist" aria-label="Results sections">'+list.map(function(t){return '<button class="btn sm'+(sub===t[0]?' pri':'')+'" role="tab" aria-selected="'+(sub===t[0])+'" data-act="res-sub" data-sub="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
+  var body=f.err?'<div class="card"><p class="muted" role="alert">'+esc(f.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="retry">Try again</button></div></div>'
+    :sub==='board'?resBoardView():sub==='imp'?resImpView():sub==='aw'?resAwView():sub==='wav'?resWavView():sub==='sl'?resSlView():resSetView();
+  return '<div class="stack">'+nav+(man()?'':'<p class="muted">You can look at the results, the awards and the start list. Directors make the changes.</p>')+body+'</div>';
+}
+function resFormView(){
+  var fo=S.res.form;if(!fo)return '';var r=fo.row,cats=(S.res.board&&S.res.board.cats)||[];
+  if(fo.kind==='fix')return '<form id="resForm" class="card" data-kind="fix" data-id="'+esc(fo.id)+'"><h3>Correct bib '+esc(r.bib)+', '+esc(r.name)+'</h3><p class="muted">The earlier values are kept with the result, and your reason goes in the log.</p><div class="form" style="margin-top:8px">'
+    +fsel('Status','status',r.status,[['fin','Finished'],['dnf','DNF'],['dns','DNS'],['dsq','Disqualified']])+fi('Chip time','chip',r.chip||'',{attr:'maxlength="14" placeholder="1:45:30"'})+fi('Gun time','gun',r.gun||'',{attr:'maxlength="14" placeholder="1:45:35"'})
+    +fsel('Gender','gender',r.gender||'',[['','Not recorded'],['M','Male'],['F','Female'],['X','Other']])+fi('Age','age',r.age==null?'':r.age,{attr:'maxlength="3" inputmode="numeric"'})+fi('Date of birth (leave empty to keep what is stored)','dob','',{attr:'maxlength="12" placeholder="dd/mm/yyyy" autocomplete="off"'})
+    +fsel('Category','cat',r.cat||'',[[r.cat||'',r.cat||'(none)']].concat(cats.filter(function(c){return c!==r.cat}).map(function(c){return [c,c]})))+fi('Note','note',r.note||'',{attr:'maxlength="200"',span:1})+fi('Reason for the change (required)','reason','',{req:1,attr:'maxlength="200"',span:1})
+    +'</div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save correction</button><button class="btn" type="button" data-act="res-cancelform">Cancel</button></div></form>';
+  return '<form id="resForm" class="card" data-kind="void" data-id="'+esc(fo.id)+'"><h3>Void the result of bib '+esc(r.bib)+', '+esc(r.name)+'</h3><p class="muted">It stays in the list, apart, with your name and the reason, and stops counting. You can restore it.</p><div class="form" style="margin-top:8px">'
+    +fi('Reason (required)','reason','',{req:1,attr:'maxlength="200"',span:1})+'</div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Void it</button><button class="btn" type="button" data-act="res-cancelform">Cancel</button></div></form>';
+}
+function resFormUp(){var el=$('#resForm');if(!el)return;if(el.scrollIntoView)try{el.scrollIntoView({block:'center'})}catch(x){}var i=el.querySelector('input:not([type=hidden]),select,textarea');if(i&&i.focus)try{i.focus({preventScroll:true})}catch(x){}}
+function resBoardRows(f){var b=f.board;return {rows:b.rows.filter(function(r){return !f.cat||r.cat===f.cat}),voided:(b.voided||[]).filter(function(r){return !f.cat||r.cat===f.cat})}}
+function resBoardView(){
+  var f=S.res,b=f.board;if(!b)return planLoading();
+  var s=b.summary||{},x=resBoardRows(f);
+  var top='<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px"><div class="row" style="flex-wrap:wrap;gap:6px">'+pill((s.fin||0)+' finished','good')+pill((s.dnf||0)+' DNF')+(s.dns?pill(s.dns+' DNS'):'')+(s.dsq?pill(s.dsq+' disqualified','bad'):'')+(s.unmatched?pill(s.unmatched+' not registered','warn'):'')+(s.noGender?pill(s.noGender+' without gender','warn'):'')+(s.noAge?pill(s.noAge+' without age','warn'):'')+'</div>'
+    +'<div class="row" style="align-items:flex-end">'+rcatSel(b.cats,f.cat,'resCat')+'<button class="btn sm" data-act="res-csv-board">CSV</button><button class="btn sm" data-act="res-print-board">Print</button></div></div></div>';
+  if(!b.rows.length&&!(b.voided||[]).length)return top+resFormView()+'<div class="card"><p class="muted">'+(man()?'No results yet. Open Import and paste the timing file.':'No results yet.')+'</p></div>';
+  var heads=['Place','Bib','Name','Category','Gender','Age group','Time','Gender place','Group place','Notes'].concat(man()?['']:[]);
+  var tr=x.rows.map(function(r){return '<tr><td class="num"><b>'+(r.place==null?esc(RST[r.status]||r.status):r.place)+'</b></td><td>'+esc(r.bib)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.cat)+'</td><td>'+esc(r.gender||'')+'</td><td>'+esc(r.ageGroup||'')+(r.age!=null?' <small class="muted">('+esc(r.age)+')</small>':'')+'</td><td>'+esc(r.time||'')+'</td><td class="num">'+(r.gplace==null?'':r.gplace)+'</td><td class="num">'+(r.aplace==null?'':r.aplace)+'</td><td>'+rflags(r.flags)+(r.note?' <small class="muted">'+esc(r.note)+'</small>':'')+'</td>'
+    +(man()?'<td><button class="btn sm" data-act="res-fix" data-id="'+esc(r.id)+'">Fix</button> <button class="btn sm" data-act="res-voidform" data-id="'+esc(r.id)+'">Void</button></td>':'')+'</tr>'}).join('');
+  var vd='';
+  if(x.voided.length)vd='<div class="card"><h3>Voided results</h3>'+ftable(['Bib','Name','Category','Reason','Who and when'].concat(man()?['']:[]),x.voided.map(function(r){return '<tr><td>'+esc(r.bib)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.cat)+'</td><td>'+esc(r.voidReason)+'</td><td>'+esc(r.voidBy)+' <small class="muted">'+esc(String(r.voidAt||'').slice(0,10))+'</small></td>'+(man()?'<td><button class="btn sm" data-act="res-restore" data-id="'+esc(r.id)+'">Restore</button></td>':'')+'</tr>'}).join(''))+'</div>';
+  return top+resFormView()+'<div class="card">'+ftable(heads,tr)+'</div>'+vd;
+}
+function resImpView(){
+  var f=S.res,im=f.imp,d=im.dry;
+  var inst='<div class="card"><h3>Import results</h3><p class="muted" style="margin-top:6px">Paste the timing company\'s file, or choose it. It needs a <b>bib</b> column and a time column: <b>chip</b>, <b>gun</b>, or just <b>time</b>. Optional columns: <b>status</b> (DNF, DNS, DQ), and for a bib that is not registered also <b>name</b> and <b>category</b> (and <b>gender</b>, <b>age</b> or <b>dob</b>). Commas, semicolons and tabs all work; up to 5000 lines. Nothing is saved until you press Save, and a result already saved is kept unless you tick "replace".</p>'
+    +'<label class="f" style="margin-top:8px">Choose a file<input id="resFile" type="file" accept=".csv,.txt,text/csv,text/plain"></label>'
+    +'<label class="f" style="margin-top:8px">Or paste it here<textarea id="resText" rows="9" maxlength="1500000" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace">'+esc(im.text)+'</textarea></label>'
+    +'<div class="row" style="margin-top:8px;flex-wrap:wrap"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="resSkip"'+(im.skip?' checked':'')+'> skip lines with problems</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="resRepl"'+(im.replace?' checked':'')+'> replace results already saved</label></div>'
+    +'<div class="row" style="margin-top:10px"><button class="btn" data-act="res-imp-check">Check the file</button><button class="btn pri" data-act="res-imp-save"'+(d&&d.summary&&d.summary.items&&(!d.errors.length||im.skip)?'':' disabled')+'>Save results</button></div></div>';
+  if(!d)return inst;
+  var s=d.summary;
+  var res='<div class="card"><h3>What the file holds</h3><div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">'+pill(s.items+' lines read','good')+pill(s.matched+' match a registration')+(s.unmatched?pill(s.unmatched+' not registered','warn'):'')+pill(s.fin+' finished')+pill(s.dnf+' DNF')+((s.dns||0)?pill(s.dns+' DNS'):'')+((s.dsq||0)?pill(s.dsq+' disqualified'):'')+pill(s.isNew+' new')+'</div>'
+    +(d.columns&&d.columns.length?'<p class="muted" style="margin-top:8px">Columns used: '+d.columns.map(esc).join(', ')+(d.ignored&&d.ignored.length?'. Ignored: '+d.ignored.map(esc).join(', '):'')+'</p>':'')
+    +(d.errors.length?'<h3 style="margin-top:12px">'+d.errors.length+(d.moreErrors?'+':'')+' line'+(d.errors.length===1?'':'s')+' with a problem</h3><ul class="clean">'+d.errors.map(function(e){return '<li><b>Line '+esc(e.line)+':</b> '+esc(e.text)+'</li>'}).join('')+(d.moreErrors?'<li class="muted">and '+d.moreErrors+' more</li>':'')+'</ul>':'<p class="muted" style="margin-top:8px">No problems found.</p>')
+    +(d.sample&&d.sample.length?ftable(['Line','Bib','Name','Category','Status','Time','Registered'],d.sample.map(function(r){return '<tr><td>'+esc(r.line)+'</td><td>'+esc(r.bib)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.cat)+'</td><td>'+esc(RST[r.status]||r.status)+'</td><td>'+esc(r.time||'')+'</td><td>'+(r.matched?'yes':'<b>no</b>')+'</td></tr>'}).join('')):'')+'</div>';
+  return inst+res;
+}
+function resAwView(){
+  var f=S.res,a=f.aw;if(!a)return planLoading();
+  var cats=a.awards.cats.filter(function(c){return !f.cat||c.cat===f.cat});
+  var top='<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px"><p class="muted">Top '+a.awards.overallDepth+' overall and top '+a.awards.groupDepth+' in each age group, for each gender in each category. '+(a.awards.overallExcl?'A runner who wins overall is not listed again in their age group.':'Overall winners are also listed in their age group.')+'</p><div class="row" style="align-items:flex-end">'+rcatSel(a.awards.cats.map(function(c){return c.cat}),f.cat,'resCat')+'<button class="btn sm" data-act="res-csv-aw">CSV</button><button class="btn sm" data-act="res-print-aw">Print</button></div></div></div>';
+  if(!cats.length)return top+'<div class="card"><p class="muted">No finishers yet.</p></div>';
+  return top+cats.map(function(c){return '<div class="card"><h3>'+esc(c.cat)+' <small class="muted">'+c.finishers+' finishers</small></h3>'
+    +c.groups.map(function(g){return '<h4 style="margin:12px 0 4px">'+esc(g.label)+' <small class="muted">'+g.finishers+' finishers</small></h4>'+resAwTable('Overall',g.overall)+g.ageGroups.map(function(ag){return resAwTable(ag.band+' <small class="muted">('+ag.finishers+' finished)</small>',ag.list,1)}).join('')}).join('')
+    +(c.missing.length?'<p class="muted" style="margin-top:10px">No award can be given until this is filled in: '+c.missing.map(function(m){return esc(m.bib)+' '+esc(m.name)+' ('+(m.why==='gender'?'gender':'age')+')'}).join(', ')+'. '+(man()?'Fix it on the Results tab.':'')+'</p>':'')+'</div>'}).join('');
+}
+function resAwTable(title,list,raw){
+  if(!list.length)return '';
+  return '<div style="margin-top:6px"><b>'+(raw?title:esc(title))+'</b>'+ftable(['Place','Bib','Name','Age group','Time'],list.map(function(x){return '<tr><td class="num">'+x.place+'</td><td>'+esc(x.bib)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.ageGroup||'')+'</td><td>'+esc(x.time)+'</td></tr>'}).join(''))+'</div>';
+}
+function wavKeep(){
+  var f=S.res,rows=document.querySelectorAll('tr.wv');if(!f||!f.wdraft||!rows.length)return;
+  f.wdraft.rows=[].map.call(rows,function(r){return {id:r.getAttribute('data-wid')||'',cat:r.querySelector('.wv-c').value,name:r.querySelector('.wv-n').value,start:r.querySelector('.wv-s').value,corrals:r.querySelector('.wv-k').value,cap:r.querySelector('.wv-p').value}});
+}
+function resWavView(){
+  var f=S.res,ov=f.ov,dr=f.wdraft;if(!ov||!dr)return planLoading();
+  var cats=ov.cats||[],c=ov.counts,pl=f.pl,out=pl.out;
+  var cnt={};ov.waves.forEach(function(w){cnt[w.id]=w.count});
+  var tr=dr.rows.map(function(w,i){return '<tr class="wv" data-wid="'+esc(w.id)+'"><td><select class="wv-c" aria-label="Category">'+cats.map(function(k){return ropt(k,k,w.cat)}).join('')+'</select></td><td><input class="wv-n" value="'+esc(w.name)+'" maxlength="30" aria-label="Wave name"></td><td><input class="wv-s" value="'+esc(w.start)+'" maxlength="5" placeholder="06:30" aria-label="Start time"></td><td><input class="wv-k" value="'+esc(w.corrals)+'" maxlength="80" placeholder="A, B, C" aria-label="Corrals"></td><td><input class="wv-p" value="'+esc(w.cap)+'" maxlength="4" inputmode="numeric" aria-label="Capacity"></td><td class="num">'+(w.id&&cnt[w.id]!=null?cnt[w.id]:'')+'</td><td><button class="btn sm bad" type="button" data-act="res-wav-del" data-id="'+i+'">Remove</button></td></tr>'}).join('');
+  var card='<div class="card"><h3>Waves and corrals</h3><p class="muted" style="margin-top:6px">A wave is a start time for one category. Corrals are the holding areas in it (A, B, C, fastest first). Capacity 0 means no limit. '+pill(c.paid+' paid runners')+' '+pill(c.placed+' placed','good')+(c.unplaced?' '+pill(c.unplaced+' not placed','warn'):'')+'</p>'
+    +(dr.rows.length?'<div class="scroll"><table><tr><th>Category</th><th>Wave name</th><th>Start (24 h)</th><th>Corrals</th><th class="num">Capacity</th><th class="num">Placed</th><th></th></tr>'+tr+'</table></div>':'<p class="muted" style="margin-top:8px">No waves yet.</p>')
+    +'<div class="row" style="margin-top:10px"><button class="btn" data-act="res-wav-add"'+(cats.length?'':' disabled')+'>Add a wave</button><button class="btn pri" data-act="res-wav-save">Save waves</button></div></div>';
+  var place='<form id="resPlaceForm" class="card"><h3>Place the runners</h3><p class="muted" style="margin-top:6px">Runners who have paid are put into the waves of their own category, in order, up to each wave\'s capacity and spread over its corrals. A runner you placed by hand never moves.</p><div class="form" style="margin-top:8px">'
+    +fsel('Order','mode',pl.mode,[['seed','Fastest expected time first'],['bib','Bib order']])+fsel('Category','cat',pl.cat,[['','All categories']].concat(cats.map(function(k){return [k,k]})))
+    +'<label class="f" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="redo"'+(pl.redo?' checked':'')+'> Place again (everyone not placed by hand)</label></div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Place runners</button></div>'
+    +(out?'<p role="status" style="margin-top:8px"><b>'+out.placed+' placed</b>'+(out.unplaced?', '+out.unplaced+' without room':'')+'.'+out.cats.filter(function(k){return k.noWaves}).map(function(k){return ' '+esc(k.cat)+' has no waves yet.'}).join('')+'</p>':'')+'</form>';
+  return card+place;
+}
+function resSlView(){
+  var f=S.res,sl=f.sl,ov=f.ov;if(!sl||!ov)return planLoading();
+  var secs=sl.sections.filter(function(s){return !f.cat||s.cat===f.cat}),un=sl.unassigned.filter(function(r){return !f.cat||r.cat===f.cat});
+  var top='<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px"><div class="row" style="gap:6px">'+pill(sl.counts.paid+' paid runners')+pill(sl.counts.placed+' placed','good')+(sl.counts.unplaced?pill(sl.counts.unplaced+' not placed','warn'):'')+'</div><div class="row" style="align-items:flex-end">'+rcatSel(ov.cats,f.cat,'resCat')+'<button class="btn sm" data-act="res-csv-sl">CSV</button><button class="btn sm" data-act="res-print-sl">Print</button></div></div></div>';
+  var pick=function(r,wid){
+    if(!man())return '';
+    var ws=ov.waves.filter(function(w){return w.cat===r.cat}),cur=ov.waves.filter(function(w){return w.id===wid})[0];
+    return '<td><select class="res-wave" data-reg="'+esc(r.id)+'" aria-label="Wave for '+esc(r.name)+'">'+ropt('','Not placed',wid)+ws.map(function(w){return ropt(w.id,w.name+' '+w.start,wid)}).join('')+'</select> '+(cur&&cur.corrals.length?'<select class="res-corral" data-reg="'+esc(r.id)+'" data-wave="'+esc(wid)+'" aria-label="Corral for '+esc(r.name)+'">'+ropt('','No corral',r.corral||'')+cur.corrals.map(function(c){return ropt(c,c,r.corral||'')}).join('')+'</select>':'')+'</td>';
+  };
+  var body=secs.map(function(s){return '<div class="card"><h3>'+esc(s.cat)+': '+esc(s.name)+' <small class="muted">starts '+esc(s.start)+' · '+s.count+(s.cap?' of '+s.cap:'')+' runners</small></h3>'
+    +s.corrals.map(function(c){return '<h4 style="margin:10px 0 4px">'+(c.corral?'Corral '+esc(c.corral):'No corral')+' <small class="muted">'+c.runners.length+'</small></h4>'+(c.runners.length?ftable(['Bib','Name'].concat(man()?['Move']:[]),c.runners.map(function(r){return '<tr><td>'+esc(r.bib)+'</td><td>'+esc(r.name)+'</td>'+pick(r,s.id)+'</tr>'}).join('')):'<p class="muted">Nobody yet.</p>')}).join('')+'</div>'}).join('');
+  var rest=un.length?'<div class="card"><h3>Not placed in a wave</h3>'+ftable(['Bib','Name','Category'].concat(man()?['Place in']:[]),un.map(function(r){return '<tr><td>'+esc(r.bib)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.cat)+'</td>'+pick(r,'')+'</tr>'}).join(''))+'</div>':'';
+  return top+(body||'<div class="card"><p class="muted">No waves yet. '+(man()?'Add them on the Waves tab.':'')+'</p></div>')+rest;
+}
+function resSetView(){
+  var f=S.res,ov=f.ov,ff=f.ff;if(!ov||!ff)return planLoading();
+  var st=ov.settings,q=ff.fields.map(function(x){return [x.name,x.name+' ('+x.count+' answered)']});
+  var mp=function(label,name,cur){var known=q.some(function(p){return p[0]===cur});return fsel(label,name,cur,[['','Not used']].concat(q).concat(cur&&!known?[[cur,cur+' (not in the form now)']]:[]))};
+  return '<form id="resSetForm" class="card"><h3>Results setup</h3><p class="muted" style="margin-top:6px">'+esc(ov.race.name)+(ov.race.date?' · '+esc(ov.race.date):'')+'. Dates of birth are read only to work out an age. They are never shown on screen, in a file or in a print-out.</p><div class="form" style="margin-top:8px">'
+    +fsel('Rank runners by','rankBy',st.rankBy,[['chip','Chip time (net)'],['gun','Gun time (gross)']])+fsel('Age is counted on','ageRule',st.ageRule,[['raceday','Race day'],['yearend','31 December of the race year']])
+    +fi('Age groups start at (ages, comma separated)','bands',st.bands.join(', '),{attr:'maxlength="60" placeholder="18, 30, 40, 50, 60"'})+fi('Overall places given','overallDepth',st.overallDepth,{type:'number',attr:'min="1" max="10"'})+fi('Places given in each age group','groupDepth',st.groupDepth,{type:'number',attr:'min="1" max="10"'})
+    +'<label class="f" style="flex-direction:row;align-items:center;gap:8px;grid-column:1/-1"><input type="checkbox" name="overallExcl"'+(st.overallExcl?' checked':'')+'> An overall winner is not listed again in their age group</label></div>'
+    +'<h3 style="margin-top:14px">Which question on the registration form holds what?</h3><p class="muted">'+ff.count+' registrations. Choose the question for each (leave "Not used" if the form does not ask).</p><div class="form" style="margin-top:8px">'
+    +mp('Gender','mGender',st.map.gender)+mp('Date of birth','mDob',st.map.dob)+mp('Age (if no date of birth)','mAge',st.map.age)+mp('Expected finish time (to fill waves)','mSeed',st.map.seed)
+    +'</div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save setup</button></div></form>';
+}
+
+/* ---------- print and spreadsheet files ---------- */
+function resCsv(name,rows){download(name,rows.map(function(r){return r.map(csvCell).join(',')}).join('\r\n')+'\r\n')}
+function resBoardTable(f){var x=resBoardRows(f);return [['Place','Bib','Name','Category','Gender','Age','Age group','Status','Time','Chip time','Gun time','Gender place','Age group place','Notes']].concat(x.rows.map(function(r){return [r.place==null?'':r.place,r.bib,r.name,r.cat,r.gender,r.age==null?'':r.age,r.ageGroup,RST[r.status]||r.status,r.time,r.chip,r.gun,r.gplace==null?'':r.gplace,r.aplace==null?'':r.aplace,(r.flags||[]).map(function(k){return RFLAG[k]||k}).concat(r.note?[r.note]:[]).join('; ')]}))}
+function resAwTable2(f){var out=[['Category','Gender','Award','Place','Bib','Name','Age group','Time']];f.aw.awards.cats.filter(function(c){return !f.cat||c.cat===f.cat}).forEach(function(c){c.groups.forEach(function(g){g.overall.forEach(function(x){out.push([c.cat,g.label,'Overall',x.place,x.bib,x.name,x.ageGroup,x.time])});g.ageGroups.forEach(function(ag){ag.list.forEach(function(x){out.push([c.cat,g.label,ag.band,x.place,x.bib,x.name,x.ageGroup,x.time])})})})});return out}
+function resSlTable(f){var out=[['Category','Wave','Start','Corral','Bib','Name']];f.sl.sections.filter(function(s){return !f.cat||s.cat===f.cat}).forEach(function(s){s.corrals.forEach(function(c){c.runners.forEach(function(r){out.push([s.cat,s.name,s.start,c.corral,r.bib,r.name])})})});f.sl.unassigned.filter(function(r){return !f.cat||r.cat===f.cat}).forEach(function(r){out.push([r.cat,'(not placed)','','',r.bib,r.name])});return out}
+function resPrintTable(title,rows){var th='<tr>'+rows[0].map(function(h){return '<th>'+esc(h)+'</th>'}).join('')+'</tr>';var tb=rows.slice(1).map(function(r){return '<tr>'+r.map(function(c){return '<td>'+esc(c)+'</td>'}).join('')+'</tr>'}).join('');printHtml(finDocHtml(title,'<h1>'+esc(title)+'</h1><p class="m">'+esc(raceName())+'</p><table>'+th+tb+'</table>'))}
+
+/* ---------- what the buttons do ---------- */
+function resAct(b,act,id){
+  var f=S.res;if(!f)return;
+  var rowOf=function(){return (f.board&&f.board.rows.concat(f.board.voided||[])||[]).filter(function(x){return x.id===id})[0]};
+  if(act==='res-sub'){wavKeep();f.sub=b.getAttribute('data-sub')||'board';f.form=null;S.armed=null;render();loadTab()}
+  else if(act==='res-fix'||act==='res-voidform'){var r=rowOf();if(!r||!man())return;f.form={kind:act==='res-fix'?'fix':'void',id:id,row:r};render();resFormUp()}
+  else if(act==='res-cancelform'){f.form=null;render()}
+  else if(act==='res-restore'){if(!man())return;run(async function(){await ra('resVoid',{id:id,undo:true});await resLoad();render();if(!f.err)toast('Result restored')})}
+  else if(act==='res-csv-board'&&f.board)resCsv('results.csv',resBoardTable(f));
+  else if(act==='res-print-board'&&f.board)resPrintTable('Results',resBoardTable(f));
+  else if(act==='res-csv-aw'&&f.aw)resCsv('awards.csv',resAwTable2(f));
+  else if(act==='res-print-aw'&&f.aw)resPrintTable('Awards',resAwTable2(f));
+  else if(act==='res-csv-sl'&&f.sl)resCsv('start-list.csv',resSlTable(f));
+  else if(act==='res-print-sl'&&f.sl)resPrintTable('Start list',resSlTable(f));
+  else if(act==='res-wav-add'){if(!man()||!f.wdraft)return;wavKeep();var cats=(f.ov&&f.ov.cats)||[];f.wdraft.rows.push({id:'',cat:cats[0]||'',name:'Wave '+(f.wdraft.rows.length+1),start:'06:00',corrals:'',cap:'0'});render()}
+  else if(act==='res-wav-del'){if(!man()||!f.wdraft)return;wavKeep();f.wdraft.rows.splice(Number(id),1);render()}
+  else if(act==='res-wav-save'){if(!man()||!f.wdraft)return;wavKeep();var list=f.wdraft.rows.map(function(w){var o={cat:w.cat,name:w.name,start:w.start,corrals:w.corrals,cap:String(w.cap).trim()};if(w.id)o.id=w.id;return o});
+    run(async function(){var r2=await ra('resSaveWaves',{rev:f.ov.rev,waves:list});f.wdraft=null;await resLoad();render();if(!f.err)toast('Waves saved'+(r2.moved?'. '+r2.moved+' runners were moved out of changed waves':''))})}
+  else if(act==='res-imp-check'||act==='res-imp-save'){
+    var im=f.imp,ta=$('#resText');if(ta)im.text=ta.value;if(!String(im.text).trim()){toast('Paste the results or choose a file first.',true);return}
+    if(act==='res-imp-check')run(async function(){im.key='';im.dry=await ra('resImport',{text:im.text,dry:true},120000);render()});
+    else{if(!man()||!im.dry)return;if(!im.key)im.key=newKey();
+      run(async function(){var r3=await ra('resImport',{text:im.text,key:im.key,skipErrors:im.skip,replace:im.replace},120000);im.dry=null;im.key='';im.text='';f.board=null;render();toast(r3.saved+' saved'+(r3.replaced?', '+r3.replaced+' replaced':'')+(r3.kept?', '+r3.kept+' kept as they were':'')+(r3.skipped?', '+r3.skipped+' lines skipped':''))})}
+  }
+}
+function resSubmit(f,id,d){
+  var R=S.res;if(!R||!man())return;
+  if(id==='resForm'){var fo=R.form;if(!fo||f.getAttribute('data-kind')!==fo.kind)return;
+    if(fo.kind==='void'){run(async function(){await ra('resVoid',{id:fo.id,reason:d.reason});R.form=null;await resLoad();render();if(!R.err)toast('Result voided')});return}
+    var r=fo.row,fields={};
+    if(d.status!==r.status)fields.status=d.status;
+    if(String(d.chip).trim()!==(r.chip||''))fields.chip=String(d.chip).trim();
+    if(String(d.gun).trim()!==(r.gun||''))fields.gun=String(d.gun).trim();
+    if(d.gender!==(r.gender||''))fields.gender=d.gender;
+    if(String(d.age).trim()!==(r.age==null?'':String(r.age)))fields.age=String(d.age).trim();
+    if(String(d.dob).trim())fields.dob=String(d.dob).trim();
+    if(d.cat!==r.cat)fields.cat=d.cat;
+    if(String(d.note).trim()!==(r.note||''))fields.note=String(d.note).trim();
+    if(!Object.keys(fields).length){toast('Nothing was changed.');return}
+    run(async function(){await ra('resSaveRow',{id:fo.id,fields:fields,reason:d.reason});R.form=null;await resLoad();render();if(!R.err)toast('Correction saved')});return}
+  if(id==='resSetForm'){run(async function(){var r4=await ra('resSaveSettings',{settings:{rankBy:d.rankBy,ageRule:d.ageRule,bands:d.bands,overallDepth:d.overallDepth,groupDepth:d.groupDepth,overallExcl:!!d.overallExcl,map:{gender:d.mGender,dob:d.mDob,age:d.mAge,seed:d.mSeed}}});await resLoad();render();if(!R.err)toast('Setup saved')});return}
+  if(id==='resPlaceForm'){R.pl.mode=d.mode;R.pl.cat=d.cat;R.pl.redo=!!d.redo;run(async function(){var o={mode:d.mode,redo:!!d.redo,key:newKey()};if(d.cat)o.cat=d.cat;R.pl.out=await ra('resAssign',o,120000);R.wdraft=null;await resLoad();render()})}
+}
+
+/* ---------- listeners for the Results screens ---------- */
+document.addEventListener('change',function(e){
+  var t=e.target,f=S.res;if(!t||!f||S.tab!=='res')return;
+  if(t.id==='resCat'){f.cat=t.value;render()}
+  else if(t.id==='resSkip')f.imp.skip=t.checked;
+  else if(t.id==='resRepl')f.imp.replace=t.checked;
+  else if(t.id==='resFile'){var fl=t.files&&t.files[0];if(!fl)return;if(fl.size>1500000){toast('That file is too big. Paste at most 1.5 MB at a time.',true);return}
+    try{var rd=new FileReader();rd.onload=function(){f.imp.text=String(rd.result||'');f.imp.dry=null;f.imp.key='';render()};rd.onerror=function(){toast('That file could not be read.',true)};rd.readAsText(fl)}catch(x){toast('That file could not be read.',true)}}
+  else if(t.classList&&(t.classList.contains('res-wave')||t.classList.contains('res-corral'))&&man()){
+    var reg=t.getAttribute('data-reg'),isW=t.classList.contains('res-wave'),wave=isW?t.value:t.getAttribute('data-wave'),corral=isW?'':t.value;
+    run(async function(){await ra('resPlace',{regId:reg,wave:wave,corral:corral});await resLoad();render();if(!f.err)toast(isW?(wave?'Placed':'Taken out of the wave'):'Corral saved')});
+  }
+});
+document.addEventListener('input',function(e){
+  var t=e.target,f=S.res;if(!t||!f||S.tab!=='res')return;
+  if(t.id==='resText'){f.imp.text=t.value;f.imp.dry=null;f.imp.key='';var sb=document.querySelector('[data-act=res-imp-save]');if(sb)sb.disabled=true}
+});
+/* ---------- results: end (RESULTS-END) ---------- */
 
 function navLabel(t){return t[0]==='fin'&&!man()?'My claims':t[1]}
 
