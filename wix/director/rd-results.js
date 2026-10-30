@@ -19,6 +19,9 @@ export const DEFAULT_SETTINGS = { rankBy: 'chip', ageRule: 'raceday', bands: [18
 // value whose own toString throws) gives ''.
 export const T = (v) => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '');
 export const cleanText = (v, n) => T(v).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, n || 200);
+// Text from a file that is repeated back in an error line: tidied like any text, and without angle brackets, ampersands, double quotes and
+// back-ticks, so that no screen, e-mail or print can ever show a tag or an entity that the file made.
+const echo = (v, n) => cleanText(v, n).replace(/[<>&"`]/g, '');
 export const lc = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : '');
 export const catKey = (c) => lc(c).replace(/[^a-z0-9]/g, '');
 export const sOnly = (v) => (typeof v === 'string' ? v : '');
@@ -775,7 +778,7 @@ export function readResults(text, ctx) {
     const rawBib = cell(r, 'bib');
     const bib = bibKey(rawBib);
     if (!bib) {
-      err(line, rawBib ? 'Bib "' + cleanText(rawBib, 20) + '" is not a bib number (letters, digits and dashes, up to 12).' : 'There is no bib number on this line.');
+      err(line, rawBib ? 'Bib "' + echo(rawBib, 20) + '" is not a bib number (letters, digits and dashes, up to 12).' : 'There is no bib number on this line.');
       return;
     }
     const reg = findByBib(ctx.regs, bib);
@@ -786,7 +789,7 @@ export function readResults(text, ctx) {
     }
     const status0 = normStatus(cell(r, 'status'));
     if (status0 === null) {
-      err(line, 'Bib ' + bib + ': status "' + cleanText(cell(r, 'status'), 20) + '" is not one of finished, DNF, DNS, DSQ.');
+      err(line, 'Bib ' + bib + ': status "' + echo(cell(r, 'status'), 20) + '" is not one of finished, DNF, DNS, DSQ.');
       return;
     }
     const times = {};
@@ -796,7 +799,7 @@ export function readResults(text, ctx) {
       const p = parseTime(v);
       if (p === null) {
         if (status0 && status0 !== 'fin') continue;
-        err(line, 'Bib ' + bib + ': "' + cleanText(v, 20) + '" is not a time. Use h:mm:ss (for example 2:45:30) or mm:ss.');
+        err(line, 'Bib ' + bib + ': "' + echo(v, 20) + '" is not a time. Use h:mm:ss (for example 2:45:30) or mm:ss.');
         return;
       }
       times[k] = p;
@@ -818,6 +821,17 @@ export function readResults(text, ctx) {
     const name = cleanText(cell(r, 'name'), 80);
     const catTyped = cell(r, 'cat');
     const cat = canonCat(catTyped, ctx.known) || (reg ? reg.cat : '');
+    // A category written in the file must be one of the race's own, else it would start a category nobody entered.
+    if (catTyped && Array.isArray(ctx.known) && ctx.known.length && !ctx.known.some((k) => catKey(k) === catKey(cat))) {
+      err(line, 'Bib ' + bib + ': the category "' + echo(catTyped, 30) + '" is not one of this race\'s categories.');
+      return;
+    }
+    // A registered runner is in the category they registered for. A file that says another is a mistake in the file or in the
+    // registration, and it is said so: ranking a 10 K runner among the 21 K runners by a typing slip would be a wrong award.
+    if (reg && catTyped && reg.cat && catKey(cat) !== catKey(reg.cat)) {
+      err(line, 'Bib ' + bib + ' is registered for "' + echo(reg.cat, 40) + '" but the file says "' + echo(catTyped, 30) + '". Correct the file, or the registration.');
+      return;
+    }
     if (!reg && (!name || !cat)) {
       err(line, 'Bib ' + bib + ' is not a registered bib. Add the name and category columns for this line, or correct the bib.');
       return;
@@ -826,7 +840,7 @@ export function readResults(text, ctx) {
     const dobTyped = cell(r, 'dob');
     const ageTyped = cell(r, 'age');
     if (genderTyped && !normGender(genderTyped)) {
-      err(line, 'Bib ' + bib + ': gender "' + cleanText(genderTyped, 20) + '" is not M, F or other.');
+      err(line, 'Bib ' + bib + ': gender "' + echo(genderTyped, 20) + '" is not M, F or other.');
       return;
     }
     if (dobTyped && !normDob(dobTyped)) {
@@ -834,7 +848,7 @@ export function readResults(text, ctx) {
       return;
     }
     if (ageTyped && declaredAge(ageTyped) === null) {
-      err(line, 'Bib ' + bib + ': age "' + cleanText(ageTyped, 10) + '" is not a number from 3 to 110.');
+      err(line, 'Bib ' + bib + ': age "' + echo(ageTyped, 10) + '" is not a number from 3 to 110.');
       return;
     }
     seen.set(key, line);

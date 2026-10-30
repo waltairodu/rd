@@ -188,9 +188,13 @@ async function getSettings(evId) {
   const row = await wixData.get(RSET, 'set~' + evId, SA).catch(() => null);
   return settingsOf(row && row.json);
 }
+// Every save of the waves is a NEW row whose id holds its revision number. Two directors saving from the same copy cannot both
+// win: the second insert finds the row already there and is told to reload. The newest row is the current waves.
+const wavesId = (evId, rev) => 'waves~' + evId + '~' + String(rev).padStart(6, '0');
 async function getWaves(evId) {
-  const row = await wixData.get(RSET, 'waves~' + evId, SA).catch(() => null);
-  return wavesOf(row && row.json);
+  const list = await all(() => wixData.query(RSET).eq('kind', 'waves').eq('ref', evId).ascending('_id'));
+  const last = list[list.length - 1];
+  return wavesOf(last && last.json);
 }
 // The paid runners with the wave and corral each one has now.
 function runnersOf(regList, st, assigns) {
@@ -286,7 +290,12 @@ export const resSaveWaves = webMethod(Permissions.Anyone, async (arg) => {
     throw new Error('bad_waves');
   }
   const rev = cur.rev + 1;
-  await put(RSET, { _id: 'waves~' + e._id, kind: 'waves', by: a.username, at: nowIso(), ref: '', json: JSON.stringify({ waves: clean.waves, next: clean.next, rev }) });
+  try {
+    await wixData.insert(RSET, { _id: wavesId(e._id, rev), kind: 'waves', by: a.username, at: nowIso(), ref: e._id, json: JSON.stringify({ waves: clean.waves, next: clean.next, rev }) }, SA);
+  } catch (err) {
+    throw new Error('changed_reload');
+  }
+  if (rev > 30) await wixData.bulkRemove(RSET, [wavesId(e._id, rev - 30)], SA).catch(() => null);
   // runners who were in a wave that is gone, in another category now, or in a corral that is gone
   const assigns = await rows(ASSIGN, e._id);
   const byId = new Map(clean.waves.map((w) => [w.id, w]));
