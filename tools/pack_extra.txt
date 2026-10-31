@@ -2,3 +2,6 @@
 # Package 2: Finance
 backend wix/director/finance.web.js
 backend wix/director/rd-finance.js
+# Package 3: Waves, results and awards
+backend wix/director/results.web.js
+backend wix/director/rd-results.js

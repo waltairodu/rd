@@ -490,13 +490,14 @@ await sub(A, 'imp');
   Object.defineProperty(inp, 'files', { configurable: true, value: [file] });
   inp.dispatchEvent(new w.Event('change', { bubbles: true }));
   ok(await until(() => q(d, '#resText').value === 'bib,chip\n101,55:10\n'), 'U6 a chosen file is read into the box');
-  const big = new w.File(['x'.repeat(1600000)], 'big.csv', { type: 'text/csv' });
+  const big = new w.File(['x'.repeat(450000)], 'big.csv', { type: 'text/csv' });
   const inp2 = q(d, '#resFile');
   Object.defineProperty(inp2, 'files', { configurable: true, value: [big] });
   clearToast(d);
   inp2.dispatchEvent(new w.Event('change', { bubbles: true }));
   await until(() => toastOf(d));
-  ok(/too big/.test(toastOf(d)), 'U6 a file over 1.5 MB is turned away at once: ' + toastOf(d));
+  ok(/too big/.test(toastOf(d)) && /400,000/.test(toastOf(d)), 'U6 a file over 400,000 characters is turned away at once, with the real limit: ' + toastOf(d));
+  ok(q(d, '#resText').getAttribute('maxlength') === '400000', 'U6 the box itself stops at the same limit');
   set(w, q(d, '#resText'), '');
 }
 

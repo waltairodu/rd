@@ -4,28 +4,29 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 3 | 488 | 0 |
-| 2. Penetration tests | 4 | 703 | 0 |
-| 3. Integration tests | 6 | 711 | 0 |
-| 4. Security tests | 1 | 204 | 0 |
-| Component tests (older suites) | 18 | 1320 | 0 |
-| 5. Regression (older suites against the saved baseline) | 32 | 3426 | 0 |
+| 1. Unit tests | 4 | 607 | 0 |
+| 2. Penetration tests | 5 | 808 | 0 |
+| 3. Integration tests | 8 | 1053 | 0 |
+| 4. Security tests | 1 | 254 | 0 |
+| Component tests (older suites) | 18 | 1322 | 0 |
+| 5. Regression (older suites against the saved baseline) | 36 | 4044 | 0 |
 
-**Total: 3426 checks passed, 0 failed.**
+**Total: 4044 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
-One piece on its own: password hashing, PINs, roles, the Team screen rules, and the Finance rules (money arithmetic, numbering, text cleaning).
+One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file).
 
 | Suite | Passed | Failed |
 |---|---|---|
 | `unit-auth.mjs` | 122 | 0 |
 | `unit-team.mjs` | 249 | 0 |
 | `unit-finance.mjs` | 117 | 0 |
+| `unit-results.mjs` | 119 | 0 |
 
 ## 2. Penetration tests
 
-Attacks on logins, tokens, roles, the desk, the page relay and the Finance tab (money, claims, cash, the screens and what they print); every attack must fail.
+Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print) and the Waves & results tab (results files, placing, fixing, voiding, personal details); every attack must fail.
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -33,10 +34,11 @@ Attacks on logins, tokens, roles, the desk, the page relay and the Finance tab (
 | `pentest-ui.mjs` | 131 | 0 |
 | `pentest-finance.mjs` | 118 | 0 |
 | `pentest-finance-ui.mjs` | 32 | 0 |
+| `pentest-results.mjs` | 105 | 0 |
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages and Finance (invoice to payment, order to refund, claim to payout, cash).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash) and Waves & results (waves to placed runners, results file to board to awards).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -46,14 +48,16 @@ Whole journeys across RaceOS, the Expo desk, the coach pages and Finance (invoic
 | `scen.mjs` | 97 | 0 |
 | `finance.mjs` | 222 | 0 |
 | `finance-ui.mjs` | 180 | 0 |
+| `results.mjs` | 173 | 0 |
+| `results-ui.mjs` | 169 | 0 |
 
 ## 4. Security tests
 
-An audit of every method, Finance included, against the written role table, secrets, locks and shipped files.
+An audit of every method, Finance and Results included, against the written role table, secrets, locks and shipped files.
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `security.mjs` | 204 | 0 |
+| `security.mjs` | 254 | 0 |
 
 ## Component tests (older suites)
 
@@ -61,7 +65,7 @@ Each backend method and each screen, one by one; these also form the regression 
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `director.mjs` | 209 | 0 |
+| `director.mjs` | 211 | 0 |
 | `plan.mjs` | 98 | 0 |
 | `dash.mjs` | 38 | 0 |
 | `ai.mjs` | 77 | 0 |
@@ -94,7 +98,7 @@ Every suite that existed before a change must still pass at least as many checks
 | `dash-ui.mjs` | 15 | 15 |
 | `dash.mjs` | 38 | 38 |
 | `director-ui.mjs` | 73 | 73 |
-| `director.mjs` | 209 | 209 |
+| `director.mjs` | 209 | 211 |
 | `expo-int.mjs` | 65 | 65 |
 | `finance-ui.mjs` | 180 | 180 |
 | `finance.mjs` | 222 | 222 |
@@ -103,20 +107,24 @@ Every suite that existed before a change must still pass at least as many checks
 | `pagecode.mjs` | 79 | 79 |
 | `pentest-finance-ui.mjs` | 32 | 32 |
 | `pentest-finance.mjs` | 118 | 118 |
+| `pentest-results.mjs` | 105 | 105 |
 | `pentest-ui.mjs` | 131 | 131 |
 | `pentest.mjs` | 422 | 422 |
 | `plan-ui.mjs` | 51 | 51 |
 | `plan.mjs` | 98 | 98 |
 | `preview-ui.mjs` | 48 | 48 |
 | `rd-ui.mjs` | 58 | 58 |
+| `results-ui.mjs` | 169 | 169 |
+| `results.mjs` | 173 | 173 |
 | `scen.mjs` | 97 | 97 |
-| `security.mjs` | 204 | 204 |
+| `security.mjs` | 254 | 254 |
 | `training-ai.mjs` | 32 | 32 |
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
 | `ui.mjs` | 45 | 45 |
 | `unit-auth.mjs` | 122 | 122 |
 | `unit-finance.mjs` | 117 | 117 |
+| `unit-results.mjs` | 119 | 119 |
 | `unit-team.mjs` | 249 | 249 |
 
 ## Do the tests really catch mistakes? (mutation spot-checks)
@@ -187,6 +195,43 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | fin-screens-no-escaping | KILLED | pentest-finance-ui.mjs: UF1 the seven Finance sections (Summary, Invoices, Orders, Claims, |
 | fin-csv-formulas-run | KILLED | pentest-finance-ui.mjs: UF3 not one cell of the exported ledger starts with "=", "+", "-", |
 | fin-print-unescaped | KILLED | pentest-finance-ui.mjs: UF2 not one printed page or Word file holds the attack text as mar |
+| import-refresh-wipes-bibs | KILLED | director.mjs: wix: a refresh keeps the bib number the team gave (Wix replaces whole rows) |
+| res-role-check-removed | KILLED | security.mjs: S3 Results: view1 on all 12 methods [resOverview -> no_event (wanted not_all |
+| res-director-only-removed | KILLED | security.mjs: S3 Results: lead1 on all 12 methods [resFormFields -> no_event (wanted direc |
+| res-expiry-fails-open | KILLED | pentest-results.mjs: RA3 a session with a blank or damaged expiry (10 kinds) is refused by |
+| res-void-deletes-the-result | KILLED | results.mjs: R9 voiding twice is refused   [wanted voided, got no_item] |
+| res-void-without-reason | KILLED | results.mjs: R9 voiding needs a reason   [wanted reason_needed, got no error] |
+| res-correction-forgets-old-values | KILLED | results-ui.mjs |
+| res-correction-writer-from-call | KILLED | security.mjs: S5 a correction sent with "by: boss" and an old date in the call is written  |
+| res-waves-overwrite-a-parallel-save | KILLED | pentest-results.mjs: RH2 two directors saving the waves from the same copy at the same mom |
+| res-waves-stale-copy-accepted | KILLED | results.mjs: R3 a second person saving from an old copy is told to reload   [wanted change |
+| res-assign-without-repeat-guard | KILLED | pentest-results.mjs: RF1 repeat keys that are too short, too long or hold spaces, "~", "/" |
+| res-repeat-key-any-login | KILLED | pentest-results.mjs: RF3 the same key from another login gets nothing of mine and makes no |
+| res-failed-request-keeps-its-key | KILLED | pentest-results.mjs: RF5 and the key is freed, so a retry is not blocked |
+| res-unpaid-runner-placed | KILLED | results.mjs: R4 a runner who has not paid cannot be placed   [wanted not_paid, got no erro |
+| res-wave-capacity-not-kept | KILLED | results.mjs: R4 a full wave refuses one more   [wanted wave_full, got no error] |
+| res-last-seat-race-not-rechecked | KILLED | pentest-results.mjs: RH4 two runners placed by hand into the one free seat at the same mom |
+| res-placing-again-moves-hand-placements | KILLED | unit-results.mjs: U8 with redo, the automatic placements are made again and the manual one |
+| res-rank-setting-ignored | KILLED | unit-results.mjs: U6 a runner is ranked on the chip or gun time as chosen, else on the oth |
+| res-equal-times-not-shared | KILLED | unit-results.mjs: U6 the same time shares a place and the next place is skipped (1, 2, 2,  |
+| res-age-on-birthday-wrong | KILLED | unit-results.mjs: U3 age counts completed years: the day before the birthday is still the  |
+| res-age-group-edge | KILLED | unit-results.mjs: U3 a runner is in the band their age falls in, boundaries included   [go |
+| res-overall-winners-listed-twice | KILLED | unit-results.mjs: U7 a runner who took an overall place is not in the age-group list again |
+| res-year-end-age-rule-ignored | KILLED | unit-results.mjs: U3 the age date is the race day or 31 December of the race year   [got [ |
+| res-import-unknown-category | KILLED | pentest-results.mjs: RG1 a file full of markup, formulas, control characters and 400-lette |
+| res-import-moves-runner-to-another-category | KILLED | pentest-results.mjs: RD2 a file that puts a registered 10 K runner in the 21 K is refused, |
+| res-import-error-repeats-markup | KILLED | pentest-results.mjs: RG1 a file full of markup, formulas, control characters and 400-lette |
+| res-setup-questions-carry-answers | KILLED | unit-results.mjs: U5 and nothing a runner answered is copied into that list (a question ma |
+| res-collections-readable-by-visitors | KILLED | security.mjs: S7 Results makes its 3 collections on first use, each readable, changeable a |
+| res-write-without-suppress-auth | KILLED | security.mjs: S8 every Results read and write of a locked collection passes suppressAuth ( |
+| res-page-relay-list-open | KILLED | pentest-results.mjs: RI1 on the Results side of the relay, a method that is not one of the |
+| res-awards-screen-no-escaping | KILLED | results-ui.mjs: U8 the name typed as an HTML picture is shown as text in the awards |
+| res-print-unescaped | KILLED | results-ui.mjs: U9 the print-out is titled with the race, and markup in a name is escaped |
+| res-csv-formulas-run | KILLED | results-ui.mjs: U9 a name that looks like a formula (= or @) is written with a leading quo |
+| res-skip-tick-leaves-save-off | KILLED | results-ui.mjs: U6 ticking "skip lines with problems" turns it on |
+| res-lead-offered-the-edit-buttons | KILLED | results-ui.mjs: U10 a lead sees all 15 results and has no Fix or Void |
+| res-lead-offered-the-director-sections | KILLED | results-ui.mjs: U1 a lead gets three sections: Results, Awards, Start list   [got ["Result |
+| res-import-retry-new-key | KILLED | results-ui.mjs: U6 three quick clicks sent one request, and it carried the same key as the |
 
 ## How to run
 

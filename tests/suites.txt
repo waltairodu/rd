@@ -5,3 +5,8 @@ integration finance.mjs
 integration finance-ui.mjs
 pentest pentest-finance.mjs
 pentest pentest-finance-ui.mjs
+# Package 3: Waves, results and awards
+unit unit-results.mjs
+integration results.mjs
+integration results-ui.mjs
+pentest pentest-results.mjs

@@ -1,4 +1,4 @@
-# Regression baseline: the number of checks each suite passed at the last release (2026-10-29, Package 2: Finance).
+# Regression baseline: the number of checks each suite passed at the last release (2026-10-31, Package 3: Waves, results and awards).
 # tests/all.sh fails if any suite now passes fewer checks than listed here, or if any check fails.
 # Update a number only when checks were removed on purpose.
 scen.mjs 97
@@ -27,9 +27,13 @@ integration-flow.mjs 100
 integration-ui.mjs 47
 pentest.mjs 422
 pentest-ui.mjs 131
-security.mjs 204
+security.mjs 254
 unit-finance.mjs 117
 finance.mjs 222
 finance-ui.mjs 180
 pentest-finance.mjs 118
 pentest-finance-ui.mjs 32
+unit-results.mjs 119
+results.mjs 173
+results-ui.mjs 169
+pentest-results.mjs 105

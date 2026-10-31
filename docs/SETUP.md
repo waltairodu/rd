@@ -4,18 +4,20 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## A. The files and where each one goes
 
-**Backend files** (code sidebar > Backend). The first four are web modules (`.web.js`); the other four are plain files: create them with **+ > Add a .js file** and give them exactly these names.
+**Backend files** (code sidebar > Backend). The first five are web modules (`.web.js`); the other five are plain files: create them with **+ > Add a .js file** and give them exactly these names.
 
 | File in this pack | Name in Wix | Notes |
 |---|---|---|
 | 1-backend/racedir.web.js | racedir.web.js | RaceOS. **Change SETUP_KEY near the top to a secret of your own.** Until you do, setup refuses to run for anyone |
 | 1-backend/exposoft.web.js | exposoft.web.js | The Expo desk's server side. Has no key and no login of its own |
 | 1-backend/training.web.js | training.web.js | Coach and athlete pages. Has its own SETUP_KEY, used only by its optional manual setup (the collections are also made by the first coach login) |
-| 1-backend/finance.web.js | finance.web.js | **New.** Finance: invoices, orders, claims, cash, ledger. Add it **before** you paste the new /rd page code, because that code imports it |
-| 1-backend/rd-auth.js | **rd-auth.js** | New. Passwords, PINs, roles. All three `.web.js` files import it |
+| 1-backend/finance.web.js | finance.web.js | Finance: invoices, orders, claims, cash, ledger. Add it **before** you paste the new /rd page code, because that code imports it |
+| 1-backend/results.web.js | results.web.js | **New.** Waves and corrals, results, awards. Add it **before** you paste the new /rd page code, because that code imports it |
+| 1-backend/rd-auth.js | **rd-auth.js** | Passwords, PINs, roles. Every `.web.js` file imports it |
 | 1-backend/ai-core.js | **ai-core.js** | Optional AI helper (works without a key) |
 | 1-backend/rd-approvals.js | **rd-approvals.js** | Approvals library and the letter writer |
-| 1-backend/rd-finance.js | **rd-finance.js** | **New.** Finance rules and money arithmetic. `finance.web.js` imports it |
+| 1-backend/rd-finance.js | **rd-finance.js** | Finance rules and money arithmetic. `finance.web.js` imports it |
+| 1-backend/rd-results.js | **rd-results.js** | **New.** Results rules: times, age groups, waves, awards. `results.web.js` imports it |
 
 **Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code in the page's code panel)
 
@@ -31,7 +33,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 ## B. First-time steps
 
 1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets).
-2. **Backend.** Add the eight files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
+2. **Backend.** Add the ten files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
 3. **Pages.** Create /rd, /volunteer, /train, /coach (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
 4. **Publish** the site. Everything works on the published site only.
 5. **First login at /rd.** Open "First-time setup (owner only)" on the login screen and enter the setup key plus a new admin username and password. This creates every collection (the Expo desk's too) locked to the site admin, and the first admin login. It does nothing to logins that already exist. Check that the new collections appear in the **live** CMS data.
@@ -106,6 +108,60 @@ A **Finance** tab sits after **Money**. It uses the same login. The only set-up 
 - Logins last 12 hours. A session whose expiry is blank or damaged is now refused everywhere (RaceOS, Finance, the Expo desk, coach and athlete pages); earlier versions let it live on.
 - The /rd page, and the volunteer, athlete and coach pages, accept replies to their calls from any frame on the same page. Keep these pages free of third-party embedded content (chat widgets, ad banners). The Expo desk frame already checks who is talking to it.
 
+
+## Waves & results (/rd > Waves & results)
+A **Waves & results** tab sits under **Race day**, between **BIB & Expo** and **Race day**. It uses the same login. The only set-up is two backend files, `results.web.js` and `rd-results.js`: add them **before** you paste the new /rd page code (the page code imports `results.web.js`, so Wix will not save it until that file exists). The three collections it keeps (RDResults, RDWaveAssign, RDResSet) are made by themselves the first time a director or lead opens the tab, locked to the site admin. Look for them in the **live** CMS data. Nobody edits them by hand.
+
+**Who can do what** (the server decides, the screen only mirrors it): a **director** does everything. A **lead** can look at **Results**, **Awards** and **Start list** and changes nothing. Viewers, desk staff and coaches do not see the tab and are refused if they ask. Pick the race at the top as everywhere else: waves, results and settings belong to one race and never mix.
+
+**In what order to use it**
+1. **Setup tab:** say which question on your registration form holds gender, date of birth (or age) and the expected finish time. Check the age groups and places.
+2. **Waves tab:** add the waves for each category (start time, corrals, capacity), save, then **Place runners**.
+3. **Start list tab:** print the start list for the corrals; move anyone by hand.
+4. **After the race, Import tab:** paste the timing company's file, **Check the file**, then **Save results**.
+5. **Results and Awards tabs:** look, fix or void a result, print.
+
+| Tab | What it does |
+|---|---|
+| Results | The board for the race, filtered by category: place, bib, name, category, gender, age group (and age), time, gender place, age-group place and notes. Finished runners are ranked within their category; DNF, DNS and disqualified are listed after them. Flags show what needs a look: not registered, no gender, no age, no chip time, a time that looks too fast or too slow for the distance (a typing slip such as 1:45 for 1:45:00). CSV and Print. Directors have **Fix** and **Void** on every row; voided results are listed apart, with who, when and why, and **Restore** brings one back. |
+| Import | Paste the timing file, or choose it. **Check the file** first: it shows how many lines were read, how many match a registration, how many are finished, DNF, DNS or disqualified, how many are new, the columns it used and ignored, a sample, and every line with a problem (line number and what is wrong). Nothing is saved until **Save results**. |
+| Awards | The prize list: the top places overall and the top places in each age group, for each gender in each category. Runners who cannot be given an award because their gender or age is missing are listed under the table, so you can fix them on Results. CSV and Print. |
+| Waves | The waves for each category and the **Place the runners** form. |
+| Start list | Every paid runner under the category's wave and corral, in start-time order, then those not placed. A director can change the wave or corral of a runner from here. CSV and Print. |
+| Setup | How runners are ranked and aged, the age groups, the number of places, and which registration question holds what. |
+
+**Waves and corrals.** A wave is a start time for one category (for example "21 K, Wave 1, 06:00"). Corrals are the holding areas in it (A, B, C; the fastest go in A). Capacity 0 means no limit. A wave needs a category of this race, a name (up to 30 letters), a start time in 24-hour form (06:30), up to 8 corral names (each up to 12 letters) and a capacity from 0 to 5000; up to 40 waves. A name cannot repeat inside one category. If you remove a wave, or change its category, the runners in it are taken out of it (the screen tells you how many); if you remove a corral, those runners stay in the wave without a corral.
+
+**Placing runners.** Only runners who have **paid** are placed (a registration that the Registrations tab does not show as unpaid). A runner goes only into a wave of their own category. Waves fill in start-time order, each up to its capacity; within a category the order is **fastest expected time first** (the expected time from the form question you chose on Setup; runners with none go last) or **bib order**. Inside a wave the runners are spread over the corrals in order, the fastest in the first corral. A runner you move by hand (Start list) **never moves again** and keeps their seat when you press **Place again**. A runner without room is shown as not placed: add a wave or raise a capacity and place again.
+
+**Importing results.** The first line names the columns. Commas, semicolons or tabs all work; up to 5000 lines, 20 columns and 400,000 characters at a time (send a bigger file in parts).
+
+| Column | Names it understands | Needed? |
+|---|---|---|
+| Bib | bib, bib no, bib number, race bib, race number | Always |
+| Time | time, finish time, official, result, finish | One of time, chip or gun, for a finisher |
+| Chip time | chip, chip time, net, net time | |
+| Gun time | gun, gun time, gross, clock | |
+| Status | status, state: finished, DNF, DNS, DQ or DSQ (also retired, withdrawn, no show, disqualified) | Blank means finished when there is a time |
+| Name, category | name, runner, participant, full name; category, cat, race, distance, event | Only for a bib that is **not** registered |
+| Gender, date of birth, age | gender or sex (M, F, other); dob, date of birth, birthday (25/12/1990 or 1990-12-25); age | Optional. A value in the file wins over the registration |
+
+Times are `h:mm:ss` (1:45:30), or `mm:ss` for under an hour (45:30), with hundredths if the timers give them (1:45:30.57). Hundredths are cut, never rounded; minutes and seconds go to 59 at most; the longest time is 48 hours. A time such as 1:45 is one minute 45 seconds: type 1:45:00 for an hour and 45 minutes. The ranking uses the chip time or the gun time, as chosen on Setup; if the chosen one is missing the other is used and the row is flagged. A runner who is registered must be in the registered category: a file that says another is refused for that line ("Correct the file, or the registration"). A category typed in the file has to be one of the race's categories (25K is read as "25 K - Debut Trail" when that is the only match). The same bib twice: the first line is used and the second is reported. **Skip lines with problems** saves the good lines and leaves the others out (the screen counts them); without it, a file with any problem is not saved at all. A result already saved is **kept** unless you tick **Replace results already saved**; a replaced result keeps its earlier values in its history.
+
+**Ranking and awards.** The same time shares a place and the next place is skipped (1, 2, 2, 4). Places are given within each category: overall, then within each gender, then within each age group. The default age groups are Under 18, 18-29, 30-39, 40-49, 50-59 and 60+ (change the starting ages on Setup). Age is counted on the day of the race, or on 31 December of the race year, as chosen. An overall winner is not listed again in their age group unless you untick that on Setup. A tie for the last award place takes everyone tied. A runner with no gender, or no age, is left out of the awards for that part and listed so you can fix it (**Fix**: gender, age or date of birth).
+
+**Fixing and voiding.** **Fix** changes status, times, gender, age, date of birth, category or a note, and needs a **reason**. **Void** takes a result out of the ranking, with a reason; it stays on the list, apart, and can be restored. Nothing is deleted, the earlier values are kept, and each change is logged with who made it.
+
+**Safe to repeat.** Placing runners and saving results carry a one-time key, so a double tap or a bad network never saves twice. If two directors do the same thing at the same moment, one may see "busy, try again": press again. Saving waves checks that nobody else changed them meanwhile; if someone did, you are asked to open the tab again and redo your change.
+
+**Privacy.** A date of birth is read only to work out an age. It is **never** shown on screen, in a CSV, in a print-out or in an answer from the server, and the Fix form's date-of-birth box is always empty (type a new one to replace it). Phone numbers and e-mail addresses never come through Results at all. The Setup screen lists only the names of the form's questions, never the answers.
+
+**Limits to know**
+- Results come by file or by hand. There is no live link to the timing company's system.
+- Settings are saved as typed; if two directors save Setup at the same moment, the last save wins. Waves are protected (see above).
+- A date of birth that a director types or that a file carries is stored with that result (never shown). The date of birth in a registration stays in the registration.
+- If two directors save results at the very same moment, look at the Results tab afterwards and check that each bib shows what you expect. The repeat key protects one login that taps twice; it cannot tell which of two different people should win.
+- The /rd page accepts replies to its calls from any frame on the same page (see the note under Finance). Keep it free of third-party embedded content.
 
 ## Approvals template (/rd > Approvals)
 Open **Approvals**, then **Approvals template > Open** (directors only). It opens by itself on a race that has no template lines yet.
