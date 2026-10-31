@@ -60,4 +60,41 @@ fin-cancel-paid-invoice	KILLED	pentest-finance.mjs: FB7 an invoice that has been
 fin-screens-no-escaping	KILLED	pentest-finance-ui.mjs: UF1 the seven Finance sections (Summary, Invoices, Orders, Claims, Cash, Ledger, Details) show 
 fin-csv-formulas-run	KILLED	pentest-finance-ui.mjs: UF3 not one cell of the exported ledger starts with "=", "+", "-", "@", a tab or a line break i
 fin-print-unescaped	KILLED	pentest-finance-ui.mjs: UF2 not one printed page or Word file holds the attack text as markup: no image, script, style,
-# 62 mutants, 62 killed, 0 survived
+import-refresh-wipes-bibs	KILLED	director.mjs: wix: a refresh keeps the bib number the team gave (Wix replaces whole rows)
+res-role-check-removed	KILLED	security.mjs: S3 Results: view1 on all 12 methods [resOverview -> no_event (wanted not_allowed); resStartList
+res-director-only-removed	KILLED	security.mjs: S3 Results: lead1 on all 12 methods [resFormFields -> no_event (wanted director_only); resSaveS
+res-expiry-fails-open	KILLED	pentest-results.mjs: RA3 a session with a blank or damaged expiry (10 kinds) is refused by Results [resOverview "" -
+res-void-deletes-the-result	KILLED	results.mjs: R9 voiding twice is refused   [wanted voided, got no_item]
+res-void-without-reason	KILLED	results.mjs: R9 voiding needs a reason   [wanted reason_needed, got no error]
+res-correction-forgets-old-values	KILLED	results-ui.mjs
+res-correction-writer-from-call	KILLED	security.mjs: S5 a correction sent with "by: boss" and an old date in the call is written under the logged-in
+res-waves-overwrite-a-parallel-save	KILLED	pentest-results.mjs: RH2 two directors saving the waves from the same copy at the same moment: exactly one wins, the
+res-waves-stale-copy-accepted	KILLED	results.mjs: R3 a second person saving from an old copy is told to reload   [wanted changed_reload, got no e
+res-assign-without-repeat-guard	KILLED	pentest-results.mjs: RF1 repeat keys that are too short, too long or hold spaces, "~", "/", ".", quotes, markup, a n
+res-repeat-key-any-login	KILLED	pentest-results.mjs: RF3 the same key from another login gets nothing of mine and makes nothing: "busy_try_again"   
+res-failed-request-keeps-its-key	KILLED	pentest-results.mjs: RF5 and the key is freed, so a retry is not blocked
+res-unpaid-runner-placed	KILLED	results.mjs: R4 a runner who has not paid cannot be placed   [wanted not_paid, got no error]
+res-wave-capacity-not-kept	KILLED	results.mjs: R4 a full wave refuses one more   [wanted wave_full, got no error]
+res-last-seat-race-not-rechecked	KILLED	pentest-results.mjs: RH4 two runners placed by hand into the one free seat at the same moment: never both in (2 in t
+res-placing-again-moves-hand-placements	KILLED	unit-results.mjs: U8 with redo, the automatic placements are made again and the manual one still never moves   [g
+res-rank-setting-ignored	KILLED	unit-results.mjs: U6 a runner is ranked on the chip or gun time as chosen, else on the other one   [got [100,100,
+res-equal-times-not-shared	KILLED	unit-results.mjs: U6 the same time shares a place and the next place is skipped (1, 2, 2, 4)   [got [["a",1],["b"
+res-age-on-birthday-wrong	KILLED	unit-results.mjs: U3 age counts completed years: the day before the birthday is still the old age; a future or 12
+res-age-group-edge	KILLED	unit-results.mjs: U3 a runner is in the band their age falls in, boundaries included   [got ["Under 18","Under 18
+res-overall-winners-listed-twice	KILLED	unit-results.mjs: U7 a runner who took an overall place is not in the age-group list again (the 30-39 women all d
+res-year-end-age-rule-ignored	KILLED	unit-results.mjs: U3 the age date is the race day or 31 December of the race year   [got ["2027-02-07","2027-02-0
+res-import-unknown-category	KILLED	pentest-results.mjs: RG1 a file full of markup, formulas, control characters and 400-letter names: the good lines ar
+res-import-moves-runner-to-another-category	KILLED	pentest-results.mjs: RD2 a file that puts a registered 10 K runner in the 21 K is refused, line by line, and nothing
+res-import-error-repeats-markup	KILLED	pentest-results.mjs: RG1 a file full of markup, formulas, control characters and 400-letter names: the good lines ar
+res-setup-questions-carry-answers	KILLED	unit-results.mjs: U5 and nothing a runner answered is copied into that list (a question may hold a date of birth)
+res-collections-readable-by-visitors	KILLED	security.mjs: S7 Results makes its 3 collections on first use, each readable, changeable and emptied only by 
+res-write-without-suppress-auth	KILLED	security.mjs: S8 every Results read and write of a locked collection passes suppressAuth (the collections are
+res-page-relay-list-open	KILLED	pentest-results.mjs: RI1 on the Results side of the relay, a method that is not one of the 12 (a login, a setup, a F
+res-awards-screen-no-escaping	KILLED	results-ui.mjs: U8 the name typed as an HTML picture is shown as text in the awards
+res-print-unescaped	KILLED	results-ui.mjs: U9 the print-out is titled with the race, and markup in a name is escaped
+res-csv-formulas-run	KILLED	results-ui.mjs: U9 a name that looks like a formula (= or @) is written with a leading quote, so a spreadsheet 
+res-skip-tick-leaves-save-off	KILLED	results-ui.mjs: U6 ticking "skip lines with problems" turns it on
+res-lead-offered-the-edit-buttons	KILLED	results-ui.mjs: U10 a lead sees all 15 results and has no Fix or Void
+res-lead-offered-the-director-sections	KILLED	results-ui.mjs: U1 a lead gets three sections: Results, Awards, Start list   [got ["Results","Import","Awards",
+res-import-retry-new-key	KILLED	results-ui.mjs: U6 three quick clicks sent one request, and it carried the same key as the failed attempt (kmvv
+# 99 mutants, 99 killed, 0 survived

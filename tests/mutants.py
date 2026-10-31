@@ -33,6 +33,8 @@ TR = 'wix/training/training.web.js'
 FIN = 'wix/director/finance.web.js'
 FINLIB = 'wix/director/rd-finance.js'
 FINPAGE = 'wix/director/director-page-code.js'
+RESB = 'wix/director/results.web.js'
+RESL = 'wix/director/rd-results.js'
 
 # name, file, old text (must occur exactly once), new text, suites that must fail
 MUTANTS = [
@@ -101,6 +103,43 @@ MUTANTS = [
     ('fin-print-unescaped', DIR, "function finBr(t){return esc(t).replace(/\\n/g,'<br>')}", "function finBr(t){return String(t==null?'':t).replace(/\\n/g,'<br>')}", ['pentest-finance-ui.mjs']),
     # --- Package 3
     ('import-refresh-wipes-bibs', RD, 'const upd = ids.filter((i) => have.has(i)).map((i) => Object.assign({}, oldBy.get(i), byId.get(i)));', 'const upd = ids.filter((i) => have.has(i)).map((i) => byId.get(i));', ['director.mjs']),
+    # --- Package 3: waves, results and awards
+    ('res-role-check-removed', RESB, "  if (kind !== 'director' && kind !== 'lead') throw new Error('not_allowed');\n", '', ['security.mjs', 'pentest-results.mjs']),
+    ('res-director-only-removed', RESB, "  if (need === 'director' && kind !== 'director') throw new Error('director_only');\n", '', ['security.mjs', 'pentest-results.mjs']),
+    ('res-expiry-fails-open', RESB, "if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", "if (!sess || Date.parse(sess.expires) < Date.now()) throw new Error('not_logged_in');", ['pentest-results.mjs']),
+    ('res-void-deletes-the-result', RESB, "  await wixData.update(RESULTS, Object.assign({}, row, { void: 'yes', voidBy: a.username, voidAt: nowIso(), voidReason: reason }), SA);", "  await wixData.bulkRemove(RESULTS, [row._id], SA);", ['results.mjs', 'security.mjs']),
+    ('res-void-without-reason', RESB, "  const reason = cleanText(sOnly(arg.reason), 200);\n  if (reason.length < 3) throw new Error('reason_needed');\n  await wixData.update(RESULTS, Object.assign({}, row, { void: 'yes'", "  const reason = cleanText(sOnly(arg.reason), 200);\n  await wixData.update(RESULTS, Object.assign({}, row, { void: 'yes'", ['results.mjs', 'pentest-results.mjs']),
+    ('res-correction-forgets-old-values', RESB, "  next.prev = JSON.stringify({ status: row.status, gunCs: row.gunCs, chipCs: row.chipCs, gender: row.gender, age: row.age, cat: row.cat, note: row.note, by: row.by, at: row.at });", "  next.prev = row.prev;", ['results.mjs', 'results-ui.mjs']),
+    ('res-correction-writer-from-call', RESB, "  next.by = a.username;\n  next.at = nowIso();\n  await wixData.update(RESULTS, next, SA);", "  next.by = arg.by || a.username;\n  next.at = nowIso();\n  await wixData.update(RESULTS, next, SA);", ['security.mjs', 'pentest-results.mjs']),
+    ('res-waves-overwrite-a-parallel-save', RESB, "    await wixData.insert(RSET, { _id: wavesId(e._id, rev), kind: 'waves',", "    await wixData.save(RSET, { _id: wavesId(e._id, rev), kind: 'waves',", ['pentest-results.mjs']),
+    ('res-waves-stale-copy-accepted', RESB, "  if (arg.rev !== cur.rev) throw new Error('changed_reload');\n", '', ['results.mjs', 'results-ui.mjs']),
+    ('res-assign-without-repeat-guard', RESB, "  return once(a, 'assign', arg.key, async () => {", "  return (async (_a, _k, _kk, make) => make())(a, 'assign', arg.key, async () => {", ['pentest-results.mjs', 'security.mjs']),
+    ('res-repeat-key-any-login', RESB, "    if (old.by === a.username && old.ref) return { id: old.ref, again: true };", "    if (old.ref) return { id: old.ref, again: true };", ['pentest-results.mjs']),
+    ('res-failed-request-keeps-its-key', RESB, "    await wixData.bulkRemove(RSET, [id], SA).catch(() => null);\n    throw e;", "    throw e;", ['pentest-results.mjs']),
+    ('res-unpaid-runner-placed', RESB, "  if (!info.paid) throw new Error('not_paid');\n  const id = 'wa~' + reg._id;", "  const id = 'wa~' + reg._id;", ['results.mjs', 'pentest-results.mjs']),
+    ('res-wave-capacity-not-kept', RESB, "  if (w.cap > 0 && (await full())) throw new Error('wave_full');\n  const before = await wixData.get(ASSIGN, id, SA).catch(() => null);\n  await put(ASSIGN, { _id: id, event: e._id, regId: reg._id, wave: w.id, corral, how: 'manual', by: a.username, at: nowIso() });\n  if (w.cap > 0) {\n    const n = (await rows(ASSIGN, e._id)).filter((x) => x.wave === w.id).length;\n    if (n > w.cap) {\n      if (before) await wixData.update(ASSIGN, before, SA);\n      else await wixData.bulkRemove(ASSIGN, [id], SA);\n      throw new Error('wave_full');\n    }\n  }\n", "  const before = await wixData.get(ASSIGN, id, SA).catch(() => null);\n  await put(ASSIGN, { _id: id, event: e._id, regId: reg._id, wave: w.id, corral, how: 'manual', by: a.username, at: nowIso() });\n", ['results.mjs', 'results-ui.mjs']),
+    ('res-last-seat-race-not-rechecked', RESB, "  if (w.cap > 0) {\n    const n = (await rows(ASSIGN, e._id)).filter((x) => x.wave === w.id).length;\n    if (n > w.cap) {\n      if (before) await wixData.update(ASSIGN, before, SA);\n      else await wixData.bulkRemove(ASSIGN, [id], SA);\n      throw new Error('wave_full');\n    }\n  }\n", '', ['pentest-results.mjs']),
+    ('res-placing-again-moves-hand-placements', RESL, "  const kept = runners.filter((r) => r.wave && wid.has(r.wave) && (r.how === 'manual' || !o.redo));", "  const kept = runners.filter((r) => r.wave && wid.has(r.wave) && !o.redo);", ['unit-results.mjs', 'results.mjs']),
+    ('res-rank-setting-ignored', RESL, "  const first = rankBy === 'gun' ? P(r.gunCs) : P(r.chipCs);", "  const first = P(r.chipCs);", ['unit-results.mjs', 'results.mjs']),
+    ('res-equal-times-not-shared', RESL, "    if (x.t !== prev) {\n      place = i + 1;\n      prev = x.t;\n    }", "    place = i + 1;\n    prev = x.t;", ['unit-results.mjs']),
+    ('res-age-on-birthday-wrong', RESL, "(on.slice(5) < dob.slice(5) ? 1 : 0)", "(on.slice(5) <= dob.slice(5) ? 1 : 0)", ['unit-results.mjs']),
+    ('res-age-group-edge', RESL, "  for (const x of bounds) if (age >= x) i++;", "  for (const x of bounds) if (age > x) i++;", ['unit-results.mjs']),
+    ('res-overall-winners-listed-twice', RESL, "      const taken = new Set(excl ? overall.map((x) => x.id) : []);", "      const taken = new Set([]);", ['unit-results.mjs', 'results.mjs']),
+    ('res-year-end-age-rule-ignored', RESL, "  return rule === 'yearend' ? raceDate.slice(0, 4) + '-12-31' : raceDate;", "  return raceDate;", ['unit-results.mjs', 'results.mjs']),
+    ('res-import-unknown-category', RESL, "    if (catTyped && Array.isArray(ctx.known) && ctx.known.length && !ctx.known.some((k) => catKey(k) === catKey(cat))) {", "    if (false) {", ['unit-results.mjs', 'pentest-results.mjs']),
+    ('res-import-moves-runner-to-another-category', RESL, "    if (reg && catTyped && reg.cat && catKey(cat) !== catKey(reg.cat)) {", "    if (false) {", ['pentest-results.mjs', 'results-ui.mjs']),
+    ('res-import-error-repeats-markup', RESL, "const echo = (v, n) => cleanText(v, n).replace(/[<>&\"`]/g, '');", "const echo = (v, n) => cleanText(v, n);", ['pentest-results.mjs', 'results-ui.mjs']),
+    ('res-setup-questions-carry-answers', RESL, "      if (v) x.count++;", "      if (v) { x.count++; x.sample = (x.sample || []).concat([cleanText(v, 40)]).slice(0, 3); }", ['unit-results.mjs', 'pentest-results.mjs', 'security.mjs', 'results-ui.mjs']),
+    ('res-collections-readable-by-visitors', RESB, "const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };", "const LOCKED = { read: 'ANYONE', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };", ['security.mjs']),
+    ('res-write-without-suppress-auth', RESB, "detail: cleanText(detail, 200) }, SA);", "detail: cleanText(detail, 200) });", ['security.mjs']),
+    ('res-page-relay-list-open', FINPAGE, "      if (RES_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);\n", '', ['pentest-results.mjs', 'pagecode.mjs', 'security.mjs']),
+    ('res-awards-screen-no-escaping', DIR, "<td>'+esc(x.bib)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.ageGroup||'')+'</td><td>'+esc(x.time)+'</td></tr>'", "<td>'+esc(x.bib)+'</td><td>'+x.name+'</td><td>'+esc(x.ageGroup||'')+'</td><td>'+esc(x.time)+'</td></tr>'", ['results-ui.mjs']),
+    ('res-print-unescaped', DIR, "return '<tr>'+r.map(function(c){return '<td>'+esc(c)+'</td>'}).join('')+'</tr>'}).join('');printHtml(finDocHtml(title,", "return '<tr>'+r.map(function(c){return '<td>'+c+'</td>'}).join('')+'</tr>'}).join('');printHtml(finDocHtml(title,", ['results-ui.mjs']),
+    ('res-csv-formulas-run', DIR, 'if(/^[=@\\t\\r]/.test(s)||(/^[+\\-]/.test(s)&&!/^[+\\-][\\d\\s().\\-]*$/.test(s)))s="\'"+s;', '', ['results-ui.mjs']),
+    ('res-skip-tick-leaves-save-off', DIR, "{f.imp.skip=t.checked;var sv=document.querySelector('[data-act=res-imp-save]');if(sv)sv.disabled=!resCanSave(f.imp)}", "f.imp.skip=t.checked;", ['results-ui.mjs']),
+    ('res-lead-offered-the-edit-buttons', DIR, "+(man()?'<td><button class=\"btn sm\" data-act=\"res-fix\"", "+(true?'<td><button class=\"btn sm\" data-act=\"res-fix\"", ['results-ui.mjs']),
+    ('res-lead-offered-the-director-sections', DIR, "function rsubs(){return man()?RSUBS:RSUBS_LEAD}", "function rsubs(){return RSUBS}", ['results-ui.mjs']),
+    ('res-import-retry-new-key', DIR, "else{if(!man()||!im.dry)return;if(!im.key)im.key=newKey();", "else{if(!man()||!im.dry)return;im.key=newKey();", ['results-ui.mjs']),
 ]
 
 
