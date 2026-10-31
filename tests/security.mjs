@@ -1,20 +1,21 @@
-// SECURITY TESTS: an audit of how the four backends (RaceOS, Expo desk, Coaching, Finance) are built and what they store and
-// say. This is not an attack (pentest.mjs and pentest-finance.mjs do that); every method is checked here against a written-down policy.
+// SECURITY TESTS: an audit of how the five backends (RaceOS, Expo desk, Coaching, Finance, Results) are built and what they store and
+// say. This is not an attack (pentest.mjs, pentest-finance.mjs and pentest-results.mjs do that); every method is checked here against a written-down policy.
 //   S1  who may call what      the source is read: nothing is decided before the login is checked, and the only methods
 //                              that need no login are the expected ones
 //   S2  no login, a fake login every method that needs a login refuses 11 kinds of fake, and writes nothing
 //   S3  the role table         every method x every kind of login (director, lead, viewer, desk, coach, other, athlete)
 //   S4  what is shown to whom  money and phone numbers are hidden from viewers; a lead sees only their own claims; public methods show nothing private
-//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all four backends
+//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all five backends
 //   S6  secrets                passwords and PINs are never stored or sent back as typed; answers carry no secret; errors say nothing
 //   S7  database set-up        every collection is locked to the site admin; the shipped setup key refuses to run
-//   S8  the shipped files      no key-like text, no dangerous calls, page-code lists match the backends, Finance never deletes money records
+//   S8  the shipped files      no key-like text, no dangerous calls, page-code lists match the backends, Finance never deletes money records, Results never deletes a result
 import fs from 'fs';
 import * as R from './racedir.test.mjs';
 import * as X from './exposoft.test.mjs';
 import * as T from './training.test.mjs';
 import * as A from './rd-auth.test.mjs';
 import * as F from './finance.test.mjs';
+import * as RS from './results.test.mjs';
 import wd from 'wix-data';
 import { collections } from 'wix-data.v2';
 import { suite } from './lib.mjs';
@@ -81,6 +82,30 @@ const finDefs = [];
     collections.createDataCollection = realCreate;
   }
 }
+// Results does the same for its three collections (results, wave placements, and rules / waves / repeat keys).
+const RES_COLS = ['RDResults', 'RDWaveAssign', 'RDResSet'];
+const resDefs = [];
+{
+  const made = new Set();
+  const realQuery = wd.query;
+  const realCreate = collections.createDataCollection;
+  wd.query = (c) => {
+    const q = realQuery.call(wd, c);
+    if (RES_COLS.includes(c) && !made.has(c)) q.find = async () => { throw new Error('WDE0025: collection does not exist'); };
+    return q;
+  };
+  collections.createDataCollection = async (d) => {
+    resDefs.push(d);
+    made.add(d._id);
+    return d;
+  };
+  try {
+    await err(RS.resOverview({ token: TOK.boss, ev: 'nope' }));
+  } finally {
+    wd.query = realQuery;
+    collections.createDataCollection = realCreate;
+  }
+}
 
 /* =====================================================================================================
    S1. Who may call what: read from the source
@@ -90,6 +115,7 @@ const BACKENDS = [
   { id: 'Expo', mod: X, file: 'wix/expo/exposoft.web.js', auth: /await auth\(arg/, count: 16, pub: ['health'] },
   { id: 'Training', mod: T, file: 'wix/training/training.web.js', auth: /await (sauth|aauth)\(arg/, count: 38, pub: ['tLogin', 'tLogout', 'getTrainSettings', 'openPlans', 'athleteSignup', 'athleteLogin', 'athleteLogout', 'ensureTrainSetup', 'trainHealth'] },
   { id: 'Finance', mod: F, file: 'wix/director/finance.web.js', auth: /await fauth\(arg/, count: 23, pub: [] },
+  { id: 'Results', mod: RS, file: 'wix/director/results.web.js', auth: /await rauth\(arg/, count: 12, pub: [] },
 ];
 const BEFORE_LOGIN_CHECK = /wixData|wixEventsV2|guests\.|askClaude|elevate|collections\.|\bthrow\b|\bawait\b|\bif\b|\bfor\b/;
 for (const B of BACKENDS) {
@@ -148,6 +174,10 @@ for (const n of ['changePin', 'enrollPlan', 'endPlan', 'myHome', 'mySessions', '
 // Finance: a lead can raise and follow their own reimbursement claims ('claims'); every other method is the directors' ('manage').
 const FIN_LEVEL = {};
 for (const n of ['finListClaims', 'finSaveClaim', 'finCancelClaim']) FIN_LEVEL[n] = 'claims';
+// Results: a director or a lead may look at the start list, the results and the awards ('look'); everything else is the directors' ('manage').
+const RES_LEVEL = {};
+for (const n of ['resOverview', 'resStartList', 'resBoard', 'resAwards']) RES_LEVEL[n] = 'look';
+for (const n of ['resFormFields', 'resSaveSettings', 'resSaveWaves', 'resAssign', 'resPlace', 'resImport', 'resSaveRow', 'resVoid']) RES_LEVEL[n] = 'manage';
 for (const n of ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finDecideClaim', 'finPayClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid']) FIN_LEVEL[n] = 'manage';
 
 const TABLES = [
@@ -155,6 +185,7 @@ const TABLES = [
   { B: BACKENDS[1], level: EX_LEVEL, publics: BACKENDS[1].pub },
   { B: BACKENDS[2], level: TR_LEVEL, publics: BACKENDS[2].pub },
   { B: BACKENDS[3], level: FIN_LEVEL, publics: BACKENDS[3].pub },
+  { B: BACKENDS[4], level: RES_LEVEL, publics: BACKENDS[4].pub },
 ];
 for (const { B, level, publics } of TABLES) {
   const unplaced = B.names.filter((n) => !level[n] && !publics.includes(n));
@@ -203,6 +234,16 @@ const FIN_WANT = {
   sponsor1: () => 'not_allowed',
   ath: () => 'not_logged_in',
 };
+const RES_WANT = {
+  boss: () => null,
+  dir2: () => null,
+  lead1: (l) => (l === 'manage' ? 'director_only' : null),
+  view1: () => 'not_allowed',
+  desk1: () => 'not_allowed',
+  coach1: () => 'not_allowed',
+  sponsor1: () => 'not_allowed',
+  ath: () => 'not_logged_in',
+};
 // a call that gets past the door must fail quickly and harmlessly on a race that does not exist
 const probe =(token) => ({ token, ev: 'nope', event: 'nope', id: 'probe-item', kind: 'task', status: 'zzz', username: 'nope-user', athlete: 'nope', coach: 'nope' });
 const runMatrix = async (label, B, level, want) => {
@@ -223,6 +264,7 @@ await runMatrix('RaceOS', BACKENDS[0], RD_LEVEL, RD_WANT);
 await runMatrix('Expo', BACKENDS[1], EX_LEVEL, EX_WANT);
 await runMatrix('Training', BACKENDS[2], TR_LEVEL, TR_WANT);
 await runMatrix('Finance', BACKENDS[3], FIN_LEVEL, FIN_WANT);
+await runMatrix('Results', BACKENDS[4], RES_LEVEL, RES_WANT);
 // "waived" needs the director: a lead may approve or reject a claim but not waive the rule
 await refused(R.decideQual(Object.assign(probe(TOK.lead1), { status: 'waived' })), 'director_only', 'S3 a lead cannot waive a qualification rule');
 await refused(R.decideQual(Object.assign(probe(TOK.view1), { status: 'waived' })), 'director_only', 'S3 a viewer cannot waive one either');
@@ -298,6 +340,30 @@ ok(FIN.inv.id && FIN.ord.id && FIN.own.id && FIN.other.id, 'S4 control: the book
   const dir = await fin('finListClaims', TOK.boss, {});
   ok(dir.claims.find((c) => c.id === FIN.other.id).lines[0].amount === 7777.77 && dir.claims.every((c) => c.status === 'submitted'), 'S4 the other claim is untouched by those attempts');
 }
+// Results: a director or a lead reads names, bibs, categories, genders, ages and times. A phone number, an e-mail address and a date
+// of birth are never in an answer, and the list of the form's questions holds the names of the questions, never an answer.
+const RV = { phone: '9812300042', email: 'secret.runner@leak.test', dob: '15/03/1985', dobIso: '1985-03-15' };
+await wd.insert('RDRegs', { _id: 'REG~sec~42', event: EV, name: 'Secret Runner', cat: '10 K', bib: '42', status: 'ok', phone: RV.phone, email: RV.email, form: JSON.stringify([{ name: 'Gender', value: 'F' }, { name: 'Date of birth', value: RV.dob }, { name: 'Expected finish', value: '55:00' }]), at: new Date().toISOString() }, SA);
+const rs = (fn, tok, o) => RS[fn](Object.assign({ token: tok, ev: EV }, o));
+await rs('resSaveSettings', TOK.boss, { settings: { map: { gender: 'Gender', dob: 'Date of birth', seed: 'Expected finish' } } });
+await rs('resSaveWaves', TOK.boss, { rev: 0, waves: [{ cat: '10 K', name: 'Wave 1', start: '06:00', corrals: 'A', cap: 0 }] });
+await rs('resAssign', TOK.boss, { mode: 'seed', key: 'sec-res-assign-1' });
+await rs('resImport', TOK.boss, { text: 'bib,chip\n42,55:10\n', key: 'sec-res-import-1' });
+{
+  const hidden = Object.values(RV);
+  const looks = ['resOverview', 'resStartList', 'resBoard', 'resAwards'];
+  for (const [who, tok] of [['a director', TOK.boss], ['a lead', TOK.lead1]]) {
+    const answers = await Promise.all(looks.map((n) => rs(n, tok)));
+    const text = JSON.stringify(answers);
+    ok(text.includes('Secret Runner') && /"age":\d\d/.test(text), 'S4 control: ' + who + ' sees the runner, their category and their age (so the check below is a real one)');
+    const seenBy = hidden.filter((v) => text.includes(v));
+    ok(!seenBy.length && !/"dob"\s*:\s*"\d/.test(text) && !/"(phone|email|regId)"/.test(text), 'S4 ' + who + '\'s four answers (overview, start list, results, awards) carry no phone number, e-mail address, date of birth or registration id' + (seenBy.length ? ' [saw ' + seenBy + ']' : ''));
+  }
+  const ff = JSON.stringify(await rs('resFormFields', TOK.boss));
+  ok(ff.includes('Date of birth') && !hidden.some((v) => ff.includes(v)), 'S4 the list of the form\'s questions names "Date of birth" and holds none of the answers');
+  const row = (await rs('resBoard', TOK.boss)).rows[0];
+  eq(Object.keys(row).sort(), ['age', 'ageGroup', 'aplace', 'bib', 'cat', 'chip', 'flags', 'gender', 'gplace', 'gun', 'id', 'name', 'note', 'place', 'status', 'time', 'voidAt', 'voidBy', 'voidReason'], 'S4 a result row in an answer has exactly 19 fields');
+}
 
 /* =====================================================================================================
    S5. Sessions and tokens
@@ -330,29 +396,38 @@ ok(FIN.inv.id && FIN.ord.id && FIN.own.id && FIN.other.id, 'S4 control: the book
   const tok = await session('lead1');
   const call = (t) => err(R.saveShift(probe(t)));
   const fcall = (t) => err(F.finListClaims({ token: t, ev: EV }));
+  const rcall = (t) => err(RS.resBoard({ token: t, ev: EV }));
+  const rdir = (t) => err(RS.resFormFields({ token: t, ev: EV }));
   ok(!GATE.includes(await call(tok)), 'S5 a lead can write (control)');
   ok(!GATE.includes(await fcall(tok)), 'S5 a lead can use their reimbursement claims in Finance (control)');
+  ok(!GATE.includes(await rcall(tok)) && (await rdir(tok)) === 'director_only', 'S5 a lead can look at the results but not change the setup (control)');
   const row = rowOf('lead1');
   const set = (role) => wd.update('ExpoStaff', Object.assign({}, rowOf('lead1'), { role }), SA);
   await set('viewer');
   eq(await call(tok), 'read_only', 'S5 made a viewer: the same token can no longer write');
   eq(await fcall(tok), 'not_allowed', 'S5  and Finance closes at once too');
+  eq(await rcall(tok), 'not_allowed', 'S5  and Results closes at once too');
   await set('desk');
   eq(await call(tok), 'not_allowed', 'S5 made desk staff: the same token is refused by RaceOS');
   eq(await fcall(tok), 'not_allowed', 'S5  and by Finance');
+  eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
   eq((await R.whoami({ token: tok })).role, 'desk', 'S5  (and whoami still answers, as it does for desk staff)');
   await set('coach');
   eq(await call(tok), 'not_allowed', 'S5 made a coach: refused');
   eq(await fcall(tok), 'not_allowed', 'S5  and by Finance');
+  eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
   await refused(R.whoami({ token: tok }), 'not_allowed', 'S5  and whoami refuses too');
   await set('director');
   ok(!GATE.includes(await err(F.finLedger({ token: tok, ev: EV }))), 'S5 promoted to director: the same token opens the whole of Finance at once');
+  ok(!GATE.includes(await rdir(tok)), 'S5  and the setup of Results at once');
   await set('lead');
   ok(!GATE.includes(await call(tok)), 'S5 made a lead again: writes again');
   eq(await err(F.finLedger({ token: tok, ev: EV })), 'director_only', 'S5  and the director-only part of Finance closes again at once');
+  eq(await rdir(tok), 'director_only', 'S5  and the setup of Results closes again at once');
   await wd.bulkRemove('ExpoStaff', [row._id], SA);
   await refused(R.whoami({ token: tok }), 'not_logged_in', 'S5 login removed: the token stops working at once');
   await refused(F.finListClaims({ token: tok, ev: EV }), 'not_logged_in', 'S5  in Finance too');
+  await refused(RS.resBoard({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Results');
   await wd.insert('ExpoStaff', Object.assign({}, row, { _id: undefined }), SA);
 }
 {
@@ -365,6 +440,12 @@ ok(FIN.inv.id && FIN.ord.id && FIN.own.id && FIN.other.id, 'S4 control: the book
   const fl = await F.finListClaims({ token: TOK.lead1, ev: EV, username: 'boss', user: 'boss', role: 'director', by: 'boss', as: 'boss', me: { username: 'boss', role: 'director' } });
   ok(fl.role === 'lead' && fl.claims.length === 1 && fl.claims[0].mine === true, 'S5 a lead\'s token with "username: boss" and "role: director" in the Finance call is still a lead, with only their own claim');
   await refused(F.finLedger({ token: TOK.lead1, ev: EV, username: 'boss', role: 'director', by: 'boss' }), 'director_only', 'S5  and still cannot read the ledger');
+  // Results: a lead's token with "boss" and "director" in the call is still a lead; a director's correction is written under the director's own name
+  await refused(RS.resFormFields({ token: TOK.lead1, ev: EV, username: 'boss', role: 'director', by: 'boss' }), 'director_only', 'S5 a lead\'s token with "username: boss" and "role: director" in a Results call is still a lead');
+  await refused(RS.resSaveSettings({ token: TOK.view1, ev: EV, username: 'boss', role: 'admin', settings: {} }), 'not_allowed', 'S5  and a viewer\'s token cannot save the Results setup either');
+  await RS.resSaveRow({ token: TOK.dir2, ev: EV, id: 'rs~' + EV + '~42', fields: { note: 'checked at the desk' }, reason: 'security check', by: 'boss', username: 'boss', byName: 'The Director', at: '1999-01-01' });
+  const fixed = [...DB.RDResults.values()].find((x) => x._id === 'rs~' + EV + '~42');
+  ok(fixed.by === 'dir2' && fixed.note === 'checked at the desk' && fixed.at !== '1999-01-01', 'S5 a correction sent with "by: boss" and an old date in the call is written under the logged-in director\'s own name and the real time');
   const mine = await F.finSaveClaim({ token: TOK.lead1, ev: EV, by: 'boss', byName: 'The Director', username: 'boss', status: 'approved', approved: '99999', decidedBy: 'boss', selfApproved: false, lines: [{ date: day(-2), desc: 'Tea for volunteers', amount: '120' }], key: 'sec-clm-mass-1' });
   const made = (await F.finListClaims({ token: TOK.boss, ev: EV })).claims.find((c) => c.id === mine.id);
   ok(made && made.by === 'lead1' && made.status === 'submitted' && made.approved === 0 && !made.decidedBy, 'S5 a claim raised with "by", "status: approved" and "approved: 99999" in the call is still the lead\'s own, submitted and not approved');
@@ -384,10 +465,12 @@ ok(FIN.inv.id && FIN.ord.id && FIN.own.id && FIN.other.id, 'S4 control: the book
   const t = (await R.login({ username: 'dir2', password: 'Sec-pass-1' })).token;
   ok(!GATE.includes(await err(F.finOverview({ token: t, ev: EV }))), 'S5 a director\'s new session opens Finance');
   await R.logout({ token: t });
-  await refused(F.finOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 after logout Finance refuses the token too (one session for all four backends)');
+  await refused(F.finOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 after logout Finance refuses the token too');
+  await refused(RS.resBoard({ token: t, ev: EV }), 'not_logged_in', 'S5 and so does Results (one session for all five backends)');
   const expired = await session('dir2', 1000);
   await wd.update('ExpoSessions', Object.assign({}, [...DB.ExpoSessions.values()].find((s) => s.token === expired), { expires: new Date(Date.now() - 1000).toISOString() }), SA);
   await refused(F.finOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5 a session that has run out is refused by Finance');
+  await refused(RS.resBoard({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Results');
 }
 
 /* =====================================================================================================
@@ -416,6 +499,11 @@ ok(!JSON.stringify([...DB.RDAudit.values()]).match(new RegExp([made.secret, made
   ok(notes.includes('invoice raised') && notes.includes('claim raised'), 'S6 control: the Finance changes made above are in the change notes');
   ok(![FS.bank, FS.payTo, 'secret.upi'].some((s) => notes.includes(s)) && !/token|password/i.test(JSON.stringify([...DB.RDFinSet.values()])), 'S6 the Finance change notes hold no bank, UPI or payee detail, and the safe-to-repeat records hold no token or password');
 }
+{
+  const notes = JSON.stringify([...DB.RDAudit.values()]);
+  ok(notes.includes('results imported') && notes.includes('waves saved') && notes.includes('runners placed'), 'S6 control: the Results changes made above are in the change notes');
+  ok(!Object.values(RV).some((v) => notes.includes(v)) && !/token|password/i.test(JSON.stringify([...DB.RDResSet.values()])), 'S6 the Results change notes hold no phone number, e-mail address or date of birth, and the records of its rules, waves and repeat keys hold no token or password');
+}
 // the PIN of an athlete
 ok(!all.includes('"' + ATH_PIN + '"'), 'S6 an athlete\'s PIN is not in the database as typed');
 const athRow = [...DB.TrainAthletes.values()][0];
@@ -439,6 +527,7 @@ const READS = [
   () => X.whoami({ token: TOK.desk1 }), () => X.loadPage({ token: TOK.desk1 }), () => X.listEvents({ token: TOK.boss }), () => X.whoami({ token: TOK.boss }),
   () => T.listAthletes({ token: TOK.boss }), () => T.athleteDetail({ token: TOK.boss, id: ath1 }), () => T.listCoaches({ token: TOK.boss }), () => T.listPlans({ token: TOK.boss }), () => T.getTrainSettings(), () => T.openPlans(), () => T.myHome({ token: TOK.ath }), () => T.mySessions({ token: TOK.ath }), () => T.tWhoami({ token: TOK.boss }),
   () => F.finOverview(asBoss), () => F.finSettings(asBoss), () => F.finListInvoices(asBoss), () => F.finListOrders(asBoss), () => F.finListClaims(asBoss), () => F.finCash(asBoss), () => F.finLedger(asBoss), () => F.finListClaims({ token: TOK.lead1, ev: EV }),
+  () => RS.resOverview(asBoss), () => RS.resFormFields(asBoss), () => RS.resStartList(asBoss), () => RS.resBoard(asBoss), () => RS.resAwards(asBoss), () => RS.resBoard({ token: TOK.lead1, ev: EV }),
 ];
 {
   const bad = [];
@@ -455,7 +544,7 @@ const READS = [
     const l = leaks(r);
     if (l.length) bad.push(read.toString().slice(6, 40) + ' ' + l.join(','));
   }
-  ok(answered >= 36, 'S6 control: ' + answered + ' of ' + READS.length + ' screens\' calls were answered with real data');
+  ok(answered >= 42, 'S6 control: ' + answered + ' of ' + READS.length + ' screens\' calls were answered with real data');
   ok(!bad.length, 'S6 no answer holds a password, PIN hash, salt, failure count, lock time or token' + (bad.length ? ' [' + bad.join('; ') + ']' : ''));
 }
 const edited = await R.saveTeam({ token: TOK.boss, username: 'new.lead', name: 'New Lead', role: 'lead', edit: true });
@@ -511,6 +600,10 @@ const finText = src('wix/director/finance.web.js');
 ok(finDefs.length === expected(finText) && finDefs.length === 5 && finDefs.every(locked), 'S7 Finance makes its ' + finDefs.length + ' collections on first use, each readable, changeable and emptied only by the site admin (invoices, orders, claims, the ledger and the details printed on invoices are never open to a visitor)');
 eq(finDefs.map((d) => d._id).sort(), FIN_COLS.slice().sort(), 'S7 and they are exactly invoices, orders, claims, the ledger and the Finance settings');
 ok(finDefs.every((d) => d.fields.length >= 5 && d.fields.every((f) => f.type === 'TEXT')), 'S7 each has its fields (stored as text, so a number can never be turned into a float by the database)');
+const resText = src('wix/director/results.web.js');
+ok(resDefs.length === expected(resText) && resDefs.length === 3 && resDefs.every(locked), 'S7 Results makes its ' + resDefs.length + ' collections on first use, each readable, changeable and emptied only by the site admin (the results, the wave placements, and the rules, waves and repeat keys are never open to a visitor)');
+eq(resDefs.map((d) => d._id).sort(), RES_COLS.slice().sort(), 'S7 and they are exactly the results, the wave placements and the Results settings');
+ok(resDefs.every((d) => d.fields.length >= 5 && d.fields.every((f) => f.type === 'TEXT')), 'S7 each has its fields (stored as text, so a time can never be turned into a float by the database)');
 const rdIds = new Set(rdDefs.map((d) => d._id));
 const trIds = new Set(trDefs.map((d) => d._id));
 const missing = (names, have) => names.filter((n) => !have.has(n));
@@ -518,6 +611,7 @@ ok(!missing(consts(rdText), rdIds).length, 'S7 every collection RaceOS uses is c
 ok(!missing(consts(src('wix/expo/exposoft.web.js')), rdIds).length, 'S7 every collection the Expo desk uses is created by the RaceOS setup (it has none of its own)' + (missing(consts(src('wix/expo/exposoft.web.js')), rdIds).length ? ' [' + missing(consts(src('wix/expo/exposoft.web.js')), rdIds) + ']' : ''));
 ok(!missing(consts(trText), new Set([...trIds, ...rdIds])).length, 'S7 every collection Training uses is created by its own or the RaceOS setup' + (missing(consts(trText), new Set([...trIds, ...rdIds])).length ? ' [' + missing(consts(trText), new Set([...trIds, ...rdIds])) + ']' : ''));
 ok(!missing(consts(finText), new Set([...finDefs.map((d) => d._id), ...rdIds])).length, 'S7 every collection Finance uses is created by its own set-up or the RaceOS one' + (missing(consts(finText), new Set([...finDefs.map((d) => d._id), ...rdIds])).length ? ' [' + missing(consts(finText), new Set([...finDefs.map((d) => d._id), ...rdIds])) + ']' : ''));
+ok(!missing(consts(resText), new Set([...resDefs.map((d) => d._id), ...rdIds])).length, 'S7 every collection Results uses is created by its own set-up or the RaceOS one' + (missing(consts(resText), new Set([...resDefs.map((d) => d._id), ...rdIds])).length ? ' [' + missing(consts(resText), new Set([...resDefs.map((d) => d._id), ...rdIds])) + ']' : ''));
 ok(['ExpoStaff', 'ExpoSessions', 'RDRate', 'RDAudit'].every((c) => rdIds.has(c)) && ['TrainAthletes'].every((c) => trIds.has(c)), 'S7 the collections that hold logins, sessions, tries and audit notes are among them');
 // the key
 for (const [name, text] of [['racedir.web.js', rdText], ['training.web.js', trText]]) {
@@ -584,8 +678,9 @@ const ALLOWED = listOf(DP, 'ALLOWED');
 const EXPO_ALLOWED = listOf(DP, 'EXPO_ALLOWED');
 const TRAIN_ALLOWED = listOf(DP, 'TRAIN_ALLOWED');
 const FIN_ALLOWED = listOf(DP, 'FIN_ALLOWED');
-ok(ALLOWED && EXPO_ALLOWED && TRAIN_ALLOWED && FIN_ALLOWED, 'S8 the director page has its four lists (RaceOS, Expo desk, Coaching, Finance)');
-ok(ALLOWED.every((n) => RD_NAMES.includes(n)) && EXPO_ALLOWED.every((n) => BACKENDS[1].names.includes(n)) && TRAIN_ALLOWED.every((n) => BACKENDS[2].names.includes(n)) && FIN_ALLOWED.every((n) => BACKENDS[3].names.includes(n)), 'S8 every name on those lists exists in its backend (else the screen would say "backend old")');
+const RES_ALLOWED = listOf(DP, 'RES_ALLOWED');
+ok(ALLOWED && EXPO_ALLOWED && TRAIN_ALLOWED && FIN_ALLOWED && RES_ALLOWED, 'S8 the director page has its five lists (RaceOS, Expo desk, Coaching, Finance, Results)');
+ok(ALLOWED.every((n) => RD_NAMES.includes(n)) && EXPO_ALLOWED.every((n) => BACKENDS[1].names.includes(n)) && TRAIN_ALLOWED.every((n) => BACKENDS[2].names.includes(n)) && FIN_ALLOWED.every((n) => BACKENDS[3].names.includes(n)) && RES_ALLOWED.every((n) => BACKENDS[4].names.includes(n)), 'S8 every name on those lists exists in its backend (else the screen would say "backend old")');
 ok(!['openEvents', 'openShifts', 'volunteerSignup', 'volunteerStatus'].some((n) => ALLOWED.includes(n)), 'S8 the director page does not carry the public volunteer methods');
 ok(RD_NAMES.filter((n) => !ALLOWED.includes(n) && !['openEvents', 'openShifts', 'volunteerSignup', 'volunteerStatus'].includes(n)).length === 0, 'S8 and every other RaceOS method is reachable from it (none forgotten)' + RD_NAMES.filter((n) => !ALLOWED.includes(n) && !['openEvents', 'openShifts', 'volunteerSignup', 'volunteerStatus'].includes(n)));
 ok(!EXPO_ALLOWED.some((n) => ['login', 'logout', 'ensureSetup', 'tLogin'].includes(n)), 'S8 the Expo desk list has no login, logout or setup (it has no login of its own)');
@@ -622,6 +717,30 @@ ok(![...athList, ...coachList, ...(listOf('wix/director/volunteer-page-code.js',
   const bodyOf = (n) => (BACKENDS[3].methods.find((m) => m.name === n) || { body: '' }).body;
   const noOnce = creates.filter((n) => !/await once\(a, '\w+', arg\.key/.test(bodyOf(n)));
   ok(!noOnce.length && mutating.length >= 15, 'S8 every Finance call that creates or pays something can be sent twice safely (it goes through the repeat guard)' + (noOnce.length ? ' [' + noOnce + ']' : ''));
+}
+// Results: offered by the director page only, every method reachable, and written so that a result is never deleted
+eq(RES_ALLOWED.slice().sort(), BACKENDS[4].names.slice().sort(), 'S8 the director page offers exactly the 12 Results methods (none forgotten, none extra)');
+ok(![...athList, ...coachList, ...(listOf('wix/director/volunteer-page-code.js', 'ALLOWED') || [])].some((n) => /^res[A-Z]/.test(n)) && ![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED].some((n) => BACKENDS[4].names.includes(n)), 'S8 no other page (volunteer, athlete, coach) and no other list carries a Results method');
+{
+  const pc = src(DP);
+  ok(/import \* as res from 'backend\/results\.web';/.test(pc) && /msg\.mod === 'res'/.test(pc) && /RES_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Results and refuses a Results call that is not on its list');
+  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*throw tidyError\(e, 'results'\);/.test(resText), 'S8 every Results method answers through the wrapper that turns an unexpected error into "server_error"');
+  const lines = resText.split('\n');
+  const callsOf = (re) => lines.map((l, i) => [l, i + 1]).filter(([l]) => re.test(l));
+  const noSA = callsOf(/wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/).filter(([l]) => !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
+  ok(!noSA.length, 'S8 every Results read and write of a locked collection passes suppressAuth (the collections are admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
+  const queries = resText.split(/;\s*\n/).filter((x) => /wixData\.query\(/.test(x));
+  const noSAq = queries.filter((x) => !/\.find\(SA\)/.test(x) && !/all\(\(\) => wixData\.query\(/.test(x) && !/rows\(\w+, /.test(x)).map((x) => x.trim().slice(0, 60));
+  ok(queries.length >= 6 && !noSAq.length, 'S8 and so does every query (' + queries.length + ' of them end in find(SA), or are handed to the helper that does)' + (noSAq.length ? ' [' + noSAq + ']' : ''));
+  ok(!/bulkRemove\(RESULTS\b|\.remove\(|bulkRemove\(\s*['"]/.test(resText) && !/wixData\.(remove|bulkRemove)\(RESULTS/.test(resText), 'S8 nothing removes a result: a wrong result is corrected, a result that should not count is voided, and both keep the old values');
+  const removers = [...resText.matchAll(/bulkRemove\((\w+)/g)].map((m) => m[1]);
+  ok(removers.length >= 5 && removers.every((c) => c === 'ASSIGN' || c === 'RSET'), 'S8 the only rows Results ever removes are wave placements (a runner taken out of a wave) and its own old bookkeeping (old wave revisions, a repeat key whose request failed): ' + [...new Set(removers)].join(', '));
+  ok(!/arg\.(username|user|role|by|byName|me|as)\b/.test(resText), 'S8 no Results method reads who is asking from the call (the session token is the only identity)');
+  const bodyOf = (n) => (BACKENDS[4].methods.find((m) => m.name === n) || { body: '' }).body;
+  const noOnce = ['resAssign', 'resImport'].filter((n) => !/return once\(a, '\w+', arg\.key/.test(bodyOf(n)));
+  ok(!noOnce.length, 'S8 the two calls that create many rows at once (placing the runners, importing results) can be sent twice safely: they go through the repeat guard' + (noOnce.length ? ' [' + noOnce + ']' : ''));
+  const shownDob = src('wix/director/director-embed.html').split('RESULTS-START')[1].split('RESULTS-END')[0].split('\n').map((l) => l.replace(/map\.dob/g, '')).filter((l) => /\.dob\b/.test(l) && !/\bd\.dob/.test(l)); // (map.dob is the name of a form question, not an answer)
+  ok(!shownDob.length, 'S8 the Results screen never reads a date of birth out of an answer (it only sends what the director types)' + (shownDob.length ? ' [' + shownDob.map((l) => l.trim().slice(0, 50)) + ']' : ''));
 }
 // source collections of the race lists are only ever read
 {
