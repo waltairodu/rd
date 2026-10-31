@@ -1407,13 +1407,15 @@ function resBoardView(){
   if(x.voided.length)vd='<div class="card"><h3>Voided results</h3>'+ftable(['Bib','Name','Category','Reason','Who and when'].concat(man()?['']:[]),x.voided.map(function(r){return '<tr><td>'+esc(r.bib)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.cat)+'</td><td>'+esc(r.voidReason)+'</td><td>'+esc(r.voidBy)+' <small class="muted">'+esc(String(r.voidAt||'').slice(0,10))+'</small></td>'+(man()?'<td><button class="btn sm" data-act="res-restore" data-id="'+esc(r.id)+'">Restore</button></td>':'')+'</tr>'}).join(''))+'</div>';
   return top+resFormView()+'<div class="card">'+ftable(heads,tr)+'</div>'+vd;
 }
+// Save is on once a file has been checked, has lines to save, and has no problems (or the director chose to skip the lines with problems).
+function resCanSave(im){var d=im.dry;return !!(d&&d.summary&&d.summary.items&&(!d.errors.length||im.skip))}
 function resImpView(){
   var f=S.res,im=f.imp,d=im.dry;
   var inst='<div class="card"><h3>Import results</h3><p class="muted" style="margin-top:6px">Paste the timing company\'s file, or choose it. It needs a <b>bib</b> column and a time column: <b>chip</b>, <b>gun</b>, or just <b>time</b>. Optional columns: <b>status</b> (DNF, DNS, DQ), and for a bib that is not registered also <b>name</b> and <b>category</b> (and <b>gender</b>, <b>age</b> or <b>dob</b>). Commas, semicolons and tabs all work; up to 5000 lines. Nothing is saved until you press Save, and a result already saved is kept unless you tick "replace".</p>'
     +'<label class="f" style="margin-top:8px">Choose a file<input id="resFile" type="file" accept=".csv,.txt,text/csv,text/plain"></label>'
     +'<label class="f" style="margin-top:8px">Or paste it here<textarea id="resText" rows="9" maxlength="1500000" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace">'+esc(im.text)+'</textarea></label>'
     +'<div class="row" style="margin-top:8px;flex-wrap:wrap"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="resSkip"'+(im.skip?' checked':'')+'> skip lines with problems</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="resRepl"'+(im.replace?' checked':'')+'> replace results already saved</label></div>'
-    +'<div class="row" style="margin-top:10px"><button class="btn" data-act="res-imp-check">Check the file</button><button class="btn pri" data-act="res-imp-save"'+(d&&d.summary&&d.summary.items&&(!d.errors.length||im.skip)?'':' disabled')+'>Save results</button></div></div>';
+    +'<div class="row" style="margin-top:10px"><button class="btn" data-act="res-imp-check">Check the file</button><button class="btn pri" data-act="res-imp-save"'+(resCanSave(im)?'':' disabled')+'>Save results</button></div></div>';
   if(!d)return inst;
   var s=d.summary;
   var res='<div class="card"><h3>What the file holds</h3><div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">'+pill(s.items+' lines read','good')+pill(s.matched+' match a registration')+(s.unmatched?pill(s.unmatched+' not registered','warn'):'')+pill(s.fin+' finished')+pill(s.dnf+' DNF')+((s.dns||0)?pill(s.dns+' DNS'):'')+((s.dsq||0)?pill(s.dsq+' disqualified'):'')+pill(s.isNew+' new')+'</div>'
@@ -1535,7 +1537,7 @@ function resSubmit(f,id,d){
 document.addEventListener('change',function(e){
   var t=e.target,f=S.res;if(!t||!f||S.tab!=='res')return;
   if(t.id==='resCat'){f.cat=t.value;render()}
-  else if(t.id==='resSkip')f.imp.skip=t.checked;
+  else if(t.id==='resSkip'){f.imp.skip=t.checked;var sv=document.querySelector('[data-act=res-imp-save]');if(sv)sv.disabled=!resCanSave(f.imp)}
   else if(t.id==='resRepl')f.imp.replace=t.checked;
   else if(t.id==='resFile'){var fl=t.files&&t.files[0];if(!fl)return;if(fl.size>1500000){toast('That file is too big. Paste at most 1.5 MB at a time.',true);return}
     try{var rd=new FileReader();rd.onload=function(){f.imp.text=String(rd.result||'');f.imp.dry=null;f.imp.key='';render()};rd.onerror=function(){toast('That file could not be read.',true)};rd.readAsText(fl)}catch(x){toast('That file could not be read.',true)}}

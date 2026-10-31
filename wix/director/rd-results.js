@@ -290,17 +290,14 @@ export function regInfo(reg, map) {
     paid: !!reg && reg.status === 'ok',
   };
 }
-// Every question the form asks, with how many answered and a few sample answers (so the director can pick the right one).
+// Every question the form asks, with how many answered. The answers themselves are never copied out of a registration here: a question
+// may hold a date of birth, a phone number or anything else a runner typed, and the setup screen only needs the question's name.
 export function formFields(regs) {
   const f = new Map();
   (Array.isArray(regs) ? regs : []).slice(0, 3000).forEach((r) => {
     formAnswers(r.form).forEach((v, k) => {
-      const x = f.get(k) || { name: cleanText(k, 80), count: 0, sample: [] };
-      if (v) {
-        x.count++;
-        const t = cleanText(v, 40);
-        if (x.sample.length < 3 && !x.sample.includes(t)) x.sample.push(t);
-      }
+      const x = f.get(k) || { name: cleanText(k, 80), count: 0 };
+      if (v) x.count++;
       f.set(k, x);
     });
   });

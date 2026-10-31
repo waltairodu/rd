@@ -75,7 +75,8 @@ const MAP = { gender: 'Gender', dob: 'Date of birth', age: 'Age', seed: 'Expecte
   const fa = L.formAnswers(JSON.stringify([{ name: 'A', value: '1' }, { name: 'A', value: '2' }, { name: 'B', value: 5 }, { name: 7, value: 'x' }, null, 'x']));
   eq([...fa.entries()], [['A', '1'], ['B', '']], 'U5 form answers: the first answer to a question counts; non-text answers and malformed items are ignored');
   const ff = L.formFields([{ form: FORM('M', '1/1/1990', '36', '') }, { form: FORM('F', '2/2/1991', '', '') }, { form: FORM('M', '3/3/1992', '30', '') }, { form: FORM('F', '4/4/1993', '31', '') }, { form: '[]' }]);
-  eq(ff.map((x) => [x.name, x.count, x.sample.length]), [['Gender', 4, 2], ['Date of birth', 4, 3], ['Age', 3, 3], ['Expected', 0, 0]], 'U5 each question is listed with how many answered and up to three different sample answers');
+  eq(ff.map((x) => [x.name, x.count]), [['Gender', 4], ['Date of birth', 4], ['Age', 3], ['Expected', 0]], 'U5 each question is listed with how many answered');
+  ok(ff.every((x) => Object.keys(x).sort().join() === 'count,name') && !/1990|1991|1992|1993|1\/1|2\/2/.test(JSON.stringify(ff)), 'U5 and nothing a runner answered is copied into that list (a question may hold a date of birth)');
 }
 
 /* ---------- U6 ranking and the board ---------- */
