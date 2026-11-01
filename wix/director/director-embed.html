@@ -182,7 +182,7 @@ function api(method,arg,ms,mod){
   });
 }
 // Back to the login page: the session is over (logged out, expired, or ended by a director).
-function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.loginErr=why?msg(why):'';render()}
+function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -227,6 +227,7 @@ async function loadTab(){
     else if(t==='approvals'){S.tplErr='';var ap=await Promise.all([api('listPlan',{kinds:planKindsFor(t)}),man()?api('approvalTemplate').catch(function(x){S.tplErr=x.message;return null}):Promise.resolve(null)]);S.plan=ap[0];S.tpl=ap[1]}
     else if(t==='fin'&&(man()||isLead()))await finLoad();
     else if(t==='res'&&(man()||isLead()))await resLoad();
+    else if(t==='prn'&&(man()||isLead()))await prnLoad();
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -247,12 +248,12 @@ function loginView(){
    +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
    +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
 }
-var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4'};
+var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4',print:'M7 8V3h10v5M7 17H4v-8h16v8h-3M7 14h10v7H7z'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
-  if(id==='fin'||id==='res')return man()||isLead();
+  if(id==='fin'||id==='res'||id==='prn')return man()||isLead();
   if(id==='coaching'||id==='setup'||id==='team')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
@@ -549,7 +550,7 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
   app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
 }
@@ -822,6 +823,7 @@ document.addEventListener('click',function(e){
   if(act==='tab')doTab(b.getAttribute('data-tab'));
   else if(act.indexOf('fin-')===0)finAct(b,act,id);
   else if(act.indexOf('res-')===0)resAct(b,act,id);
+  else if(act.indexOf('prn-')===0)prnAct(b,act,id);
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
@@ -940,6 +942,7 @@ document.addEventListener('submit',function(e){
     await loadTab();if(S.teamSecret){var sc2=$('#secretCard');if(sc2&&sc2.scrollIntoView)sc2.scrollIntoView({block:'start'})}});
   else if(id==='finForm'||id==='finSetForm')finSubmit(f,id,d);
   else if(id==='resForm'||id==='resSetForm'||id==='resPlaceForm')resSubmit(f,id,d);
+  else if(id==='prnForm'||id==='prnPubForm')prnSubmit(f,id,d);
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
 /* ---------- finance: invoices, orders, claims, cash, the ledger (FINANCE-BEGIN) ---------- */
@@ -1551,6 +1554,234 @@ document.addEventListener('input',function(e){
   if(t.id==='resText'){f.imp.text=t.value;f.imp.dry=null;f.imp.key='';var sb=document.querySelector('[data-act=res-imp-save]');if(sb)sb.disabled=true}
 });
 /* ---------- results: end (RESULTS-END) ---------- */
+
+/* ---------- Bibs and certificates: designs, previews, printing, the runner page (PRINT-START) ----------
+   Everything for the Bibs & certificates tab lives in this block. It talks to print.web.js through the page (calls tagged mod:'prn').
+   A director designs, prints and decides what the public runner page shows; a lead can only preview and print. The server decides
+   who may do what; this only hides what would be refused. The papers are made on the server from one library: this screen shows the
+   page it is given in a frame that cannot run anything, and prints it. What comes back never holds a date of birth, a phone number
+   or an e-mail address. Print-outs go in pages (60 bibs or 25 certificates a call) and are joined here, so a big race cannot stall. */
+S.prn=null;
+var PSUBS=[['bib','Bibs'],['cert','Certificates'],['pub','Runner page']];
+var PSUBS_LEAD=[['bib','Bibs'],['cert','Certificates']];
+var PDEF={bib:{wmm:'190',hmm:'140',page:'A4',orient:'portrait',accent:'#1b5e9b',title:'{race}',subtitle:'{date} · {venue}',nameMode:'either',showCat:true,catColors:{},sponsors:'',tearoff:false,holes:true,footer:''},
+  cert:{orient:'landscape',border:'double',accent:'#1b5e9b',bg:'#ffffff',logo:'',title:'Certificate of Achievement',intro:'This is to certify that',body:'has successfully completed the {cat} at {race} on {date}, finishing {place} overall in a time of {time}.',stats:true,sign1Name:'',sign1Role:'',sign2Name:'',sign2Role:'',sponsors:'',footer:''}};
+(function(){var add={bad_template:'Check the design. A bib is 80 to 300 mm wide and 60 to 210 mm high, colours look like #1b5e9b, and each text must be short enough.',
+  bad_image:'A picture address must start with https:// and be on your Wix media or vtra.run. Use one of those, or write the sponsor\'s name instead.',
+  bad_from:'The print-out got out of step. Press the button again.',bad_bib:'That is not a bib number.',
+  bad_spares:'For spare bibs give the first and the last number: whole numbers from 1, the last not below the first, and 500 at most.',
+  bad_flags:'Those switches are not valid.',certs_need_results:'Certificates are made from results. Turn the results on first.'};
+  Object.keys(add).forEach(function(k){if(!ERR[k])ERR[k]=add[k]})})();
+function pa(m,a,ms){return api(m,a,ms,'prn')}
+function psubs(){return man()?PSUBS:PSUBS_LEAD}
+function psub(){var f=S.prn,l=psubs(),s=(f&&f.sub)||'bib';for(var i=0;i<l.length;i++)if(l[i][0]===s)return s;return 'bib'}
+function pnew(){return {ev:S.ev,sub:'bib',err:'',ov:null,draft:{bib:null,cert:null},dirty:{bib:false,cert:false},pv:{bib:null,cert:null},pvErr:'',pvSeq:0,pvBib:'',cat:'',one:'',sp:{from:'',to:''},prog:''}}
+// the design as the form holds it: text for every field, true or false for ticks, an own colour only where one was chosen
+function pdraft(kind,t){var d={};Object.keys(PDEF[kind]).forEach(function(k){var v=t?t[k]:undefined;
+  if(k==='catColors')d.catColors=Object.assign({},v&&typeof v==='object'?v:{});
+  else if(k==='sponsors')d.sponsors=Array.isArray(v)?v.join('\n'):String(v==null?'':v);
+  else if(typeof PDEF[kind][k]==='boolean')d[k]=v===undefined?PDEF[kind][k]:!!v;
+  else d[k]=v==null?'':String(v)});return d}
+function ptpl(kind){var d=S.prn.draft[kind],o={};Object.keys(d).forEach(function(k){o[k]=k==='catColors'?Object.assign({},d[k]):d[k]});return o}
+// the form's fields into the draft (the screen is not redrawn while a person types)
+function pread(kind){
+  var f=S.prn,fm=$('#prnForm');if(!f||!fm||fm.getAttribute('data-kind')!==kind||!f.draft[kind])return;var d=f.draft[kind];
+  Object.keys(PDEF[kind]).forEach(function(k){if(k==='catColors')return;var el=fm.elements[k];if(!el)return;d[k]=el.type==='checkbox'?el.checked:el.value});
+  if(kind==='bib'){var cc={};[].forEach.call(fm.querySelectorAll('.pc-row'),function(r){var au=r.querySelector('.pc-auto'),co=r.querySelector('.pc-col');if(au&&co&&!au.checked)cc[r.getAttribute('data-cat')]=co.value});d.catColors=cc}
+}
+function pchk(name,label,on){return '<label class="f" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="'+name+'"'+(on?' checked':'')+'> '+esc(label)+'</label>'}
+function ppl(n,w){return n+' '+w+(n===1?'':'s')}
+function pvars(list){return (list||[]).map(function(v){return '{'+v+'}'}).join(' ')}
+function pcolors(cats,d){
+  if(!cats.length)return '';
+  return '<div style="grid-column:1/-1"><b>Colour of each category</b><p class="muted" style="margin:2px 0 6px">Automatic gives each category a colour of its own. Untick Automatic to choose one.</p>'
+    +cats.map(function(c){var own=d.catColors&&d.catColors[c];return '<div class="row pc-row" data-cat="'+esc(c)+'" style="gap:10px;align-items:center;margin:4px 0"><span style="min-width:90px">'+esc(c)+'</span><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="pc-auto"'+(own?'':' checked')+'> Automatic</label><input type="color" class="pc-col" value="'+esc(own||d.accent||'#1b5e9b')+'" aria-label="Colour for '+esc(c)+'"'+(own?'':' disabled')+'></div>'}).join('')+'</div>';
+}
+function prnLink(){var b=okUrl(S.base)?String(S.base):'https://www.vtra.run/volunteer';return b.replace(/\/volunteer.*$/,'').replace(/\/+$/,'')+'/runner?ev='+encodeURIComponent(S.ev)}
+
+/* ---------- loading ---------- */
+async function prnLoad(){
+  if(!S.prn||S.prn.ev!==S.ev)S.prn=pnew();
+  var f=S.prn;f.err='';
+  try{
+    f.ov=await pa('prnOverview');
+    ['bib','cert'].forEach(function(k){if(!f.draft[k]||!f.dirty[k]){f.draft[k]=pdraft(k,f.ov[k]);f.dirty[k]=false}});
+  }catch(e){f.err=msg(e.message);toast(f.err,true)}
+  if(!f.err&&psub()!=='pub')setTimeout(function(){prnPreviewNow(psub())},30);
+}
+
+/* ---------- the screen ---------- */
+function prnView(){
+  var f=S.prn;if(!f||f.ev!==S.ev)return planLoading();
+  var sub=psub(),list=psubs();
+  var nav='<div class="row" role="tablist" aria-label="Bibs and certificates sections">'+list.map(function(t){return '<button class="btn sm'+(sub===t[0]?' pri':'')+'" role="tab" aria-selected="'+(sub===t[0])+'" data-act="prn-sub" data-sub="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
+  var body=f.err?'<div class="card"><p class="muted" role="alert">'+esc(f.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="retry">Try again</button></div></div>'
+    :!f.ov?planLoading():sub==='pub'?prnPubView():prnDesignView(sub);
+  if(f.ov&&!f.err&&sub!=='pub')setTimeout(function(){if(S.tab==='prn')prnFit(psub())},0);
+  return '<div class="stack">'+nav+(man()?'':'<p class="muted">You can preview and print bibs and certificates. Directors change the design.</p>')+body+'</div>';
+}
+function prnDoc(pv){return pv?pv.head+pv.body+'</body></html>':''}
+function prnWho(f,kind){var pv=f.pv[kind];if(f.pvErr)return f.pvErr;if(!pv)return 'Loading the preview...';return 'Showing '+(pv.sample.fake?'a made-up runner (there is no real one to show yet)':'bib '+pv.sample.bib+', '+pv.sample.name)}
+function prnPreviewCard(kind){
+  var f=S.prn,nat=prnNatural(kind),s=Math.min(1,(f.pvW||640)/nat.w);
+  return '<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px"><h3>Preview</h3><label class="f" style="min-width:160px">Preview for bib<input id="prnPvBib" value="'+esc(f.pvBib)+'" maxlength="12" placeholder="the first one" autocomplete="off"></label></div>'
+    +'<p class="muted" id="prnPvWho" role="status" style="margin:6px 0">'+esc(prnWho(f,kind))+'</p>'
+    +'<div id="prnPvWrap" style="overflow:hidden;height:'+Math.ceil(nat.h*s)+'px;border:1px solid var(--line);background:#fff"><iframe id="prnPv" title="Preview of the '+(kind==='bib'?'bib':'certificate')+'" sandbox="" style="display:block;border:0;background:#fff;width:'+nat.w+'px;height:'+nat.h+'px;transform-origin:0 0;transform:scale('+s+')" srcdoc="'+esc(prnDoc(f.pv[kind]))+'"></iframe></div></div>';
+}
+function prnDesignView(kind){
+  var f=S.prn,ov=f.ov,d=f.draft[kind],c=ov.counts,isB=kind==='bib',ro=!man(),cats=ov.cats||[];
+  var top='<div class="card"><div class="row" style="gap:6px;flex-wrap:wrap">'+(isB?pill(ppl(c.printable,'bib')+' to print','good')+(c.noBib?pill(c.noBib+' paid without a bib yet','warn'):'')+pill(ppl(c.paid,'paid runner')):pill(ppl(c.finishers,'finisher'),'good')+(c.finishers?'':pill('certificates appear once results are in','warn')))+'</div></div>';
+  var fields=isB
+    ?fi('Bib width (mm)','wmm',d.wmm,{attr:'maxlength="3" inputmode="numeric"'})+fi('Bib height (mm)','hmm',d.hmm,{attr:'maxlength="3" inputmode="numeric"'})
+      +fsel('Paper','page',d.page,[['A4','A4'],['A3','A3']])+fsel('Paper direction','orient',d.orient,[['portrait','Portrait'],['landscape','Landscape']])
+      +fi('Colour','accent',d.accent,{type:'color'})+fi('Heading','title',d.title,{attr:'maxlength="80"'})+fi('Under the heading','subtitle',d.subtitle,{attr:'maxlength="80"'})
+      +fsel('Name on the bib','nameMode',d.nameMode,[['either','Bib name if there is one, else the name'],['name','The name'],['bibname','The bib name only'],['none','No name']])
+      +pchk('showCat','Show the category',d.showCat)+pchk('tearoff','Tear-off strip at the bottom',d.tearoff)+pchk('holes','Space for pins at the corners',d.holes)
+      +pcolors(cats,d)+'<label class="f" style="grid-column:1/-1">Sponsors (one on each line: a name, or the address of a logo)<textarea name="sponsors" rows="3" maxlength="400">'+esc(d.sponsors)+'</textarea></label>'
+      +fi('Small print at the foot','footer',d.footer,{attr:'maxlength="80"',span:1})
+    :fsel('Paper direction','orient',d.orient,[['landscape','Landscape'],['portrait','Portrait']])+fsel('Border','border',d.border,[['double','Double line'],['simple','Single line'],['none','No border']])
+      +fi('Colour','accent',d.accent,{type:'color'})+fi('Background','bg',d.bg,{type:'color'})
+      +fi('Heading','title',d.title,{attr:'maxlength="60"'})+fi('Line above the name','intro',d.intro,{attr:'maxlength="100"'})
+      +'<label class="f" style="grid-column:1/-1">Words under the name<textarea name="body" rows="4" maxlength="400">'+esc(d.body)+'</textarea></label>'
+      +pchk('stats','Show a box each for time, place and category',d.stats)
+      +fi('First signature: name','sign1Name',d.sign1Name,{attr:'maxlength="40"'})+fi('First signature: role','sign1Role',d.sign1Role,{attr:'maxlength="40"'})
+      +fi('Second signature: name','sign2Name',d.sign2Name,{attr:'maxlength="40"'})+fi('Second signature: role','sign2Role',d.sign2Role,{attr:'maxlength="40"'})
+      +fi('Logo (a picture address)','logo',d.logo,{attr:'maxlength="300" placeholder="https://static.wixstatic.com/..." autocomplete="off"',span:1})
+      +'<label class="f" style="grid-column:1/-1">Sponsors (one on each line: a name, or the address of a logo)<textarea name="sponsors" rows="3" maxlength="400">'+esc(d.sponsors)+'</textarea></label>'
+      +fi('Small print at the foot','footer',d.footer,{attr:'maxlength="120"',span:1});
+  var hint='Words in curly brackets are filled in for each '+(isB?'runner':'finisher')+': '+esc(pvars(ov.vars[kind]))+'. Pictures must be on '+esc((ov.hosts||[]).join(', '))+'.';
+  var form='<form id="prnForm" class="card" data-kind="'+kind+'"><h3>'+(isB?'Bib design':'Certificate design')+'</h3><p class="muted" style="margin-top:6px">'+hint+'</p>'
+    +'<fieldset'+(ro?' disabled':'')+' style="border:0;padding:0;margin:8px 0 0;min-width:0"><div class="form">'+fields+'</div></fieldset>'
+    +(ro?'':'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save design</button><button class="btn" type="button" data-act="prn-reset">Back to the standard design</button><span class="muted" id="prnDirty"'+(f.dirty[kind]?'':' hidden')+'>Not saved yet. Printing saves it first.</span></div>')+'</form>';
+  var cs=rcatSel(ov.cats,f.cat,'prnCat');
+  var pr=isB
+    ?'<div class="card"><h3>Print</h3><p class="muted" style="margin-top:6px">In the print window you can choose Save as PDF to keep a file.</p>'
+      +'<div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-top:8px">'+cs+'<button class="btn pri" data-act="prn-print-all">Print all bibs</button></div>'
+      +'<div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-top:10px"><label class="f">Spare bibs from<input id="prnSpFrom" value="'+esc(f.sp.from)+'" maxlength="8" inputmode="numeric" autocomplete="off"></label><label class="f">to<input id="prnSpTo" value="'+esc(f.sp.to)+'" maxlength="8" inputmode="numeric" autocomplete="off"></label></div>'
+      +'<p class="muted" style="margin-top:4px">Spare bibs are printed after the runners\' bibs, with no name. A number a runner already has is left out.</p>'
+      +'<div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-top:10px"><label class="f">One bib<input id="prnOne" value="'+esc(f.one)+'" maxlength="12" autocomplete="off"></label><button class="btn" data-act="prn-print-one">Print this bib</button></div>'
+      +(f.prog?'<p role="status" class="muted" style="margin-top:8px">'+esc(f.prog)+'</p>':'')+'</div>'
+    :'<div class="card"><h3>Print</h3><p class="muted" style="margin-top:6px">One certificate for each finisher, by category and place. In the print window you can choose Save as PDF to keep a file.</p>'
+      +'<div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-top:8px">'+cs+'<button class="btn pri" data-act="prn-print-all"'+(c.finishers?'':' disabled')+'>Print all certificates</button></div>'
+      +'<div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-top:10px"><label class="f">One certificate, for bib<input id="prnOne" value="'+esc(f.one)+'" maxlength="12" autocomplete="off"></label><button class="btn" data-act="prn-print-one"'+(c.finishers?'':' disabled')+'>Print this certificate</button></div>'
+      +(f.prog?'<p role="status" class="muted" style="margin-top:8px">'+esc(f.prog)+'</p>':'')+'</div>';
+  return top+prnPreviewCard(kind)+form+pr;
+}
+function pswitch(name,label,on,off){return '<label class="f" style="flex-direction:row;align-items:flex-start;gap:8px;margin-top:6px;font-weight:400;color:var(--ink)"><input type="checkbox" name="'+name+'"'+(on?' checked':'')+(off?' disabled':'')+' style="margin-top:3px"> <span>'+esc(label)+'</span></label>'}
+function prnPubView(){
+  var f=S.prn,p=f.ov.pub,link=prnLink(),open=okUrl(link),on=p.startList||p.results;
+  var form='<form id="prnPubForm" class="card"><h3>Runner page</h3><p class="muted" style="margin-top:6px">A public page where a runner looks themselves up by bib or name. Nothing is shown until you turn a switch on. A switch you turn off stops showing at once.</p>'
+    +'<div style="margin-top:8px">'+pswitch('startList','Start list: bib, category, wave, start time and corral',p.startList)+pswitch('results','Results: time, place, gender place and age group place',p.results)+pswitch('certs','Certificates: a finisher can open and print their own (needs the results on)',p.certs,!p.results)+'</div>'
+    +'<label class="f" style="margin-top:10px">A note at the top of the page (optional)<input name="note" value="'+esc(p.note)+'" maxlength="200" autocomplete="off"></label>'
+    +'<p class="muted" style="margin-top:8px">The page never shows a date of birth, an age, a phone number, an e-mail address, a T-shirt size or anything about payment. A search needs a bib or three letters of a name and shows at most ten runners. A correction you make can take up to 30 seconds to show there.</p>'
+    +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save</button>'+(on?pill('The page is on','good'):pill('The page is off'))+'</div></form>';
+  var lk='<div class="card"><h3>The link to share</h3><p class="muted" style="margin-top:6px">Put this on your website, in your e-mails and on social media. It opens on this race.</p>'
+    +'<div class="row" style="margin-top:8px;flex-wrap:nowrap"><input id="prnLink" readonly value="'+esc(link)+'" style="flex:1;min-width:0" aria-label="Link to the runner page"><button class="btn" data-act="prn-copy">Copy</button>'+(open?'<a class="btn" href="'+esc(open)+'" target="_blank" rel="noopener noreferrer">Open</a>':'')+'</div></div>';
+  return form+lk;
+}
+
+/* ---------- the preview ---------- */
+function prnNatural(kind){var f=S.prn,d=f&&f.draft[kind],mm=3.7795;
+  if(kind==='cert'){var L=!d||d.orient!=='portrait';return {w:Math.round(((L?297:210)+12)*mm),h:Math.round(((L?210:297)+18)*mm)}}
+  var w=d?parseInt(d.wmm,10):190,h=d?parseInt(d.hmm,10):140;if(!(w>=80&&w<=300))w=190;if(!(h>=60&&h<=210))h=140;
+  return {w:Math.round((w+16)*mm),h:Math.round((h+16)*mm)}}
+// the preview is the real size of the paper, shrunk to fit the width of the screen
+function prnFit(kind){
+  var f=S.prn,fr=$('#prnPv'),wrap=$('#prnPvWrap');if(!f||!fr||!wrap||kind==='pub')return;
+  var nat=prnNatural(kind),avail=wrap.clientWidth||f.pvW||640;f.pvW=avail;var s=Math.min(1,avail/nat.w);
+  fr.style.width=nat.w+'px';fr.style.height=nat.h+'px';fr.style.transformOrigin='0 0';fr.style.transform='scale('+s+')';wrap.style.height=Math.ceil(nat.h*s)+'px';
+}
+function prnPaint(kind){
+  var f=S.prn,pv=f&&f.pv[kind],fr=$('#prnPv'),w=$('#prnPvWho');if(!pv||!fr)return;
+  fr.setAttribute('srcdoc',prnDoc(pv));if(w)w.textContent=prnWho(f,kind);prnFit(kind);
+}
+var prnTimer=0;
+function prnPreviewSoon(kind){clearTimeout(prnTimer);prnTimer=setTimeout(function(){prnPreviewNow(kind)},400)}
+async function prnPreviewNow(kind){
+  var f=S.prn;if(!f||S.tab!=='prn'||f.ev!==S.ev||kind==='pub'||psub()!==kind||!f.draft[kind])return;
+  var seq=++f.pvSeq,a={kind:kind},b=String(f.pvBib||'').trim();
+  if(man())a.tpl=ptpl(kind);
+  if(b)a.bib=b;
+  try{
+    var r=await pa('prnPreview',a);if(seq!==f.pvSeq||S.prn!==f)return;
+    f.pv[kind]=r;f.pvErr='';prnPaint(kind);
+  }catch(e){
+    if(seq!==f.pvSeq||S.prn!==f)return;
+    f.pvErr=e.message==='no_item'?(kind==='bib'?'That bib has no bib to show: it may be unpaid or not given yet.':'That runner has no certificate: it may not have finished.'):msg(e.message);
+    var w=$('#prnPvWho');if(w)w.textContent=f.pvErr;
+  }
+}
+
+/* ---------- printing ---------- */
+// Asks for the print-out page by page, joins the pages into one document and prints it. A design changed on screen is saved first,
+// so that what is printed is what the preview showed.
+async function prnPrint(kind,opts){
+  var f=S.prn;if(!f)return;
+  var m=kind==='bib'?'prnBibs':'prnCerts',head='',body='',from=0,total=0,pages=0,got=0,noun=kind==='bib'?'bib':'certificate';
+  try{
+    if(man()&&f.dirty[kind]){pread(kind);var sv=await pa('prnSaveTemplate',{kind:kind,tpl:ptpl(kind)});f.draft[kind]=pdraft(kind,sv.tpl);f.ov[kind]=sv.tpl;f.dirty[kind]=false}
+    for(;;){
+      var o=Object.assign({},opts);if(from)o.from=from;
+      var r=await pa(m,o,60000);
+      if(!pages){head=r.head;total=r.total}
+      body+=r.body;got+=r.count;pages++;
+      f.prog='Preparing the '+noun+'s: '+got+' of '+total;render();
+      if(r.next===null||r.next===undefined)break;
+      if(typeof r.next!=='number'||r.next<=from||pages>600)throw new Error('bad_from');
+      from=r.next;
+    }
+  }finally{f.prog='';render()}
+  if(!got){toast('There is nothing to print.',true);return}
+  printHtml(head+body+'</body></html>');
+  toast(got+' '+noun+(got===1?'':'s')+' sent to the printer');
+}
+
+/* ---------- what the buttons do ---------- */
+function prnAct(b,act,id){
+  var f=S.prn;if(!f)return;var kind=psub();
+  if(act==='prn-sub'){pread(kind);f.sub=b.getAttribute('data-sub')||'bib';f.pvErr='';render();loadTab()}
+  else if(act==='prn-reset'){if(!man()||kind==='pub')return;f.draft[kind]=pdraft(kind,PDEF[kind]);f.dirty[kind]=true;render();prnPreviewSoon(kind)}
+  else if(act==='prn-print-all'&&kind!=='pub'){
+    var o={};if(f.cat)o.cat=f.cat;
+    if(kind==='bib'){var a1=String(f.sp.from).trim(),a2=String(f.sp.to).trim();
+      if(a1||a2){if(!/^\d{1,8}$/.test(a1)||!/^\d{1,8}$/.test(a2)){toast(msg('bad_spares'),true);return}o.spares={from:parseInt(a1,10),to:parseInt(a2,10)}}}
+    run(async function(){await prnPrint(kind,o)});
+  }
+  else if(act==='prn-print-one'&&kind!=='pub'){
+    var one=String(f.one).trim();if(!one){toast('Type the bib number first.',true);return}
+    run(async function(){try{await prnPrint(kind,{only:one})}catch(e){if(e.message==='no_item'){toast('Bib '+one+' has no '+(kind==='bib'?'bib to print: it may be unpaid or not given yet.':'certificate: it may not have finished.'),true);return}throw e}});
+  }
+  else if(act==='prn-copy'){var li=$('#prnLink');if(!li)return;
+    try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(li.value).then(function(){toast('Link copied')},function(){li.select();toast('Press Ctrl+C to copy the link',true)});return}}catch(x){}
+    try{li.select()}catch(x){}toast('Press Ctrl+C to copy the link',true)}
+}
+function prnSubmit(f,id,d){
+  var P=S.prn;if(!P||!man()||!P.ov)return;
+  if(id==='prnForm'){var kind=f.getAttribute('data-kind');if(kind!==psub())return;pread(kind);
+    run(async function(){var r=await pa('prnSaveTemplate',{kind:kind,tpl:ptpl(kind)});P.draft[kind]=pdraft(kind,r.tpl);P.ov[kind]=r.tpl;P.dirty[kind]=false;render();toast(kind==='bib'?'Bib design saved':'Certificate design saved');prnPreviewNow(kind)});return}
+  if(id==='prnPubForm'){var o={startList:!!d.startList,results:!!d.results,certs:!!d.results&&!!d.certs,note:String(d.note||'').trim()};
+    run(async function(){var r=await pa('prnSavePublish',{pub:o});P.ov.pub=r.pub;render();toast(r.pub.startList||r.pub.results?'The runner page is on':'The runner page is off')})}
+}
+
+/* ---------- listeners for the Bibs & certificates screens ---------- */
+function prnEdit(){if(!man())return;var kind=psub();if(kind==='pub')return;pread(kind);S.prn.dirty[kind]=true;var m=$('#prnDirty');if(m)m.hidden=false;prnPreviewSoon(kind)}
+document.addEventListener('input',function(e){
+  var t=e.target,f=S.prn;if(!t||!f||S.tab!=='prn')return;
+  if(t.form&&t.form.id==='prnForm')prnEdit();
+  else if(t.id==='prnPvBib'){f.pvBib=t.value;prnPreviewSoon(psub())}
+  else if(t.id==='prnOne')f.one=t.value;
+  else if(t.id==='prnSpFrom')f.sp.from=t.value;
+  else if(t.id==='prnSpTo')f.sp.to=t.value;
+});
+document.addEventListener('change',function(e){
+  var t=e.target,f=S.prn;if(!t||!f||S.tab!=='prn')return;
+  if(t.form&&t.form.id==='prnForm'){
+    if(t.classList&&t.classList.contains('pc-auto')){var row=t.closest('.pc-row'),co=row&&row.querySelector('.pc-col');if(co)co.disabled=t.checked}
+    prnEdit()}
+  else if(t.id==='prnCat')f.cat=t.value;
+  else if(t.form&&t.form.id==='prnPubForm'&&t.name==='results'){var ce=t.form.elements.certs;if(ce){if(!t.checked)ce.checked=false;ce.disabled=!t.checked}}
+});
+/* ---------- bibs and certificates: end (PRINT-END) ---------- */
 
 function navLabel(t){return t[0]==='fin'&&!man()?'My claims':t[1]}
 
