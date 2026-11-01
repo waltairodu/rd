@@ -25,6 +25,14 @@ if [ -f ../wix/director/rd-print.js ]; then
   cp ../wix/director/rd-results.js rd-results.test.mjs
   sed "s#'./rd-results.js'#'./rd-results.test.mjs'#" ../wix/director/rd-print.js > rd-print.test.mjs
 fi
+if [ -f ../wix/director/rd-data.js ]; then
+  sed "s#'./rd-results.js'#'./rd-results.test.mjs'#" ../wix/director/rd-data.js > rd-data.test.mjs
+fi
+for f in print runner; do
+  if [ -f ../wix/director/$f.web.js ]; then
+    sed "s#'./rd-auth.js'#'./rd-auth.test.mjs'#; s#'./rd-results.js'#'./rd-results.test.mjs'#; s#'./rd-print.js'#'./rd-print.test.mjs'#; s#'./rd-data.js'#'./rd-data.test.mjs'#" ../wix/director/$f.web.js > $f.test.mjs
+  fi
+done
 mkdir -p node_modules
 for m in wix-web-module wix-data wix-auth wix-data.v2 wix-events.v2 wix-fetch wix-secrets-backend; do rm -rf node_modules/$m; ln -s ../mocks/$m node_modules/$m; done
 node "$@"
