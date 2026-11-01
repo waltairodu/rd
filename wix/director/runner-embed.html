@@ -102,7 +102,8 @@ function resultsHtml(){
   var r=S.res;if(!r)return '';
   if(r.err)return '<div class="err" role="alert">'+esc(r.err)+'</div>';
   var f=S.info.flags;
-  if(r.tooShort)return '<p class="muted" style="margin-top:14px">'+(/^\d+$/.test(r.q)?'Nobody with that bib number is shown here.':'Please type at least three letters of your name, or your bib number.')+'</p>';
+  if(!r.items.length&&/^\d+$/.test(r.q))return '<p class="muted" style="margin-top:14px">Nobody with that bib number is shown here.</p>';
+  if(r.tooShort)return '<p class="muted" style="margin-top:14px">Please type at least three letters of your name, or your bib number.</p>';
   if(!r.items.length)return '<p class="muted" style="margin-top:14px">Nobody found for “'+esc(r.q)+'”. Check the spelling, or try your bib number.</p>';
   return r.items.map(function(it){return itemHtml(it,f)}).join('')+(r.more?'<p class="muted" style="margin-top:12px">These are the first ten. Type more of the name to narrow it down.</p>':'');
 }
@@ -114,7 +115,13 @@ function certHtml(){
   return '<div class="card" id="certCard"><h2>Certificate for '+esc(c.name)+'</h2><div class="pv" style="height:'+Math.ceil(nat.h*s)+'px"><iframe id="certFr" title="Your certificate" sandbox="" style="width:'+nat.w+'px;height:'+nat.h+'px;transform:scale('+s+')" srcdoc="'+esc(c.html)+'"></iframe></div>'
     +'<div class="row"><button class="btn pri" type="button" data-act="print" style="width:auto;margin-top:0">Print or save as PDF</button><button class="btn" type="button" data-act="close">Close</button></div></div>';
 }
-function paint(){var a=$('#results'),b=$('#certBox'),g=$('#go');if(a)a.innerHTML=resultsHtml();if(b)b.innerHTML=certHtml();if(g)g.disabled=S.busy}
+function noteHtml(){var n=S.info&&S.info.note;return n?'<div class="note" role="note">'+esc(n)+'</div>':''}
+function hintText(){var f=S.info.flags;return (f.results&&f.startList?'See your start time and your result.':f.results?'See your result.':'See your start time.')+' Type your bib number, or at least three letters of your name.'}
+function footHtml(){return S.info.flags.results?'<p class="muted" style="margin-top:18px">Results can take up to 30 seconds to show a correction.</p>':''}
+function paint(){
+  var a=$('#results'),b=$('#certBox'),g=$('#go');if(a)a.innerHTML=resultsHtml();if(b)b.innerHTML=certHtml();if(g)g.disabled=S.busy;
+  if(S.info){var nb=$('#noteBox'),h=$('#hint'),ft=$('#foot');if(nb)nb.innerHTML=noteHtml();if(h)h.textContent=hintText();if(ft)ft.innerHTML=footHtml()}
+}
 function render(){
   var app=$('#app');
   if(!S.info){
@@ -128,12 +135,12 @@ function render(){
   }
   var i=S.info,f=i.flags;
   app.innerHTML='<div class="eyebrow">VTRA</div><h1>'+esc(i.race.name)+'</h1><p class="muted" style="margin-top:6px">'+esc(fdate(i.race.date))+(i.race.venue?' · '+esc(i.race.venue):'')+'</p>'
-    +(i.note?'<div class="note" role="note">'+esc(i.note)+'</div>':'')
+    +'<div id="noteBox">'+noteHtml()+'</div>'
     +'<form id="findForm" class="card" novalidate><label class="f">Your bib number or name<input id="q" name="q" value="'+esc(S.q)+'" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-describedby="hint"></label>'
-    +'<p class="muted" id="hint" style="margin-top:6px">'+(f.results&&f.startList?'See your start time and your result.':f.results?'See your result.':'See your start time.')+' Type your bib number, or at least three letters of your name.</p>'
+    +'<p class="muted" id="hint" style="margin-top:6px">'+esc(hintText())+'</p>'
     +'<button class="btn pri" id="go" type="submit"'+(S.busy?' disabled':'')+'>Find me</button></form>'
     +'<div id="results" role="region" aria-live="polite" aria-label="Search results">'+resultsHtml()+'</div><div id="certBox">'+certHtml()+'</div>'
-    +(f.results?'<p class="muted" style="margin-top:18px">Results can take up to 30 seconds to show a correction.</p>':'');
+    +'<div id="foot">'+footHtml()+'</div>';
 }
 document.addEventListener('click',function(e){
   var b=e.target.closest&&e.target.closest('[data-ev],[data-cert],[data-act]');if(!b)return;
