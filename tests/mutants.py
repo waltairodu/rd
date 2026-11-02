@@ -35,6 +35,11 @@ FINLIB = 'wix/director/rd-finance.js'
 FINPAGE = 'wix/director/director-page-code.js'
 RESB = 'wix/director/results.web.js'
 RESL = 'wix/director/rd-results.js'
+PRNB = 'wix/director/print.web.js'
+PRNL = 'wix/director/rd-print.js'
+RUNB = 'wix/director/runner.web.js'
+RUNE = 'wix/director/runner-embed.html'
+RUNP = 'wix/director/runner-page-code.js'
 
 # name, file, old text (must occur exactly once), new text, suites that must fail
 MUTANTS = [
@@ -140,6 +145,57 @@ MUTANTS = [
     ('res-lead-offered-the-edit-buttons', DIR, "+(man()?'<td><button class=\"btn sm\" data-act=\"res-fix\"", "+(true?'<td><button class=\"btn sm\" data-act=\"res-fix\"", ['results-ui.mjs']),
     ('res-lead-offered-the-director-sections', DIR, "function rsubs(){return man()?RSUBS:RSUBS_LEAD}", "function rsubs(){return RSUBS}", ['results-ui.mjs']),
     ('res-import-retry-new-key', DIR, "else{if(!man()||!im.dry)return;if(!im.key)im.key=newKey();", "else{if(!man()||!im.dry)return;im.key=newKey();", ['results-ui.mjs']),
+    # --- Package 4: bibs, certificates and the public runner page
+    ('prn-role-check-removed', PRNB, "  if (kind !== 'director' && kind !== 'lead') throw new Error('not_allowed');\n", '', ['pentest-print.mjs', 'print.mjs']),
+    ('prn-director-only-removed', PRNB, "  if (need === 'director' && kind !== 'director') throw new Error('director_only');\n", '', ['pentest-print.mjs', 'print.mjs']),
+    ('prn-expiry-fails-open', PRNB, "if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", "if (!sess || Date.parse(sess.expires) < Date.now()) throw new Error('not_logged_in');", ['pentest-print.mjs']),
+    ('prn-token-coerced-to-text', PRNB, "  const t = arg && typeof arg.token === 'string' ? arg.token : '';", "  const t = String((arg && arg.token) || '');", ['pentest-print.mjs']),
+    ('prn-kind-any', PRNB, "  if (typeof v !== 'string' || !KINDS.includes(v)) throw new Error('bad_kind');", "  if (typeof v !== 'string') throw new Error('bad_kind');", ['pentest-print.mjs']),
+    ('prn-save-writer-from-call', PRNB, "json: JSON.stringify(tpl), by: a.username, at: nowIso() });", "json: JSON.stringify(tpl), by: String(arg.by || a.username), at: nowIso() });", ['pentest-print.mjs']),
+    ('prn-template-not-cleaned', PRNB, "  const tpl = kind === 'bib' ? cleanBibTpl(arg.tpl, cats) : cleanCertTpl(arg.tpl);\n  await put", "  const tpl = arg.tpl;\n  await put", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-flags-not-cleaned', PRNB, "  const pub = cleanFlags(arg.pub);", "  const pub = arg.pub;", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-lead-can-change-switches', PRNB, "export const prnSavePublish = webMethod(Permissions.Anyone, async (arg) => {\n  const a = await pauth(arg, 'director');", "export const prnSavePublish = webMethod(Permissions.Anyone, async (arg) => {\n  const a = await pauth(arg, 'view');", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-lead-can-save-designs', PRNB, "export const prnSaveTemplate = webMethod(Permissions.Anyone, async (arg) => {\n  const a = await pauth(arg, 'director');", "export const prnSaveTemplate = webMethod(Permissions.Anyone, async (arg) => {\n  const a = await pauth(arg, 'view');", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-unpaid-runner-gets-a-bib', PRNB, "    .filter((x) => x.paid && x.bib)\n", "    .filter((x) => x.bib)\n", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-unfinished-runner-gets-a-certificate', PRNB, ".filter((x) => x.status === 'fin' && x.place)", ".filter((x) => x.status || x.place)", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-printing-not-noted', PRNB, "  if (from === 0) await audit(a, 'bibs printed'", "  if (false) await audit(a, 'bibs printed'", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-cursor-unchecked', PRNB, "  if (!Number.isInteger(v) || v < 0 || v > 1000000) throw new Error('bad_from');", "  if (!Number.isFinite(Number(v))) throw new Error('bad_from');", ['pentest-print.mjs']),
+    ('prn-category-unchecked', PRNB, "  if (!k) throw new Error('bad_cat');", "  if (!k) return String(v);", ['pentest-print.mjs', 'print.mjs']),
+    ('prn-spares-cap-removed', PRNL, " || to - from >= 500) throw new Error('bad_spares');", ") throw new Error('bad_spares');", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-angle-bracket-not-escaped', PRNL, "    .replace(/</g, '&lt;')\n", '', ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-ampersand-not-escaped', PRNL, "  T(v)\n    .replace(/&/g, '&amp;')\n", "  T(v)\n", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-picture-any-host', PRNL, "  return m && IMG_HOSTS.includes(m[1].toLowerCase()) ? s : '';", "  return m ? s : '';", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-picture-plain-http', PRNL, r"const IMG_RE = /^https:\/\/", r"const IMG_RE = /^https?:\/\/", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-colour-any-text', PRNL, r"export const safeColor = (v, d) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim()) ? v.trim().toLowerCase() : d);", r"export const safeColor = (v, d) => (typeof v === 'string' && /^[#0-9a-zA-Z(),.:;\/ -]{1,60}$/.test(v.trim()) ? v.trim().toLowerCase() : d);", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-long-picture-address-cut', PRNL, "    const t = cleanText(x, 301);", "    const t = cleanText(x, 300);", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-placeholders-filled-twice', PRNL, r"  return T(text).replace(/\{([A-Za-z][A-Za-z0-9_]{0,19})\}/g, (all, k) => (Object.prototype.hasOwnProperty.call(v, k.toLowerCase()) ? T(v[k.toLowerCase()]) : all));", r"  const one = (x) => x.replace(/\{([A-Za-z][A-Za-z0-9_]{0,19})\}/g, (all, k) => (Object.prototype.hasOwnProperty.call(v, k.toLowerCase()) ? T(v[k.toLowerCase()]) : all));" + "\n  return one(one(T(text)));", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-spare-numbers-duplicate-real-bibs', PRNL, "    if (taken && taken.has(b)) skipped++;", "    if (false) skipped++;", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-certificates-without-results-allowed', PRNL, "  if (out.certs && !out.results) throw new Error('certs_need_results');", '', ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-damaged-switches-read-as-on', PRNL, "    return { startList: false, results: false, certs: false, note: '' };\n  }\n}\nexport const anyOn", "    return { startList: true, results: true, certs: true, note: '' };\n  }\n}\nexport const anyOn", ['pentest-print.mjs', 'unit-print.mjs']),
+    ('prn-search-one-letter', PRNL, "  if (k.length < 3) return { items: [], more: false, tooShort: true };", "  if (k.length < 1) return { items: [], more: false, tooShort: true };", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-search-no-cap', PRNL, "  return { items: hits.slice(0, lim).map(", "  return { items: hits.map(", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-unpaid-runner-listed-publicly', PRNL, "    if (!r || !r.paid || !bibKey(r.bib)) return;", "    if (!r || !bibKey(r.bib)) return;", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-result-shown-with-switch-off', PRNL, "    result: f.results && e.res ? Object.assign({}, e.res) : null,", "    result: e.res ? Object.assign({}, e.res) : null,", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-start-shown-with-switch-off', PRNL, "    start: f.startList && e.start ? {", "    start: e.start ? {", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('prn-certificate-offered-with-switch-off', PRNL, "    cert: !!(f.results && f.certs && e.res && e.res.status === 'fin' && e.res.place),", "    cert: !!(e.res && e.res.status === 'fin' && e.res.place),", ['unit-print.mjs', 'pentest-print.mjs']),
+    ('run-hidden-race-shows', RUNB, "  if (!anyOn(f) || (need && !need(f))) throw new Error('not_published');", "  if (need && !need(f)) throw new Error('not_published');", ['pentest-print.mjs', 'print.mjs']),
+    ('run-certificate-without-switches', RUNB, "  const { e } = await openRace(a.ev, (f) => f.results && f.certs);", "  const { e } = await openRace(a.ev);", ['pentest-print.mjs', 'print.mjs']),
+    ('run-question-length-unchecked', RUNB, "  if (typeof a.q !== 'string' || a.q.length > 200) throw new Error('bad_query');", "  if (typeof a.q !== 'string') throw new Error('bad_query');", ['pentest-print.mjs', 'print.mjs']),
+    ('run-memory-never-expires', RUNB, "  if (hit && now >= hit.at && now - hit.at < TTL) return hit;", "  if (hit) return hit;", ['print.mjs', 'runner-ui.mjs']),
+    ('run-search-writes-a-note', RUNB, "  const built = await indexOf(e);\n  const found = searchPublic(", "  await wixData.insert(C.AUDIT, { at: new Date().toISOString(), by: 'public', action: 'looked', target: String(e._id), detail: String(a.q) }, SA).catch(() => null);\n  const built = await indexOf(e);\n  const found = searchPublic(", ['pentest-print.mjs', 'print.mjs']),
+    ('run-page-names-not-escaped', RUNE, "function esc(s){return String(s==null?'':s).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]})}", "function esc(s){return String(s==null?'':s)}", ['runner-ui.mjs']),
+    ('run-certificate-frame-not-sandboxed', RUNE, ' sandbox="" ', ' ', ['runner-ui.mjs']),
+    ('run-double-press-asks-twice', RUNE, "if(!f||f.id!=='findForm'||S.busy)return;", "if(!f||f.id!=='findForm')return;", ['runner-ui.mjs']),
+    ('run-page-relay-list-open', RUNP, "    if (ALLOWED.indexOf(msg.method) < 0) {", "    if (false) {", ['pagecode.mjs', 'pentest-print.mjs']),
+    ('prn-page-relay-list-open', FINPAGE, "      if (PRN_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);\n", '', ['pagecode.mjs', 'pentest-print.mjs']),
+    ('prn-preview-frame-not-sandboxed', DIR, 'sandbox="" style="display:block;border:0;background:#fff;width:', 'style="display:block;border:0;background:#fff;width:', ['print-ui.mjs']),
+    ('prn-lead-offered-the-design-editor', DIR, "function psubs(){return man()?PSUBS:PSUBS_LEAD}", "function psubs(){return PSUBS}", ['print-ui.mjs']),
+    ('prn-print-skips-the-save', DIR, "if(man()&&f.dirty[kind]){pread(kind);var sv=await pa('prnSaveTemplate'", "if(false){pread(kind);var sv=await pa('prnSaveTemplate'", ['print-ui.mjs']),
+    ('prn-who-heading-unescaped', DIR, "id=\"prnPvWho\" role=\"status\" style=\"margin:6px 0\">'+esc(prnWho(f,kind))+'</p>'", "id=\"prnPvWho\" role=\"status\" style=\"margin:6px 0\">'+prnWho(f,kind)+'</p>'", ['print-ui.mjs']),
+    # the audit's own lines for Print and the public runner page
+    ('prn-collection-made-for-outsiders', PRNB, "  if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", "  await ensureCollections();\n  if (!sess || !(Date.parse(sess.expires) > Date.now())) throw new Error('not_logged_in');", ['security.mjs']),
+    ('prn-update-without-suppressauth', PRNB, "if (old) return wixData.update(col, row, SA);", "if (old) return wixData.update(col, row);", ['security.mjs']),
+    ('run-backend-deletes-a-row', RUNB, "  const row = await wixData.get(C.PRINT, 'tpl~' + e._id + '~cert', SA).catch(() => null);", "  await wixData.bulkRemove(C.PRINT, ['x~' + e._id], SA).catch(() => null);\n  const row = await wixData.get(C.PRINT, 'tpl~' + e._id + '~cert', SA).catch(() => null);", ['security.mjs']),
 ]
 
 

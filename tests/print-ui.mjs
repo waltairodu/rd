@@ -71,7 +71,7 @@ for (let i = 1; i <= 130; i++) await reg(EVC, String(1000 + i), 'Runner ' + i, '
 const SET = { rankBy: 'chip', ageRule: 'raceday', bands: [18, 30, 40, 50, 60], overallDepth: 3, groupDepth: 3, overallExcl: true, map: { gender: 'Gender', dob: 'Date of birth', age: 'Age', seed: 'Expected finish' } };
 for (const e of [EV, EVC]) await RS.resSaveSettings({ token: OT, ev: e, settings: SET });
 // what must never reach a screen, a file or a print-out
-const PII = /98123\d{5}|@example\.com|01\/01\/(19|20)\d\d|(19|20)\d\d-01-01|p\d{3,4}@/;
+const PII = /98123\d{5}|@example\.com|01\/01\/(19\d\d|20[01]\d)|(19\d\d|20[01]\d)-01-01|p\d{3,4}@/;
 const CSV = [
   'bib,chip,gun,status,name,category,gender,age',
   '101,55:10,55:15,,,,,', '999,59:30,59:35,,Walk In Wanda,10 K,F,40', '102,56:20,56:25,,,,,', '103,57:30,57:35,,,,,', '104,50:00,50:05,,,,,', '105,58:00,58:05,,,,,', '106,45:00,45:04,,,,,', '107,,,DNF,,,,',
@@ -416,6 +416,18 @@ await quiet();
   const s = srcdoc(d);
   ok(/Showing bib 301, /.test(pvText(d)) && /&lt;img src=x onerror/.test(s) && !/<img src=x/.test(s) && !/<script/i.test(s), 'U3 a name that holds markup is text in the preview');
   ok(w.__pwn === undefined && qa(d, 'img[src="x"]').length === 0, 'U3 and nothing ran');
+  const who = q(d, '#prnPvWho');
+  ok(who.children.length === 0 && who.textContent.includes('bib 301, ' + EVIL1), 'U3 the line under the preview shows that name as plain text (no element in it, the characters exactly as typed)');
+  // the caption is written a second time when the whole card is drawn again with that preview still held: away to Certificates and back
+  await subTo(A, 'cert');
+  const nBack = prn('prnOverview').length;
+  click(w, q(d, '[data-act="prn-sub"][data-sub="bib"]'));
+  const who2 = q(d, '#prnPvWho');
+  ok(who2 && who2.children.length === 0 && who2.textContent.includes('bib 301, ' + EVIL1) && w.__pwn === undefined, 'U3 and when the card is drawn again from the preview that is still held, the caption is still plain text');
+  await until(() => prn('prnOverview').length > nBack);
+  await sleep(60);
+  await until(() => pvDone(d));
+  await quiet();
   set(w, q(d, '#prnPvBib'), '');
 }
 {

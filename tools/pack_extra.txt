@@ -5,3 +5,9 @@ backend wix/director/rd-finance.js
 # Package 3: Waves, results and awards
 backend wix/director/results.web.js
 backend wix/director/rd-results.js
+# Package 4: Bibs, certificates and the public runner page
+backend wix/director/print.web.js
+backend wix/director/runner.web.js
+backend wix/director/rd-print.js
+backend wix/director/rd-data.js
+page runner wix/director/runner-embed.html wix/director/runner-page-code.js

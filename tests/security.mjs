@@ -1,14 +1,17 @@
-// SECURITY TESTS: an audit of how the five backends (RaceOS, Expo desk, Coaching, Finance, Results) are built and what they store and
-// say. This is not an attack (pentest.mjs, pentest-finance.mjs and pentest-results.mjs do that); every method is checked here against a written-down policy.
+// SECURITY TESTS: an audit of how the six backends (RaceOS, Expo desk, Coaching, Finance, Results, Print) and the public runner page are
+// built and what they store and say. This is not an attack (pentest.mjs, pentest-finance.mjs, pentest-results.mjs and pentest-print.mjs
+// do that); every method is checked here against a written-down policy.
 //   S1  who may call what      the source is read: nothing is decided before the login is checked, and the only methods
 //                              that need no login are the expected ones
 //   S2  no login, a fake login every method that needs a login refuses 11 kinds of fake, and writes nothing
 //   S3  the role table         every method x every kind of login (director, lead, viewer, desk, coach, other, athlete)
 //   S4  what is shown to whom  money and phone numbers are hidden from viewers; a lead sees only their own claims; public methods show nothing private
-//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all five backends
+//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all six backends
 //   S6  secrets                passwords and PINs are never stored or sent back as typed; answers carry no secret; errors say nothing
-//   S7  database set-up        every collection is locked to the site admin; the shipped setup key refuses to run
-//   S8  the shipped files      no key-like text, no dangerous calls, page-code lists match the backends, Finance never deletes money records, Results never deletes a result
+//   S7  database set-up        every collection is locked to the site admin; the shipped setup key refuses to run; nobody but a signed-in
+//                              director or lead can make Print's collection
+//   S8  the shipped files      no key-like text, no dangerous calls, page-code lists match the backends, Finance never deletes money records,
+//                              Results never deletes a result, Print never deletes a design, the public runner page never writes anything
 import fs from 'fs';
 import * as R from './racedir.test.mjs';
 import * as X from './exposoft.test.mjs';
@@ -16,6 +19,9 @@ import * as T from './training.test.mjs';
 import * as A from './rd-auth.test.mjs';
 import * as F from './finance.test.mjs';
 import * as RS from './results.test.mjs';
+import * as P from './print.test.mjs';
+import * as U from './runner.test.mjs';
+import { C as DATA_C } from './rd-data.test.mjs';
 import wd from 'wix-data';
 import { collections } from 'wix-data.v2';
 import { suite } from './lib.mjs';
@@ -106,6 +112,38 @@ const resDefs = [];
     collections.createDataCollection = realCreate;
   }
 }
+// Print makes its one collection the first time a signed-in director or lead uses it. Before that, every kind of visitor, fake
+// login, staff login of the wrong kind and athlete is turned away, and that must not make the collection (it is made only for those
+// who are let in).
+const PRINT_COLS = ['RDPrint'];
+const printDefs = [];
+let printMadeForOutsiders = -1;
+{
+  const made = new Set();
+  const realQuery = wd.query;
+  const realCreate = collections.createDataCollection;
+  wd.query = (c) => {
+    const q = realQuery.call(wd, c);
+    if (PRINT_COLS.includes(c) && !made.has(c)) q.find = async () => { throw new Error('WDE0025: collection does not exist'); };
+    return q;
+  };
+  collections.createDataCollection = async (d) => {
+    printDefs.push(d);
+    made.add(d._id);
+    return d;
+  };
+  try {
+    for (const f of [undefined, null, {}, { token: '' }, { token: 'short' }, { token: 'f'.repeat(64) }, { token: TOK.expired }, { token: TOK.orphan }, { token: TOK.view1 }, { token: TOK.desk1 }, { token: TOK.coach1 }, { token: TOK.sponsor1 }, { token: TOK.ath }]) {
+      await err(P.prnOverview(Object.assign({ ev: 'nope' }, f)));
+      await err(P.prnSavePublish(Object.assign({ ev: 'nope', pub: {} }, f)));
+    }
+    printMadeForOutsiders = printDefs.length;
+    await err(P.prnOverview({ token: TOK.boss, ev: 'nope' }));
+  } finally {
+    wd.query = realQuery;
+    collections.createDataCollection = realCreate;
+  }
+}
 
 /* =====================================================================================================
    S1. Who may call what: read from the source
@@ -116,6 +154,9 @@ const BACKENDS = [
   { id: 'Training', mod: T, file: 'wix/training/training.web.js', auth: /await (sauth|aauth)\(arg/, count: 38, pub: ['tLogin', 'tLogout', 'getTrainSettings', 'openPlans', 'athleteSignup', 'athleteLogin', 'athleteLogout', 'ensureTrainSetup', 'trainHealth'] },
   { id: 'Finance', mod: F, file: 'wix/director/finance.web.js', auth: /await fauth\(arg/, count: 23, pub: [] },
   { id: 'Results', mod: RS, file: 'wix/director/results.web.js', auth: /await rauth\(arg/, count: 12, pub: [] },
+  { id: 'Print', mod: P, file: 'wix/director/print.web.js', auth: /await pauth\(arg/, count: 6, pub: [] },
+  // the public runner page: no login at all, by design; it only reads, and only what a director has switched on (S4 and S8 check that)
+  { id: 'Runner', mod: U, file: 'wix/director/runner.web.js', auth: /(?!)/, count: 3, pub: ['pubRaces', 'pubFind', 'pubCert'] },
 ];
 const BEFORE_LOGIN_CHECK = /wixData|wixEventsV2|guests\.|askClaude|elevate|collections\.|\bthrow\b|\bawait\b|\bif\b|\bfor\b/;
 for (const B of BACKENDS) {
@@ -142,6 +183,7 @@ const FAKE = [undefined, null, {}, { token: '' }, { token: 'short' }, { token: '
 const copy = (f) => (f && typeof f === 'object' ? JSON.parse(JSON.stringify(f)) : f);
 for (const B of BACKENDS) {
   const need = B.methods.filter((m) => !B.pub.includes(m.name)).map((m) => m.name);
+  if (!need.length) continue; // (the public runner page has no login to fake; it is checked in S4 and S8)
   const bad = [];
   const writes0 = WRITES.length;
   for (const name of need)
@@ -152,6 +194,26 @@ for (const B of BACKENDS) {
     }
   ok(!bad.length, 'S2 ' + B.id + ': ' + need.length + ' methods x ' + FAKE.length + ' kinds of no or fake login are all answered "not_logged_in"' + (bad.length ? ' [' + bad.slice(0, 6).join('; ') + ']' : ''));
   ok(WRITES.length === writes0, 'S2 ' + B.id + ': and not one of those calls wrote anything (' + (WRITES.length - writes0) + ' writes)');
+}
+
+// The public runner page has no login to fake. Whatever it is handed, it answers or gives a short code, and writes nothing.
+{
+  const odd = [undefined, null, {}, [], 'x', 12345, true, { ev: {}, q: {} }, { ev: ['a'], q: 'abc' }, { ev: 'nope', q: 'abc' }, { ev: 'nope', bib: '1' }, { ev: 'x'.repeat(5000), q: 'y'.repeat(5000), bib: 'z'.repeat(5000) }, { token: TOK.boss, ev: 'nope', q: 'abc', bib: '1' }];
+  const bad = [];
+  const w0 = WRITES.length;
+  for (const name of BACKENDS[6].names)
+    for (const f of odd) {
+      let got = '';
+      try {
+        await U[name](copy(f));
+      } catch (e) {
+        got = String(e && e.message);
+        SEEN.add(got);
+      }
+      if (got && !/^[a-z][a-z0-9_]{1,40}$/.test(got)) bad.push(name + ' ' + JSON.stringify(f).slice(0, 40) + ' -> ' + got.slice(0, 40));
+    }
+  ok(!bad.length, 'S2 Runner: the 3 public methods x ' + odd.length + ' kinds of odd call are each answered, or refused with a short code' + (bad.length ? ' [' + bad.slice(0, 5).join('; ') + ']' : ''));
+  ok(WRITES.length === w0, 'S2 Runner: and not one of those calls wrote anything (' + (WRITES.length - w0) + ' writes)');
 }
 
 /* =====================================================================================================
@@ -178,6 +240,11 @@ for (const n of ['finListClaims', 'finSaveClaim', 'finCancelClaim']) FIN_LEVEL[n
 const RES_LEVEL = {};
 for (const n of ['resOverview', 'resStartList', 'resBoard', 'resAwards']) RES_LEVEL[n] = 'look';
 for (const n of ['resFormFields', 'resSaveSettings', 'resSaveWaves', 'resAssign', 'resPlace', 'resImport', 'resSaveRow', 'resVoid']) RES_LEVEL[n] = 'manage';
+// Print: a director or a lead may look at the designs, the previews and the printed papers ('view'); saving a design and changing
+// what the public runner page shows are the directors' ('director').
+const PRN_LEVEL = {};
+for (const n of ['prnOverview', 'prnPreview', 'prnBibs', 'prnCerts']) PRN_LEVEL[n] = 'view';
+for (const n of ['prnSaveTemplate', 'prnSavePublish']) PRN_LEVEL[n] = 'director';
 for (const n of ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finDecideClaim', 'finPayClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid']) FIN_LEVEL[n] = 'manage';
 
 const TABLES = [
@@ -186,6 +253,8 @@ const TABLES = [
   { B: BACKENDS[2], level: TR_LEVEL, publics: BACKENDS[2].pub },
   { B: BACKENDS[3], level: FIN_LEVEL, publics: BACKENDS[3].pub },
   { B: BACKENDS[4], level: RES_LEVEL, publics: BACKENDS[4].pub },
+  { B: BACKENDS[5], level: PRN_LEVEL, publics: BACKENDS[5].pub },
+  { B: BACKENDS[6], level: {}, publics: BACKENDS[6].pub }, // the runner page: all three methods are public on purpose
 ];
 for (const { B, level, publics } of TABLES) {
   const unplaced = B.names.filter((n) => !level[n] && !publics.includes(n));
@@ -244,6 +313,16 @@ const RES_WANT = {
   sponsor1: () => 'not_allowed',
   ath: () => 'not_logged_in',
 };
+const PRN_WANT = {
+  boss: () => null,
+  dir2: () => null,
+  lead1: (l) => (l === 'director' ? 'director_only' : null),
+  view1: () => 'not_allowed',
+  desk1: () => 'not_allowed',
+  coach1: () => 'not_allowed',
+  sponsor1: () => 'not_allowed',
+  ath: () => 'not_logged_in',
+};
 // a call that gets past the door must fail quickly and harmlessly on a race that does not exist
 const probe =(token) => ({ token, ev: 'nope', event: 'nope', id: 'probe-item', kind: 'task', status: 'zzz', username: 'nope-user', athlete: 'nope', coach: 'nope' });
 const runMatrix = async (label, B, level, want) => {
@@ -265,6 +344,7 @@ await runMatrix('Expo', BACKENDS[1], EX_LEVEL, EX_WANT);
 await runMatrix('Training', BACKENDS[2], TR_LEVEL, TR_WANT);
 await runMatrix('Finance', BACKENDS[3], FIN_LEVEL, FIN_WANT);
 await runMatrix('Results', BACKENDS[4], RES_LEVEL, RES_WANT);
+await runMatrix('Print', BACKENDS[5], PRN_LEVEL, PRN_WANT);
 // "waived" needs the director: a lead may approve or reject a claim but not waive the rule
 await refused(R.decideQual(Object.assign(probe(TOK.lead1), { status: 'waived' })), 'director_only', 'S3 a lead cannot waive a qualification rule');
 await refused(R.decideQual(Object.assign(probe(TOK.view1), { status: 'waived' })), 'director_only', 'S3 a viewer cannot waive one either');
@@ -365,6 +445,59 @@ await rs('resImport', TOK.boss, { text: 'bib,chip\n42,55:10\n', key: 'sec-res-im
   eq(Object.keys(row).sort(), ['age', 'ageGroup', 'aplace', 'bib', 'cat', 'chip', 'flags', 'gender', 'gplace', 'gun', 'id', 'name', 'note', 'place', 'status', 'time', 'voidAt', 'voidBy', 'voidReason'], 'S4 a result row in an answer has exactly 19 fields');
 }
 
+// Print and the public runner page. A director or a lead gets names, bibs, categories and times on the papers; no paper and no answer
+// holds a phone number, an e-mail address or a date of birth. The public page says nothing about a race until a director turns a
+// switch on, and then tells only what that switch allows.
+const PUB_ON = { startList: true, results: true, certs: true, note: 'Bring your bib to the finish' };
+{
+  const hidden = Object.values(RV);
+  const asP = (fn, tok, o) => P[fn](Object.assign({ token: tok, ev: EV }, o));
+  const LOGINS = WHO.map(([u]) => '"' + u + '"');
+  const staffSees = (text) => hidden.filter((v) => text.includes(v)).concat(/"(phone|email|regId|dob|password|token)"\s*:/.test(text) ? ['a field named like a secret'] : []).concat(/REG~sec/.test(text) ? ['a registration id'] : []);
+  const publicSees = (text) => staffSees(text).concat(LOGINS.filter((u) => text.includes(u))).concat(/"(by|at|username|age|json|event|_id)"\s*:/.test(text) ? ['a staff or database field'] : []);
+  // nothing is shown before a director turns a switch on: the race is as good as not there
+  const off = [await err(U.pubFind({ ev: EV, q: 'secret' })), await err(U.pubFind({ ev: 'no-such-race', q: 'secret' })), await err(U.pubCert({ ev: EV, bib: '42' })), await err(U.pubCert({ ev: 'no-such-race', bib: '42' }))];
+  eq(off, ['not_published', 'not_published', 'not_published', 'not_published'], 'S4 a race whose switches are off is answered to the public exactly like a race that does not exist: not_published');
+  ok(!(await U.pubRaces()).races.some((r) => r.id === EV), 'S4 and it is not in the list of races on the public page');
+  // the papers, for a director and for a lead
+  for (const [who, tok] of [['a director', TOK.boss], ['a lead', TOK.lead1]]) {
+    const answers = [await asP('prnOverview', tok), await asP('prnPreview', tok, { kind: 'bib' }), await asP('prnPreview', tok, { kind: 'cert' }), await asP('prnBibs', tok), await asP('prnCerts', tok)];
+    ok(answers[3].count >= 1 && answers[3].body.includes('42') && answers[4].count >= 1 && answers[4].body.includes('Secret Runner'), 'S4 control: ' + who + ' gets the runner\'s bib and certificate on the printed papers (so the check below is a real one)');
+    const seen = staffSees(JSON.stringify(answers));
+    ok(!seen.length, 'S4 ' + who + '\'s five answers (overview, preview of a bib, preview of a certificate, printed bibs, printed certificates) carry no phone number, e-mail address, date of birth or registration id' + (seen.length ? ' [saw ' + seen + ']' : ''));
+  }
+  // only a director turns the public page on
+  await refused(asP('prnSavePublish', TOK.lead1, { pub: PUB_ON }), 'director_only', 'S4 a lead cannot turn the public page on');
+  await refused(U.pubFind({ ev: EV, q: 'secret' }), 'not_published', 'S4 and it stays off');
+  // start list only
+  await asP('prnSavePublish', TOK.boss, { pub: { startList: true, results: false, certs: false, note: '' } });
+  const s1 = (await U.pubFind({ ev: EV, q: 'secret' })).items;
+  ok(s1.length === 1 && s1[0].name === 'Secret Runner' && !!s1[0].start && s1[0].start.wave === 'Wave 1' && s1[0].result === null && s1[0].cert === false, 'S4 with only the start list on, the public page tells the runner\'s wave and no result and no certificate');
+  await refused(U.pubCert({ ev: EV, bib: '42' }), 'not_published', 'S4 and the certificate is not given');
+  // results only (no certificates)
+  await asP('prnSavePublish', TOK.boss, { pub: { startList: false, results: true, certs: false, note: '' } });
+  const s2 = (await U.pubFind({ ev: EV, q: '42' })).items;
+  ok(s2.length === 1 && !!s2[0].result && !!s2[0].result.time && s2[0].start === null && s2[0].cert === false, 'S4 with only results on, the result is told and the wave is not');
+  await refused(U.pubCert({ ev: EV, bib: '42' }), 'not_published', 'S4 and a certificate needs its own switch');
+  // everything on
+  await asP('prnSavePublish', TOK.boss, { pub: PUB_ON });
+  const w1 = WRITES.length;
+  const open = [await U.pubRaces(), await U.pubFind({ ev: EV, q: 'secret' }), await U.pubFind({ ev: EV, q: '42' }), await U.pubFind({ ev: EV, q: '0042' }), await U.pubCert({ ev: EV, bib: '42' })];
+  ok(open[0].races.some((r) => r.id === EV) && open[1].items.length === 1 && open[2].items.length === 1 && open[3].items.length === 1 && open[1].items[0].cert === true && open[4].html.includes('Secret Runner'), 'S4 control: with everything on, the runner is found by name and by bib (with or without zeros) and the certificate is given (so the checks below are real ones)');
+  const seen = publicSees(JSON.stringify(open));
+  ok(!seen.length, 'S4 the public page\'s five answers (the races, three searches, a certificate) carry no phone number, e-mail address, date of birth, age, registration id, login name or database field' + (seen.length ? ' [saw ' + seen + ']' : ''));
+  eq(Object.keys(open[1]).sort(), ['flags', 'items', 'more', 'note', 'race', 'tooShort'], 'S4 a search answers with exactly six things: the race, the switches, the note, the runners, "more" and "too short"');
+  eq(Object.keys(open[1].items[0]).sort(), ['bib', 'cat', 'cert', 'name', 'result', 'start'], 'S4 each runner in it has exactly six things: bib, name, category, start, result and whether a certificate is there');
+  eq(Object.keys(open[1].items[0].result).sort(), ['aplace', 'ageGroup', 'gender', 'gplace', 'place', 'status', 'time'].sort(), 'S4 and a result has exactly seven: status, time, place, gender, age group and the two category places (never an age or a date of birth)');
+  eq([Object.keys(open[1].race).sort(), Object.keys(open[0].races[0]).sort(), Object.keys(open[4]).sort()], [['date', 'id', 'name', 'venue'], ['date', 'id', 'name'], ['bib', 'html', 'name']], 'S4 the race, the list of races and a certificate each have only their expected fields');
+  eq(await U.pubFind({ ev: EV, q: 'secret', token: TOK.boss, username: 'boss', role: 'admin', as: 'boss' }), open[1], 'S4 a director\'s login token (or any login detail) in the public call changes nothing: the public page has no staff view');
+  ok(WRITES.length === w1, 'S4 and looking at the public page writes nothing (' + (WRITES.length - w1) + ' writes)');
+  // switched off again, the page closes at once (it keeps a 30-second memory of the runners, never of the switches)
+  await asP('prnSavePublish', TOK.boss, { pub: { startList: false, results: false, certs: false, note: '' } });
+  eq([await err(U.pubFind({ ev: EV, q: 'secret' })), await err(U.pubCert({ ev: EV, bib: '42' })), (await U.pubRaces()).races.some((r) => r.id === EV)], ['not_published', 'not_published', false], 'S4 switched off again, the race is gone from the public page at once');
+  await asP('prnSavePublish', TOK.boss, { pub: PUB_ON }); // on again for the rest of the audit
+}
+
 /* =====================================================================================================
    S5. Sessions and tokens
    ===================================================================================================== */
@@ -398,6 +531,9 @@ await rs('resImport', TOK.boss, { text: 'bib,chip\n42,55:10\n', key: 'sec-res-im
   const fcall = (t) => err(F.finListClaims({ token: t, ev: EV }));
   const rcall = (t) => err(RS.resBoard({ token: t, ev: EV }));
   const rdir = (t) => err(RS.resFormFields({ token: t, ev: EV }));
+  const pcall = (t) => err(P.prnOverview({ token: t, ev: EV }));
+  const pdir = (t) => err(P.prnSavePublish({ token: t, ev: 'nope', pub: {} })); // past the door, a race that is not there answers no_event
+  ok(!GATE.includes(await pcall(tok)) && (await pdir(tok)) === 'director_only', 'S5 a lead can look at the bibs and certificates but not change a design or the public page (control)');
   ok(!GATE.includes(await call(tok)), 'S5 a lead can write (control)');
   ok(!GATE.includes(await fcall(tok)), 'S5 a lead can use their reimbursement claims in Finance (control)');
   ok(!GATE.includes(await rcall(tok)) && (await rdir(tok)) === 'director_only', 'S5 a lead can look at the results but not change the setup (control)');
@@ -407,27 +543,33 @@ await rs('resImport', TOK.boss, { text: 'bib,chip\n42,55:10\n', key: 'sec-res-im
   eq(await call(tok), 'read_only', 'S5 made a viewer: the same token can no longer write');
   eq(await fcall(tok), 'not_allowed', 'S5  and Finance closes at once too');
   eq(await rcall(tok), 'not_allowed', 'S5  and Results closes at once too');
+  eq(await pcall(tok), 'not_allowed', 'S5  and Print closes at once too');
   await set('desk');
   eq(await call(tok), 'not_allowed', 'S5 made desk staff: the same token is refused by RaceOS');
   eq(await fcall(tok), 'not_allowed', 'S5  and by Finance');
   eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
+  eq(await pcall(tok), 'not_allowed', 'S5  and by Print');
   eq((await R.whoami({ token: tok })).role, 'desk', 'S5  (and whoami still answers, as it does for desk staff)');
   await set('coach');
   eq(await call(tok), 'not_allowed', 'S5 made a coach: refused');
   eq(await fcall(tok), 'not_allowed', 'S5  and by Finance');
   eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
+  eq(await pcall(tok), 'not_allowed', 'S5  and by Print');
   await refused(R.whoami({ token: tok }), 'not_allowed', 'S5  and whoami refuses too');
   await set('director');
   ok(!GATE.includes(await err(F.finLedger({ token: tok, ev: EV }))), 'S5 promoted to director: the same token opens the whole of Finance at once');
   ok(!GATE.includes(await rdir(tok)), 'S5  and the setup of Results at once');
+  ok(!GATE.includes(await pdir(tok)), 'S5  and the designs and public page of Print at once');
   await set('lead');
   ok(!GATE.includes(await call(tok)), 'S5 made a lead again: writes again');
   eq(await err(F.finLedger({ token: tok, ev: EV })), 'director_only', 'S5  and the director-only part of Finance closes again at once');
   eq(await rdir(tok), 'director_only', 'S5  and the setup of Results closes again at once');
+  eq(await pdir(tok), 'director_only', 'S5  and the designs and public page of Print close again at once');
   await wd.bulkRemove('ExpoStaff', [row._id], SA);
   await refused(R.whoami({ token: tok }), 'not_logged_in', 'S5 login removed: the token stops working at once');
   await refused(F.finListClaims({ token: tok, ev: EV }), 'not_logged_in', 'S5  in Finance too');
   await refused(RS.resBoard({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Results');
+  await refused(P.prnOverview({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Print');
   await wd.insert('ExpoStaff', Object.assign({}, row, { _id: undefined }), SA);
 }
 {
@@ -449,6 +591,13 @@ await rs('resImport', TOK.boss, { text: 'bib,chip\n42,55:10\n', key: 'sec-res-im
   const mine = await F.finSaveClaim({ token: TOK.lead1, ev: EV, by: 'boss', byName: 'The Director', username: 'boss', status: 'approved', approved: '99999', decidedBy: 'boss', selfApproved: false, lines: [{ date: day(-2), desc: 'Tea for volunteers', amount: '120' }], key: 'sec-clm-mass-1' });
   const made = (await F.finListClaims({ token: TOK.boss, ev: EV })).claims.find((c) => c.id === mine.id);
   ok(made && made.by === 'lead1' && made.status === 'submitted' && made.approved === 0 && !made.decidedBy, 'S5 a claim raised with "by", "status: approved" and "approved: 99999" in the call is still the lead\'s own, submitted and not approved');
+  // Print: a lead's token with "boss" and "director" in the call is still a lead; a design is written under the logged-in director's own name
+  await refused(P.prnSaveTemplate({ token: TOK.lead1, ev: EV, kind: 'bib', tpl: {}, username: 'boss', role: 'director', by: 'boss' }), 'director_only', 'S5 a lead\'s token with "username: boss" and "role: director" in a Print call is still a lead');
+  await refused(P.prnSavePublish({ token: TOK.view1, ev: EV, pub: PUB_ON, username: 'boss', role: 'admin' }), 'not_allowed', 'S5  and a viewer\'s token cannot change the public page either');
+  await P.prnSaveTemplate({ token: TOK.dir2, ev: EV, kind: 'cert', tpl: { title: 'Well run' }, by: 'boss', username: 'boss', byName: 'The Director', at: '1999-01-01' });
+  const design = [...DB.RDPrint.values()].find((x) => x._id === 'tpl~' + EV + '~cert');
+  const note = [...DB.RDAudit.values()].filter((x) => x.action === 'certificate design saved').pop();
+  ok(design && design.by === 'dir2' && design.at !== '1999-01-01' && Date.now() - Date.parse(design.at) < 60000 && note && note.by === 'dir2', 'S5 a design saved with "by: boss" and an old date in the call is written, and noted, under the logged-in director\'s own name and the real time');
 }
 {
   const t = (await R.login({ username: 'view1', password: 'Sec-pass-1' })).token;
@@ -464,13 +613,16 @@ await rs('resImport', TOK.boss, { text: 'bib,chip\n42,55:10\n', key: 'sec-res-im
 {
   const t = (await R.login({ username: 'dir2', password: 'Sec-pass-1' })).token;
   ok(!GATE.includes(await err(F.finOverview({ token: t, ev: EV }))), 'S5 a director\'s new session opens Finance');
+  ok(!GATE.includes(await err(P.prnOverview({ token: t, ev: EV }))), 'S5  and Print');
   await R.logout({ token: t });
   await refused(F.finOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 after logout Finance refuses the token too');
-  await refused(RS.resBoard({ token: t, ev: EV }), 'not_logged_in', 'S5 and so does Results (one session for all five backends)');
+  await refused(RS.resBoard({ token: t, ev: EV }), 'not_logged_in', 'S5 and so does Results');
+  await refused(P.prnOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Print (one session for all six backends)');
   const expired = await session('dir2', 1000);
   await wd.update('ExpoSessions', Object.assign({}, [...DB.ExpoSessions.values()].find((s) => s.token === expired), { expires: new Date(Date.now() - 1000).toISOString() }), SA);
   await refused(F.finOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5 a session that has run out is refused by Finance');
   await refused(RS.resBoard({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Results');
+  await refused(P.prnOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Print');
 }
 
 /* =====================================================================================================
@@ -504,6 +656,12 @@ ok(!JSON.stringify([...DB.RDAudit.values()]).match(new RegExp([made.secret, made
   ok(notes.includes('results imported') && notes.includes('waves saved') && notes.includes('runners placed'), 'S6 control: the Results changes made above are in the change notes');
   ok(!Object.values(RV).some((v) => notes.includes(v)) && !/token|password/i.test(JSON.stringify([...DB.RDResSet.values()])), 'S6 the Results change notes hold no phone number, e-mail address or date of birth, and the records of its rules, waves and repeat keys hold no token or password');
 }
+{
+  const notes = JSON.stringify([...DB.RDAudit.values()]);
+  ok(notes.includes('runner page changed') && notes.includes('certificate design saved') && notes.includes('bibs printed') && notes.includes('certificates printed'), 'S6 control: the Print changes made above (a design saved, the public page switched, bibs and certificates printed) are in the change notes');
+  const stored = JSON.stringify([...DB.RDPrint.values()]);
+  ok(DB.RDPrint.size >= 2 && !Object.values(RV).some((v) => notes.includes(v) || stored.includes(v)) && !Object.values(TOK).some((v) => notes.includes(v) || stored.includes(v)) && !/token|password|passwd/i.test(stored), 'S6 the Print change notes and the saved designs and switches hold no phone number, e-mail address, date of birth, token or password');
+}
 // the PIN of an athlete
 ok(!all.includes('"' + ATH_PIN + '"'), 'S6 an athlete\'s PIN is not in the database as typed');
 const athRow = [...DB.TrainAthletes.values()][0];
@@ -528,6 +686,8 @@ const READS = [
   () => T.listAthletes({ token: TOK.boss }), () => T.athleteDetail({ token: TOK.boss, id: ath1 }), () => T.listCoaches({ token: TOK.boss }), () => T.listPlans({ token: TOK.boss }), () => T.getTrainSettings(), () => T.openPlans(), () => T.myHome({ token: TOK.ath }), () => T.mySessions({ token: TOK.ath }), () => T.tWhoami({ token: TOK.boss }),
   () => F.finOverview(asBoss), () => F.finSettings(asBoss), () => F.finListInvoices(asBoss), () => F.finListOrders(asBoss), () => F.finListClaims(asBoss), () => F.finCash(asBoss), () => F.finLedger(asBoss), () => F.finListClaims({ token: TOK.lead1, ev: EV }),
   () => RS.resOverview(asBoss), () => RS.resFormFields(asBoss), () => RS.resStartList(asBoss), () => RS.resBoard(asBoss), () => RS.resAwards(asBoss), () => RS.resBoard({ token: TOK.lead1, ev: EV }),
+  () => P.prnOverview(asBoss), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'bib' }), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'cert' }), () => P.prnBibs(asBoss), () => P.prnCerts(asBoss), () => P.prnOverview({ token: TOK.lead1, ev: EV }),
+  () => U.pubRaces(), () => U.pubFind({ ev: EV, q: 'secret' }), () => U.pubCert({ ev: EV, bib: '42' }),
 ];
 {
   const bad = [];
@@ -544,7 +704,7 @@ const READS = [
     const l = leaks(r);
     if (l.length) bad.push(read.toString().slice(6, 40) + ' ' + l.join(','));
   }
-  ok(answered >= 42, 'S6 control: ' + answered + ' of ' + READS.length + ' screens\' calls were answered with real data');
+  ok(answered >= 51, 'S6 control: ' + answered + ' of ' + READS.length + ' screens\' calls were answered with real data');
   ok(!bad.length, 'S6 no answer holds a password, PIN hash, salt, failure count, lock time or token' + (bad.length ? ' [' + bad.join('; ') + ']' : ''));
 }
 const edited = await R.saveTeam({ token: TOK.boss, username: 'new.lead', name: 'New Lead', role: 'lead', edit: true });
@@ -612,6 +772,24 @@ ok(!missing(consts(src('wix/expo/exposoft.web.js')), rdIds).length, 'S7 every co
 ok(!missing(consts(trText), new Set([...trIds, ...rdIds])).length, 'S7 every collection Training uses is created by its own or the RaceOS setup' + (missing(consts(trText), new Set([...trIds, ...rdIds])).length ? ' [' + missing(consts(trText), new Set([...trIds, ...rdIds])) + ']' : ''));
 ok(!missing(consts(finText), new Set([...finDefs.map((d) => d._id), ...rdIds])).length, 'S7 every collection Finance uses is created by its own set-up or the RaceOS one' + (missing(consts(finText), new Set([...finDefs.map((d) => d._id), ...rdIds])).length ? ' [' + missing(consts(finText), new Set([...finDefs.map((d) => d._id), ...rdIds])) + ']' : ''));
 ok(!missing(consts(resText), new Set([...resDefs.map((d) => d._id), ...rdIds])).length, 'S7 every collection Results uses is created by its own set-up or the RaceOS one' + (missing(consts(resText), new Set([...resDefs.map((d) => d._id), ...rdIds])).length ? ' [' + missing(consts(resText), new Set([...resDefs.map((d) => d._id), ...rdIds])) + ']' : ''));
+// Print (the one collection of the saved designs and public-page switches) and the public runner page (which makes nothing)
+const printText = src('wix/director/print.web.js');
+const runnerText = src('wix/director/runner.web.js');
+eq(printMadeForOutsiders, 0, 'S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two methods) makes the Print collection: it is made only for a signed-in director or lead');
+ok(printDefs.length === 1 && locked(printDefs[0]), 'S7 Print makes its one collection on first use by a director or lead, readable, changeable and emptied only by the site admin (saved designs and the public page\'s switches are never open to a visitor)');
+eq(printDefs.map((d) => d._id), PRINT_COLS, 'S7 and it is exactly RDPrint');
+ok(printDefs.every((d) => d.fields.length === 5 && d.fields.every((f) => f.type === 'TEXT')), 'S7 with its five fields (event, kind, json, by, at), stored as text');
+ok((printText.match(/await ensureCollections\(\)/g) || []).length === 1 && /throw new Error\('director_only'\);\s*await ensureCollections\(\);/.test(printText), 'S7 Print makes its collection in one place only: the last step of the login check, after the person has been let in');
+ok(!/SETUP_KEY|ensureSetup|createDataCollection/.test(runnerText) && !/SETUP_KEY|ensureSetup/.test(printText), 'S7 the public runner page makes nothing and Print has no set-up call or key: there is nothing for an outsider to guess');
+{
+  const have = new Set([...rdIds, ...resDefs.map((d) => d._id), ...printDefs.map((d) => d._id)]);
+  const used = Object.values(DATA_C);
+  const lack = used.filter((c) => !have.has(c));
+  ok(used.length === 9 && !lack.length, 'S7 all ' + used.length + ' collections the shared readers name (staff, sessions, races, registrations, change notes, results, wave placements, results settings, print) are made by the RaceOS, Results or Print set-up' + (lack.length ? ' [missing: ' + lack + ']' : ''));
+  const own = [printText, runnerText].flatMap((t) => [...t.matchAll(/wixData\.(?:query|get|insert|update|save|bulk\w+)\(\s*'([^']+)'/g)].map((m) => m[1]));
+  const names = [...new Set([printText, runnerText].flatMap((t) => [...t.matchAll(/\bC\.([A-Z]+)\b/g)].map((m) => m[1])))];
+  ok(!own.length && names.length >= 5 && names.every((k) => k in DATA_C), 'S7 Print and the runner page name no collection of their own: all of the ' + names.length + ' they use (' + names.join(', ') + ') come from the shared list' + (own.length ? ' [own: ' + own + ']' : ''));
+}
 ok(['ExpoStaff', 'ExpoSessions', 'RDRate', 'RDAudit'].every((c) => rdIds.has(c)) && ['TrainAthletes'].every((c) => trIds.has(c)), 'S7 the collections that hold logins, sessions, tries and audit notes are among them');
 // the key
 for (const [name, text] of [['racedir.web.js', rdText], ['training.web.js', trText]]) {
@@ -741,6 +919,42 @@ ok(![...athList, ...coachList, ...(listOf('wix/director/volunteer-page-code.js',
   ok(!noOnce.length, 'S8 the two calls that create many rows at once (placing the runners, importing results) can be sent twice safely: they go through the repeat guard' + (noOnce.length ? ' [' + noOnce + ']' : ''));
   const shownDob = src('wix/director/director-embed.html').split('RESULTS-START')[1].split('RESULTS-END')[0].split('\n').map((l) => l.replace(/map\.dob/g, '')).filter((l) => /\.dob\b/.test(l) && !/\bd\.dob/.test(l)); // (map.dob is the name of a form question, not an answer)
   ok(!shownDob.length, 'S8 the Results screen never reads a date of birth out of an answer (it only sends what the director types)' + (shownDob.length ? ' [' + shownDob.map((l) => l.trim().slice(0, 50)) + ']' : ''));
+}
+// Print: offered by the director page only, every method reachable, and written so that a saved design is never deleted.
+// The public runner page: three methods that only read, behind a page that offers nothing else.
+const PRN_ALLOWED = listOf(DP, 'PRN_ALLOWED');
+const volList = listOf('wix/director/volunteer-page-code.js', 'ALLOWED') || [];
+const runList = listOf('wix/director/runner-page-code.js', 'ALLOWED');
+ok(PRN_ALLOWED, 'S8 the director page has its sixth list (Print)');
+eq(PRN_ALLOWED.slice().sort(), BACKENDS[5].names.slice().sort(), 'S8 the director page offers exactly the 6 Print methods (none forgotten, none extra)');
+ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^prn[A-Z]/.test(n)) && ![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED, ...RES_ALLOWED].some((n) => BACKENDS[5].names.includes(n)), 'S8 no other page (volunteer, athlete, coach, public runner) and no other list offers a Print method');
+eq(runList, BACKENDS[6].names, 'S8 the public runner page offers exactly the 3 public runner methods and nothing else');
+ok(![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED, ...RES_ALLOWED, ...PRN_ALLOWED, ...athList, ...coachList, ...volList].some((n) => BACKENDS[6].names.includes(n)), 'S8 and no staff, athlete or volunteer page offers a public runner method (each page has its own job)');
+{
+  const code = (t) => t.replace(/\/\/[^\n]*/g, '');
+  const pc = src(DP);
+  ok(/import \* as prn from 'backend\/print\.web';/.test(pc) && /msg\.mod === 'prn'/.test(pc) && /PRN_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Print and refuses a Print call that is not on its list');
+  const rp = src('wix/director/runner-page-code.js');
+  eq([...rp.matchAll(/^import .* from '([^']+)';/gm)].map((m) => m[1]).sort(), ['backend/runner.web', 'wix-location'], 'S8 the runner page code imports only the address bar and the public runner module (nothing of RaceOS, Finance, Results or Print)');
+  ok(/ALLOWED\.indexOf\(msg\.method\) < 0\)/.test(rp) && !/token|login|password|session/i.test(code(rp)), 'S8 it refuses a method that is not on its list, and holds nothing about logins, tokens or sessions');
+  ok(!/token|password|login|session/i.test(code(src('wix/director/runner-embed.html'))), 'S8 the public runner screen has no login, token or session in it');
+  const wrapper = (id) => new RegExp("const webMethod = \\(permission, fn\\) =>\\s*wixWebMethod\\(permission, async \\(arg\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*throw tidyError\\(e, '" + id + "'\\);");
+  ok(wrapper('print').test(printText) && wrapper('runner').test(runnerText), 'S8 every Print method and every public runner method answers through the wrapper that turns an unexpected error into "server_error"');
+  // Print: every read and write of its locked collections passes suppressAuth, and nothing is ever deleted
+  const pl = printText.split('\n');
+  const noSA = pl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
+  ok(!noSA.length, 'S8 every Print read and write of a locked collection passes suppressAuth (the collections are admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
+  const pq = printText.split(/;\s*\n/).filter((x) => /wixData\.query\(/.test(x));
+  const noSAq = pq.filter((x) => !/\.find\(SA\)/.test(x)).map((x) => x.trim().slice(0, 60));
+  ok(pq.length >= 3 && !noSAq.length, 'S8 and so does every query (' + pq.length + ' of them end in find(SA))' + (noSAq.length ? ' [' + noSAq + ']' : ''));
+  ok(!/\.remove\(|bulkRemove\(|\.truncate\(/.test(printText), 'S8 nothing in Print removes a row: a design is replaced by the next one, a switch is turned off, nothing is deleted');
+  ok(!/arg\.(username|user|role|by|byName|me|as)\b/.test(printText) && !/arg\.(username|user|role|by|byName|me|as|token)\b/.test(runnerText), 'S8 no Print method reads who is asking from the call (the session token is the only identity), and the public runner methods read no login detail at all');
+  // the public runner page: only reads
+  ok(!/wixData\.(insert|update|save|remove|bulk\w+|truncate)\(|\.remove\(/.test(runnerText) && !/wix-auth|wix-data\.v2|elevate|collections\.|wix-fetch|wix-secrets|wix-events|wix-members/.test(runnerText), 'S8 the public runner backend only reads: no insert, update, save, remove, elevated call, outside request or collection set-up');
+  ok(!/\.(insert|update|save|remove|bulk\w+)\(/.test(code(src('wix/director/rd-data.js'))) && !/wix-data|wixData/.test(src('wix/director/rd-print.js')), 'S8 and so do the readers it shares (rd-data.js has no write at all) and the paper maker (rd-print.js has no database in it)');
+  ok(['wix/director/rd-print.js', 'wix/director/print.web.js', 'wix/director/runner.web.js', 'wix/director/rd-data.js'].every((f) => !/\.(phone|email|dob)\b/.test(code(src(f)))), 'S8 none of the four files that make the papers and the public answers reads a phone number, e-mail address or date of birth field');
+  const prnScreen = src('wix/director/director-embed.html').split('PRINT-START')[1].split('PRINT-END')[0];
+  ok(prnScreen.length > 2000 && !/\.(dob|phone|email)\b/.test(prnScreen) && !/\.(dob|phone|email)\b/.test(code(src('wix/director/runner-embed.html'))), 'S8 the Bibs & certificates screen and the public runner screen never read a date of birth, phone number or e-mail address out of an answer');
 }
 // source collections of the race lists are only ever read
 {

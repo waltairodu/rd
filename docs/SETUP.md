@@ -4,7 +4,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## A. The files and where each one goes
 
-**Backend files** (code sidebar > Backend). The first five are web modules (`.web.js`); the other five are plain files: create them with **+ > Add a .js file** and give them exactly these names.
+**Backend files** (code sidebar > Backend). The first seven are web modules (`.web.js`); the other seven are plain files: create them with **+ > Add a .js file** and give them exactly these names.
 
 | File in this pack | Name in Wix | Notes |
 |---|---|---|
@@ -12,12 +12,16 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 | 1-backend/exposoft.web.js | exposoft.web.js | The Expo desk's server side. Has no key and no login of its own |
 | 1-backend/training.web.js | training.web.js | Coach and athlete pages. Has its own SETUP_KEY, used only by its optional manual setup (the collections are also made by the first coach login) |
 | 1-backend/finance.web.js | finance.web.js | Finance: invoices, orders, claims, cash, ledger. Add it **before** you paste the new /rd page code, because that code imports it |
-| 1-backend/results.web.js | results.web.js | **New.** Waves and corrals, results, awards. Add it **before** you paste the new /rd page code, because that code imports it |
+| 1-backend/results.web.js | results.web.js | Waves and corrals, results, awards. Add it **before** you paste the new /rd page code, because that code imports it |
+| 1-backend/print.web.js | print.web.js | **New.** Bibs, certificates and the runner page's switches (staff only). Add it **before** you paste the new /rd page code, because that code imports it |
+| 1-backend/runner.web.js | runner.web.js | **New.** The public /runner page's server side: three read-only methods that anyone may call, and that show a race only after a director has turned a switch on for it. Add it **before** you paste the page code of /runner |
 | 1-backend/rd-auth.js | **rd-auth.js** | Passwords, PINs, roles. Every `.web.js` file imports it |
 | 1-backend/ai-core.js | **ai-core.js** | Optional AI helper (works without a key) |
 | 1-backend/rd-approvals.js | **rd-approvals.js** | Approvals library and the letter writer |
 | 1-backend/rd-finance.js | **rd-finance.js** | Finance rules and money arithmetic. `finance.web.js` imports it |
-| 1-backend/rd-results.js | **rd-results.js** | **New.** Results rules: times, age groups, waves, awards. `results.web.js` imports it |
+| 1-backend/rd-results.js | **rd-results.js** | Results rules: times, age groups, waves, awards. `results.web.js` imports it |
+| 1-backend/rd-print.js | **rd-print.js** | **New.** Bib and certificate designs and the rules for what the public page may show. `print.web.js` and `runner.web.js` import it |
+| 1-backend/rd-data.js | **rd-data.js** | **New.** Reads a race, its registrations, results and waves for the papers and the runner page (reading only). `print.web.js` and `runner.web.js` import it |
 
 **Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code in the page's code panel)
 
@@ -27,14 +31,15 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 | /volunteer | 2-pages/volunteer/volunteer-embed.html | volFrame | 2-pages/volunteer/page-code.js |
 | /train | 2-pages/train/athlete-embed.html | trainFrame | 2-pages/train/page-code.js |
 | /coach | 2-pages/coach/coach-embed.html | coachFrame | 2-pages/coach/page-code.js |
+| /runner | 2-pages/runner/runner-embed.html | runFrame | 2-pages/runner/page-code.js |
 
 **There is no separate Expo page any more.** If you made a /exposoft page for the old software, you can delete it (or leave it; it will no longer be used). The Expo desk is the **BIB & Expo** tab at /rd, and desk staff land on it straight after logging in.
 
 ## B. First-time steps
 
 1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets).
-2. **Backend.** Add the ten files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
-3. **Pages.** Create /rd, /volunteer, /train, /coach (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
+2. **Backend.** Add the fourteen files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
+3. **Pages.** Create /rd, /volunteer, /train, /coach and /runner (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
 4. **Publish** the site. Everything works on the published site only.
 5. **First login at /rd.** Open "First-time setup (owner only)" on the login screen and enter the setup key plus a new admin username and password. This creates every collection (the Expo desk's too) locked to the site admin, and the first admin login. It does nothing to logins that already exist. Check that the new collections appear in the **live** CMS data.
    - *You used the old Expo desk?* Its logins keep working: staff type the same username and password at /rd. A password that was typed by hand into the CMS is replaced by a hash the first time that person logs in.
@@ -161,6 +166,54 @@ Times are `h:mm:ss` (1:45:30), or `mm:ss` for under an hour (45:30), with hundre
 - Settings are saved as typed; if two directors save Setup at the same moment, the last save wins. Waves are protected (see above).
 - A date of birth that a director types or that a file carries is stored with that result (never shown). The date of birth in a registration stays in the registration.
 - If two directors save results at the very same moment, look at the Results tab afterwards and check that each bib shows what you expect. The repeat key protects one login that taps twice; it cannot tell which of two different people should win.
+- The /rd page accepts replies to its calls from any frame on the same page (see the note under Finance). Keep it free of third-party embedded content.
+
+## Bibs & certificates (/rd > Bibs & certificates) and the public /runner page
+A **Bibs & certificates** tab sits in the **Race day** group of the menu, right after **Waves & results**. It uses the same login. The set-up is four backend files, `print.web.js`, `runner.web.js`, `rd-print.js` and `rd-data.js` (add them **before** you paste the new /rd page code: that code imports `print.web.js`, so Wix will not save it until the file exists), and one new page, **/runner**. One locked collection, **RDPrint**, is made the first time a director or lead opens the tab (if you prefer to make it by hand, give it the text columns `event`, `kind`, `json`, `by` and `at`, and set all four permissions to Admin).
+
+**Who can do what** (the server decides, the screen only mirrors it): a **director** designs, prints, and decides what the public page shows. A **lead** can preview and print and changes nothing. Viewers, desk staff, coaches and sponsors do not see the tab and are refused if they ask. Designs and switches belong to one race: pick the race at the top as everywhere else and nothing leaks to another race.
+
+**The three sections**
+
+| Section | What it does |
+|---|---|
+| Bibs | The design of the bib, a preview at the real size of the paper, and printing. |
+| Certificates | The design of the finisher's certificate, a preview, and printing. |
+| Runner page | The switches for the public page, a note for the top of it, and the link to share. Directors only. |
+
+**Designing a bib.** Width 80 to 300 mm and height 60 to 210 mm, page A4 or A3 (portrait or landscape), an accent colour for the top band, a title and a subtitle, which name to print (none, the name, the bib name, or the bib name if there is one and the name if not), whether to print the category and a colour for each category, up to six sponsors (a name, or the address of a picture), a tear-off strip with the number repeated, punch holes, and a footer line. In the title, subtitle and footer, `{race}`, `{date}`, `{venue}`, `{cat}`, `{bib}`, `{name}` and `{bibname}` are replaced for each runner. The preview shows a real runner (type a bib to look at another) or, if nobody has a bib yet, a made-up one, and says which.
+
+**Printing bibs.** A bib is printed for every runner who has **paid** and has a **bib number**, in bib order: all of them, one category, or one bib. **Spare bibs**: type the first and last number (up to 500 at a time); numbers that real runners already have are skipped, never printed twice. The bibs come from the server a page of 60 at a time and join into one print window, so a race of thousands prints in one go, with a counter. If you changed the design on screen, it is saved first, so what prints is what the preview showed. Each print of all, a category or one bib is written to the change list (who, which race, how many).
+
+**Designing a certificate.** Landscape or portrait, a border (none, simple, double), accent and background colours, a logo (a picture address), a title, an introduction, and a body text. In the body, title and footer you can use `{name}`, `{bib}`, `{cat}`, `{race}`, `{date}`, `{venue}`, `{time}`, `{place}`, `{gender}`, `{gplace}`, `{agegroup}`, `{aplace}` and `{pace}`. The boxes under the body (time, overall place, place among men or women, place in the age group, pace) can be switched off. Up to two signatures (a name and a role each), up to six sponsors, and a footer line. A certificate is printed only for a runner who **finished with a place**: not a DNF, a DNS, a disqualified or a voided result. Certificates come in the order of the categories, then by place, 25 at a time, and join into one print window like the bibs. A certificate takes everything from Waves & results, so a correction there shows on the next certificate you print.
+
+**Pictures** (a logo or a sponsor) must be an https address on the Wix media server (`static.wixstatic.com`) or on the club's own site (`vtra.run` or `www.vtra.run`). Anything else is refused with a message when you save, and is never printed. Colours are six hex digits such as `#1b5e9b`.
+
+**Printing is the browser's print window.** Choose "Save as PDF" there to keep the file, or a printer. The paper size and the margins are set by the design, so tick "Background graphics" if your browser does not already (the colours of the bands and categories are backgrounds).
+
+**The public runner page (/runner).** Anyone with the link can look themselves up by **bib number** or by **three letters of their name** and sees at most ten runners. Nothing is shown until a director turns a switch on for that race, on **Runner page**:
+- **Start list**: bib, name, category, wave, start time and corral.
+- **Results**: finish time, place in the category, place among men or women, and place in the age group (a DNF or a DNS is shown only as that).
+- **Certificates** (needs Results): a finisher can open their own certificate and print it, or save it as a PDF.
+- **A note** of up to 200 letters for the top of the page.
+
+The link to share is `https://www.vtra.run/runner?ev=RACE_ID`; the Runner page section shows it with **Copy** and **Open** buttons. Without `?ev=` the page lists the races that show something (and opens straight on it when only one does). A race with every switch off does not exist as far as the page can tell: a link to it, to a deleted race or to a race that was never there all say the same thing, "That race is not showing anything on this page". A switch you turn off stops showing **at once**. A correction you make on Waves & results can take up to **30 seconds** to show on the page (the page keeps one made copy of the race for 30 seconds, so a rush of runners costs a few database reads, not one each).
+
+**What the public page never shows:** a date of birth, an age, a phone number, an e-mail address, a T-shirt size, anything about payment, a correction note, a void reason, or a runner who has not paid. It cannot be used to list the race: one or two letters find nobody, a bib prefix finds nobody, wildcards mean nothing, and a name that matches many people shows ten with a line saying so. It changes nothing in your data: the three methods behind it only read.
+
+**Safe to repeat.** Saving the same design or the same switches twice is harmless. Printing writes only the note in the change list. If two directors save a design at the same moment, one whole design wins; the page never keeps a mixture.
+
+**In what order to use it**
+1. **Bibs:** set the size, colours and sponsors, check the preview with a real bib, then **Print all bibs** (or one category). Print a **spare** set for the expo desk.
+2. **Certificates:** write the wording and the signatures, check the preview with a finisher's bib.
+3. **Runner page (before race day):** turn **Start list** on, so runners can find their wave and corral. Share the link.
+4. **After the race:** import and check the results on **Waves & results**, then turn **Results** (and **Certificates**) on. Send the link again.
+
+**Limits to know**
+- Certificates and bibs use fonts every computer has (Arial, Georgia). There is no photo of the runner on them.
+- Printing goes through the browser's print window; there is no direct printer control and no e-mailing of certificates yet (that comes with the communications package).
+- The public page needs Results to be imported on Waves & results first; a runner whose bib is not in the timing file shows no result.
+- Search matches the name as registered (letters and digits only, no spaces or punctuation), so "d'souza" is found by "dsouza" and by "souza".
 - The /rd page accepts replies to its calls from any frame on the same page (see the note under Finance). Keep it free of third-party embedded content.
 
 ## Approvals template (/rd > Approvals)

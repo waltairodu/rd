@@ -10,3 +10,9 @@ unit unit-results.mjs
 integration results.mjs
 integration results-ui.mjs
 pentest pentest-results.mjs
+# Package 4: Bibs, certificates and the public runner page
+unit unit-print.mjs
+integration print.mjs
+integration print-ui.mjs
+integration runner-ui.mjs
+pentest pentest-print.mjs

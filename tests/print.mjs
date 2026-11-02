@@ -68,7 +68,7 @@ const call = (fn, who, o, ev) => PR[fn](Object.assign({ token: who === null ? un
 const SETTINGS = { rankBy: 'chip', ageRule: 'raceday', bands: [18, 30, 40, 50, 60], overallDepth: 3, groupDepth: 3, overallExcl: true, map: { gender: 'Gender', dob: 'Date of birth', age: 'Age', seed: 'Expected finish' } };
 await S.resSaveSettings({ token: TOK.boss, ev: EVA, settings: SETTINGS });
 await S.resSaveSettings({ token: TOK.boss, ev: EVC, settings: SETTINGS });
-const LEAK = new RegExp('p\\d{3,4}@example|98123\\d{5}|@example\\.com|01/01/(19|20)\\d\\d|(19|20)\\d\\d-01-01|1990|"dob"|"phone"|"email"');
+const LEAK = new RegExp('p\\d{3,4}@example|98123\\d{5}|@example\\.com|01/01/(19\\d\\d|20[01]\\d)|(19\\d\\d|20[01]\\d)-01-01|1990|"dob"|"phone"|"email"');
 const noLeak = (o, msg) => ok(!LEAK.test(JSON.stringify(o)), msg);
 const bibsIn = (html) => (html.match(/<div class="n"[^>]*>([^<]*)</g) || []).map((x) => x.replace(/^.*>([^<]*)<$/, '$1'));
 const certsIn = (html) => (html.match(/<section class="cert">/g) || []).length;

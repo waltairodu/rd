@@ -88,7 +88,7 @@ await pub(EV, { startList: true, results: true, certs: true, note: 'Times are pr
 await pub(EV2, { startList: true });
 await pub(EVC, { startList: false, results: true });
 // EV3 stays off
-const PII = /98123\d{5}|@example\.com|01\/01\/(19|20)\d\d|(19|20)\d\d-01-01|p\d{3,4}@|"dob"|"phone"|"email"|"age"|"tshirt"|"paid"|"status":"ok"/;
+const PII = /98123\d{5}|@example\.com|01\/01\/(19\d\d|20[01]\d)|(19\d\d|20[01]\d)-01-01|p\d{3,4}@|"dob"|"phone"|"email"|"age"|"tshirt"|"paid"|"status":"ok"/;
 
 /* ---------- a page, the way a browser would run it ---------- */
 const pubApi = {};

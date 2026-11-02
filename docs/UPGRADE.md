@@ -1,3 +1,42 @@
+# Package 4 (Bibs, certificates and the public runner page): what to change on a site that already runs Package 3
+
+Date: 2026-11-02. Installing for the first time? Ignore this page and follow SETUP.md.
+Nothing existing is edited by hand this time: four new backend files, one new page, and the /rd embed and page code are replaced with the files from this pack. No existing data is touched and no existing backend file changes.
+
+**Which package does your site run?** If /rd has a **Waves & results** tab, it runs Package 3: follow the steps just below. If it has no such tab, it runs Package 2 or 1: do the older steps at the bottom of this page first (Package 3, then Package 2), then these. The /rd embed and page code are replaced only once, with the files from this pack.
+
+## 1. Add four backend files (do this first)
+Code sidebar > Backend:
+- `print.web.js`: **+ > Add a web module**, name it exactly `print.web.js`, paste the contents of `1-backend/print.web.js`.
+- `runner.web.js`: **+ > Add a web module**, name it exactly `runner.web.js`, paste the contents of `1-backend/runner.web.js`.
+- `rd-print.js`: **+ > Add a .js file**, name it exactly `rd-print.js`, paste the contents of `1-backend/rd-print.js`.
+- `rd-data.js`: **+ > Add a .js file**, name it exactly `rd-data.js`, paste the contents of `1-backend/rd-data.js`.
+
+Do this before step 2: the new /rd page code imports `print.web.js`, and Wix will not save it until that file exists. `rd-results.js` and the other existing files stay exactly as they are.
+
+## 2. Replace the /rd page
+- **Embed:** click the HTML element on /rd (ID `dirFrame`), choose **Enter Code**, select everything, paste `2-pages/rd/rd-embed.html`.
+- **Page code:** open the /rd page's code panel, select everything, paste `2-pages/rd/page-code.js`.
+
+## 3. Make the /runner page (new)
+1. Add a page named **runner** (its URL becomes `/runner`) and set its permissions to **Anyone**: the page is public, and the server decides what it may show.
+2. Add Elements > Embed Code > Embed HTML > Code, paste `2-pages/runner/runner-embed.html`; make the element full width and about 700 px tall (the page grows to fit by itself).
+3. Set the element's ID to `runFrame` (Properties panel).
+4. Open the page's code panel and paste `2-pages/runner/page-code.js`.
+
+## 4. Publish and check
+1. Publish the site.
+2. At /rd log in as a director. A **Bibs & certificates** tab sits in the **Race day** group of the menu, right after **Waves & results**. Open it: you see the designs with a preview, and **Runner page** says "The page is off".
+3. Log in as a lead: the tab shows **Bibs** and **Certificates** only (preview and print, no changes). A viewer, desk, coach or sponsor login does not see the tab.
+4. In the **live** CMS data you should now see `RDPrint` (made on first use, locked to the site admin).
+5. Open `/runner?ev=RACE_ID` before you turn anything on: it says "That race is not showing anything on this page". Then on **Runner page** turn on **Start list**, press Save, and reload /runner: a search for a bib you know shows that runner's wave and start time.
+6. Rehearse on a test race: change the bib colour and the title, look at the preview, press **Print all bibs** (choose "Save as PDF" in the print window), and do the same for one finisher's certificate.
+7. Look at the page as a runner would on a phone: type a bib, type three letters of a name, type two letters (it asks for three).
+
+What each section does, the limits and the privacy rules are in SETUP.md under "Bibs & certificates".
+
+---
+
 # Package 3 (Waves & results): what to change on a site that already runs Package 2
 
 Date: 2026-10-31. Installing for the first time? Ignore this page and follow SETUP.md.

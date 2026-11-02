@@ -97,4 +97,53 @@ res-skip-tick-leaves-save-off	KILLED	results-ui.mjs: U6 ticking "skip lines with
 res-lead-offered-the-edit-buttons	KILLED	results-ui.mjs: U10 a lead sees all 15 results and has no Fix or Void
 res-lead-offered-the-director-sections	KILLED	results-ui.mjs: U1 a lead gets three sections: Results, Awards, Start list   [got ["Results","Import","Awards",
 res-import-retry-new-key	KILLED	results-ui.mjs: U6 three quick clicks sent one request, and it carried the same key as the failed attempt (kmvv
-# 99 mutants, 99 killed, 0 survived
+prn-role-check-removed	KILLED	pentest-print.mjs: PA6 made desk staff: the same token is refused at once   [wanted not_allowed, got no error]
+prn-director-only-removed	KILLED	pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the switches), with good values
+prn-expiry-fails-open	KILLED	pentest-print.mjs: PA5 a session with a blank or damaged expiry (10 kinds) is refused [prnOverview "" -> let in,pr
+prn-token-coerced-to-text	KILLED	pentest-print.mjs: PA1 19 altered, cut, doubled, guessed, borrowed (an athlete's) or oddly typed tokens on all 6 m
+prn-kind-any	KILLED	pentest-print.mjs: PD5 20 kinds that are not "bib" or "cert" (including "pub", the runner page's switches) are "ba
+prn-save-writer-from-call	KILLED	pentest-print.mjs: PD2 the row is the one for this race and this kind, "by" is the person who is logged in, "at" i
+prn-template-not-cleaned	KILLED	pentest-print.mjs: PD1 a design with extra and borrowed fields is saved with only the known ones (14)   [got ["__p
+prn-flags-not-cleaned	KILLED	pentest-print.mjs: PD7 switches sent with extra and borrowed fields keep only startList, results, certs and note  
+prn-lead-can-change-switches	KILLED	pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the switches), with good values
+prn-lead-can-save-designs	KILLED	pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the switches), with good values
+prn-unpaid-runner-gets-a-bib	KILLED	pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not finish, whose result was 
+prn-unfinished-runner-gets-a-certificate	KILLED	pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not finish, whose result was 
+prn-printing-not-noted	KILLED	print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth
+prn-cursor-unchecked	KILLED	pentest-print.mjs: PE6 a cursor that is negative, fractional, text, NaN, infinite, huge, an object or a list is "b
+prn-category-unchecked	KILLED	pentest-print.mjs: PE7 a category the race does not have, or that is not text, is "bad_cat" [prnBibs "Nope" -> it 
+prn-spares-cap-removed	KILLED	unit-print.mjs: P6 spare bibs: from 1, to not below from, at most 500, whole numbers   [got ["bad_spares","bad_
+prn-angle-bracket-not-escaped	KILLED	unit-print.mjs: P1 the five markup characters and the back-tick become entities; non-text gives nothing   [got 
+prn-ampersand-not-escaped	KILLED	unit-print.mjs: P1 the five markup characters and the back-tick become entities; non-text gives nothing   [got 
+prn-picture-any-host	KILLED	unit-print.mjs: P1 every other address (http, another host, a look-alike host, a user name, a port, a quote, a 
+prn-picture-plain-http	KILLED	unit-print.mjs: P1 every other address (http, another host, a look-alike host, a user name, a port, a quote, a 
+prn-colour-any-text	KILLED	unit-print.mjs: P1 a colour is #rrggbb and nothing else   [got ["#aabbcc","#aabbcc","#abc","red","rgb(0,0,0)","
+prn-long-picture-address-cut	KILLED	unit-print.mjs: P4 a picture address of more than 300 letters is refused, not cut short into another address   
+prn-placeholders-filled-twice	KILLED	unit-print.mjs: P2 a value that holds {b} is not filled again   [got "SECOND", wanted "{b}"]
+prn-spare-numbers-duplicate-real-bibs	KILLED	unit-print.mjs: P6 spare bibs: numbers with no name, leaving out those a runner already has   [got [["2001","20
+prn-certificates-without-results-allowed	KILLED	unit-print.mjs: P8 certificates cannot be shown unless results are shown   [got "", wanted "certs_need_results"
+prn-damaged-switches-read-as-on	KILLED	pentest-print.mjs: PC1 a design and switches saved on race A are not on race B (it still has the plain designs and
+prn-search-one-letter	KILLED	unit-print.mjs: P9 fewer than three letters is not a search   [got [false,4,true,true,false], wanted [true,0,tr
+prn-search-no-cap	KILLED	unit-print.mjs: P9 at most ten runners are listed for a name, and the page is told there are more   [got [25,tr
+prn-unpaid-runner-listed-publicly	KILLED	unit-print.mjs: P9 the index holds each paid runner with a bib, and each result (a result for 105 joins the run
+prn-result-shown-with-switch-off	KILLED	unit-print.mjs: P9 with results off, no result and no certificate is told   [got ["Wave 1",{"status":"fin","tim
+prn-start-shown-with-switch-off	KILLED	unit-print.mjs: P9 with the start list off, the start is not told   [got [{"wave":"Wave 1","start":"06:00","cor
+prn-certificate-offered-with-switch-off	KILLED	unit-print.mjs: P9 with results off, no result and no certificate is told   [got ["Wave 1",null,true], wanted [
+run-hidden-race-shows	KILLED	pentest-print.mjs: PG4 20 kinds of race that is not showing (every switch off, deleted, not there, a cut or padded
+run-certificate-without-switches	KILLED	pentest-print.mjs: PG7 start list only: the runner is found with a start and no result, and the certificate is "no
+run-question-length-unchecked	KILLED	pentest-print.mjs: PG3 a question that is not text, or is longer than 200 letters, is "bad_query" (nothing is sear
+run-memory-never-expires	KILLED	print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth
+run-search-writes-a-note	KILLED	pentest-print.mjs: PG5b the first probes (102 questions and requests) wrote nothing at all: not a result, not a de
+run-page-names-not-escaped	KILLED	runner-ui.mjs: V3 and shown exactly as typed, as text
+run-certificate-frame-not-sandboxed	KILLED	runner-ui.mjs: V5 it is drawn in a frame that is allowed to do nothing
+run-double-press-asks-twice	KILLED	runner-ui.mjs: V9 pressing "Find me" twice at once asks the server once   [got 2, wanted 1]
+run-page-relay-list-open	KILLED	pagecode.mjs: Runner page code: "prnBibs" is refused, never run
+prn-page-relay-list-open	KILLED	pagecode.mjs: Print branch: "login" is refused (only the six print methods go through)
+prn-preview-frame-not-sandboxed	KILLED	print-ui.mjs: U2 the preview is in a frame that is allowed to do nothing (sandbox with no permissions)
+prn-lead-offered-the-design-editor	KILLED	print-ui.mjs: U1 a lead gets two sections, no "Runner page"   [got ["Bibs","Certificates","Runner page"], wan
+prn-print-skips-the-save	KILLED	print-ui.mjs: U5 printing saves the design on screen first, then asks for the bibs   [got ["prnBibs"], wanted
+prn-who-heading-unescaped	KILLED	print-ui.mjs: U3 and when the card is drawn again from the preview that is still held, the caption is still p
+prn-collection-made-for-outsiders	KILLED	security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two meth
+prn-update-without-suppressauth	KILLED	security.mjs: S8 every Print read and write of a locked collection passes suppressAuth (the collections are a
+run-backend-deletes-a-row	KILLED	security.mjs: S4 and looking at the public page writes nothing (1 writes)
+# 148 mutants, 148 killed, 0 survived

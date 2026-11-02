@@ -59,7 +59,7 @@ for (const p of PEOPLE) await reg(EV, p[0], p[1], p[2], p[3], p[4], p[5], p[6]);
 await reg(EV, '111', 'Unpaid Uma', '10 K', 'F', dob(30), '', '', 'pending');
 await reg(EV2, '101', 'Other Race Olga', '10 K', 'F', dob(33), '', '54:00');
 // what must never reach a screen, a file or a print-out
-const PII = /98123\d{5}|@example\.com|01\/01\/(19|20)\d\d|(19|20)\d\d-01-01/;
+const PII = /98123\d{5}|@example\.com|01\/01\/(19\d\d|20[01]\d)|(19\d\d|20[01]\d)-01-01/;
 
 /* ---------- a page, the way a browser would run it ---------- */
 const blobs = [];

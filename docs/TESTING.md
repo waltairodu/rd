@@ -4,18 +4,18 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 4 | 607 | 0 |
-| 2. Penetration tests | 5 | 808 | 0 |
-| 3. Integration tests | 8 | 1053 | 0 |
-| 4. Security tests | 1 | 254 | 0 |
-| Component tests (older suites) | 18 | 1322 | 0 |
-| 5. Regression (older suites against the saved baseline) | 36 | 4044 | 0 |
+| 1. Unit tests | 5 | 727 | 0 |
+| 2. Penetration tests | 6 | 943 | 0 |
+| 3. Integration tests | 11 | 1549 | 0 |
+| 4. Security tests | 1 | 338 | 0 |
+| Component tests (older suites) | 18 | 1389 | 0 |
+| 5. Regression (older suites against the saved baseline) | 41 | 4946 | 0 |
 
-**Total: 4044 checks passed, 0 failed.**
+**Total: 4946 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
-One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file).
+One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -23,10 +23,11 @@ One piece on its own: password hashing, PINs, roles, the Team screen rules, the 
 | `unit-team.mjs` | 249 | 0 |
 | `unit-finance.mjs` | 117 | 0 |
 | `unit-results.mjs` | 119 | 0 |
+| `unit-print.mjs` | 120 | 0 |
 
 ## 2. Penetration tests
 
-Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print) and the Waves & results tab (results files, placing, fixing, voiding, personal details); every attack must fail.
+Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details) and the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find); every attack must fail.
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -35,10 +36,11 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 | `pentest-finance.mjs` | 118 | 0 |
 | `pentest-finance-ui.mjs` | 32 | 0 |
 | `pentest-results.mjs` | 105 | 0 |
+| `pentest-print.mjs` | 135 | 0 |
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash) and Waves & results (waves to placed runners, results file to board to awards).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards) and Bibs & certificates (design, preview, print, public page, certificate).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -50,14 +52,17 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `finance-ui.mjs` | 180 | 0 |
 | `results.mjs` | 173 | 0 |
 | `results-ui.mjs` | 169 | 0 |
+| `print.mjs` | 219 | 0 |
+| `print-ui.mjs` | 178 | 0 |
+| `runner-ui.mjs` | 99 | 0 |
 
 ## 4. Security tests
 
-An audit of every method, Finance and Results included, against the written role table, secrets, locks and shipped files.
+An audit of every method, Finance, Results, Print and the public runner page included, against the written role table, secrets, locks and shipped files.
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `security.mjs` | 254 | 0 |
+| `security.mjs` | 338 | 0 |
 
 ## Component tests (older suites)
 
@@ -80,7 +85,7 @@ Each backend method and each screen, one by one; these also form the regression 
 | `training-ai.mjs` | 32 | 0 |
 | `approvals-ui.mjs` | 60 | 0 |
 | `preview-ui.mjs` | 48 | 0 |
-| `pagecode.mjs` | 79 | 0 |
+| `pagecode.mjs` | 146 | 0 |
 | `ui.mjs` | 45 | 0 |
 | `rd-ui.mjs` | 58 | 0 |
 
@@ -104,26 +109,31 @@ Every suite that existed before a change must still pass at least as many checks
 | `finance.mjs` | 222 | 222 |
 | `integration-flow.mjs` | 100 | 100 |
 | `integration-ui.mjs` | 47 | 47 |
-| `pagecode.mjs` | 79 | 79 |
+| `pagecode.mjs` | 146 | 146 |
 | `pentest-finance-ui.mjs` | 32 | 32 |
 | `pentest-finance.mjs` | 118 | 118 |
+| `pentest-print.mjs` | 135 | 135 |
 | `pentest-results.mjs` | 105 | 105 |
 | `pentest-ui.mjs` | 131 | 131 |
 | `pentest.mjs` | 422 | 422 |
 | `plan-ui.mjs` | 51 | 51 |
 | `plan.mjs` | 98 | 98 |
 | `preview-ui.mjs` | 48 | 48 |
+| `print-ui.mjs` | 178 | 178 |
+| `print.mjs` | 219 | 219 |
 | `rd-ui.mjs` | 58 | 58 |
 | `results-ui.mjs` | 169 | 169 |
 | `results.mjs` | 173 | 173 |
+| `runner-ui.mjs` | 99 | 99 |
 | `scen.mjs` | 97 | 97 |
-| `security.mjs` | 254 | 254 |
+| `security.mjs` | 338 | 338 |
 | `training-ai.mjs` | 32 | 32 |
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
 | `ui.mjs` | 45 | 45 |
 | `unit-auth.mjs` | 122 | 122 |
 | `unit-finance.mjs` | 117 | 117 |
+| `unit-print.mjs` | 120 | 120 |
 | `unit-results.mjs` | 119 | 119 |
 | `unit-team.mjs` | 249 | 249 |
 
@@ -232,6 +242,55 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | res-lead-offered-the-edit-buttons | KILLED | results-ui.mjs: U10 a lead sees all 15 results and has no Fix or Void |
 | res-lead-offered-the-director-sections | KILLED | results-ui.mjs: U1 a lead gets three sections: Results, Awards, Start list   [got ["Result |
 | res-import-retry-new-key | KILLED | results-ui.mjs: U6 three quick clicks sent one request, and it carried the same key as the |
+| prn-role-check-removed | KILLED | pentest-print.mjs: PA6 made desk staff: the same token is refused at once   [wanted not_al |
+| prn-director-only-removed | KILLED | pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the swi |
+| prn-expiry-fails-open | KILLED | pentest-print.mjs: PA5 a session with a blank or damaged expiry (10 kinds) is refused [prn |
+| prn-token-coerced-to-text | KILLED | pentest-print.mjs: PA1 19 altered, cut, doubled, guessed, borrowed (an athlete's) or oddly |
+| prn-kind-any | KILLED | pentest-print.mjs: PD5 20 kinds that are not "bib" or "cert" (including "pub", the runner  |
+| prn-save-writer-from-call | KILLED | pentest-print.mjs: PD2 the row is the one for this race and this kind, "by" is the person  |
+| prn-template-not-cleaned | KILLED | pentest-print.mjs: PD1 a design with extra and borrowed fields is saved with only the know |
+| prn-flags-not-cleaned | KILLED | pentest-print.mjs: PD7 switches sent with extra and borrowed fields keep only startList, r |
+| prn-lead-can-change-switches | KILLED | pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the swi |
+| prn-lead-can-save-designs | KILLED | pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the swi |
+| prn-unpaid-runner-gets-a-bib | KILLED | pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not f |
+| prn-unfinished-runner-gets-a-certificate | KILLED | pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not f |
+| prn-printing-not-noted | KILLED | print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth |
+| prn-cursor-unchecked | KILLED | pentest-print.mjs: PE6 a cursor that is negative, fractional, text, NaN, infinite, huge, a |
+| prn-category-unchecked | KILLED | pentest-print.mjs: PE7 a category the race does not have, or that is not text, is "bad_cat |
+| prn-spares-cap-removed | KILLED | unit-print.mjs: P6 spare bibs: from 1, to not below from, at most 500, whole numbers   [go |
+| prn-angle-bracket-not-escaped | KILLED | unit-print.mjs: P1 the five markup characters and the back-tick become entities; non-text  |
+| prn-ampersand-not-escaped | KILLED | unit-print.mjs: P1 the five markup characters and the back-tick become entities; non-text  |
+| prn-picture-any-host | KILLED | unit-print.mjs: P1 every other address (http, another host, a look-alike host, a user name |
+| prn-picture-plain-http | KILLED | unit-print.mjs: P1 every other address (http, another host, a look-alike host, a user name |
+| prn-colour-any-text | KILLED | unit-print.mjs: P1 a colour is #rrggbb and nothing else   [got ["#aabbcc","#aabbcc","#abc" |
+| prn-long-picture-address-cut | KILLED | unit-print.mjs: P4 a picture address of more than 300 letters is refused, not cut short in |
+| prn-placeholders-filled-twice | KILLED | unit-print.mjs: P2 a value that holds {b} is not filled again   [got "SECOND", wanted "{b} |
+| prn-spare-numbers-duplicate-real-bibs | KILLED | unit-print.mjs: P6 spare bibs: numbers with no name, leaving out those a runner already ha |
+| prn-certificates-without-results-allowed | KILLED | unit-print.mjs: P8 certificates cannot be shown unless results are shown   [got "", wanted |
+| prn-damaged-switches-read-as-on | KILLED | pentest-print.mjs: PC1 a design and switches saved on race A are not on race B (it still h |
+| prn-search-one-letter | KILLED | unit-print.mjs: P9 fewer than three letters is not a search   [got [false,4,true,true,fals |
+| prn-search-no-cap | KILLED | unit-print.mjs: P9 at most ten runners are listed for a name, and the page is told there a |
+| prn-unpaid-runner-listed-publicly | KILLED | unit-print.mjs: P9 the index holds each paid runner with a bib, and each result (a result  |
+| prn-result-shown-with-switch-off | KILLED | unit-print.mjs: P9 with results off, no result and no certificate is told   [got ["Wave 1" |
+| prn-start-shown-with-switch-off | KILLED | unit-print.mjs: P9 with the start list off, the start is not told   [got [{"wave":"Wave 1" |
+| prn-certificate-offered-with-switch-off | KILLED | unit-print.mjs: P9 with results off, no result and no certificate is told   [got ["Wave 1" |
+| run-hidden-race-shows | KILLED | pentest-print.mjs: PG4 20 kinds of race that is not showing (every switch off, deleted, no |
+| run-certificate-without-switches | KILLED | pentest-print.mjs: PG7 start list only: the runner is found with a start and no result, an |
+| run-question-length-unchecked | KILLED | pentest-print.mjs: PG3 a question that is not text, or is longer than 200 letters, is "bad |
+| run-memory-never-expires | KILLED | print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth |
+| run-search-writes-a-note | KILLED | pentest-print.mjs: PG5b the first probes (102 questions and requests) wrote nothing at all |
+| run-page-names-not-escaped | KILLED | runner-ui.mjs: V3 and shown exactly as typed, as text |
+| run-certificate-frame-not-sandboxed | KILLED | runner-ui.mjs: V5 it is drawn in a frame that is allowed to do nothing |
+| run-double-press-asks-twice | KILLED | runner-ui.mjs: V9 pressing "Find me" twice at once asks the server once   [got 2, wanted 1 |
+| run-page-relay-list-open | KILLED | pagecode.mjs: Runner page code: "prnBibs" is refused, never run |
+| prn-page-relay-list-open | KILLED | pagecode.mjs: Print branch: "login" is refused (only the six print methods go through) |
+| prn-preview-frame-not-sandboxed | KILLED | print-ui.mjs: U2 the preview is in a frame that is allowed to do nothing (sandbox with no  |
+| prn-lead-offered-the-design-editor | KILLED | print-ui.mjs: U1 a lead gets two sections, no "Runner page"   [got ["Bibs","Certificates", |
+| prn-print-skips-the-save | KILLED | print-ui.mjs: U5 printing saves the design on screen first, then asks for the bibs   [got  |
+| prn-who-heading-unescaped | KILLED | print-ui.mjs: U3 and when the card is drawn again from the preview that is still held, the |
+| prn-collection-made-for-outsiders | KILLED | security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 |
+| prn-update-without-suppressauth | KILLED | security.mjs: S8 every Print read and write of a locked collection passes suppressAuth (th |
+| run-backend-deletes-a-row | KILLED | security.mjs: S4 and looking at the public page writes nothing (1 writes) |
 
 ## How to run
 
