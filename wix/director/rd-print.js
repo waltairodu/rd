@@ -160,7 +160,8 @@ function cleanSponsors(v) {
   const out = [];
   for (const x of list) {
     if (typeof x !== 'string') throw bad();
-    const t = cleanText(x, 300);
+    // one letter more than an address may have, so that an address that is too long is refused instead of being cut short
+    const t = cleanText(x, 301);
     if (!t) continue;
     if (URLISH.test(t)) {
       const g = safeImg(t);

@@ -46,7 +46,8 @@ async function staffRows() {
 }
 // Every method starts here. need: 'director' (directors only) or 'view' (directors and leads).
 async function pauth(arg, need) {
-  const t = String((arg && arg.token) || '');
+  // A token is text. A list or an object that would turn into a token when printed is not one.
+  const t = arg && typeof arg.token === 'string' ? arg.token : '';
   if (t.length < 20) throw new Error('not_logged_in');
   let sess;
   try {

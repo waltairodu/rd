@@ -72,6 +72,8 @@ const cleanStyle = (h) => styles(h).every((s) => /^style="(?:[a-z-]+:(?:#[0-9a-f
   eq(['http://evil.com/a.png', 'https://evil.com/a.png', 'javascript:alert(1)', 'data:image/png;base64,AA', '//evil.com/a.png', 'https://static.wixstatic.com/a"b.png'].map((s) => throws(() => P.cleanBibTpl({ sponsors: [s] }, CATS))), ['bad_image', 'bad_image', 'bad_image', 'bad_image', 'bad_image', 'bad_image'], 'P4 a sponsor that looks like an address but is not a safe image is refused, never printed as text');
   eq(P.cleanBibTpl({ sponsors: ['Sponsor:Acme', 'Title sponsor: Beta http'] }, CATS).sponsors, ['Sponsor:Acme', 'Title sponsor: Beta http'], 'P4 an ordinary name with a colon is a name');
   eq(P.cleanBibTpl({ sponsors: ['', '  ', 'A'] }, CATS).sponsors, ['A'], 'P4 empty sponsor lines are dropped');
+  eq(throws(() => P.cleanBibTpl({ sponsors: ['https://vtra.run/' + 'a'.repeat(300)] }, CATS)), 'bad_image', 'P4 a picture address of more than 300 letters is refused, not cut short into another address');
+  eq(P.cleanBibTpl({ sponsors: ['A name that is long ' + 'x'.repeat(400)] }, CATS).sponsors[0].length, 40, 'P4 and a long plain name is still just cut to 40 letters');
   eq(P.cleanBibTpl({ title: 'x'.repeat(200) }, CATS).title.length, 80, 'P4 texts are cut to their length');
   eq(P.cleanBibTpl({ title: 'a\u0000b‮c' }, CATS).title, 'a bc', 'P4 control and direction characters are taken out of texts');
   eq(Object.keys(P.cleanBibTpl({ catColors: JSON.parse('{"__proto__":"#ffffff"}') }, [])).includes('__proto__'), false, 'P4 a "__proto__" key does not become a field');
