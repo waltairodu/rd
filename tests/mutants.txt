@@ -146,4 +146,70 @@ prn-who-heading-unescaped	KILLED	print-ui.mjs: U3 and when the card is drawn aga
 prn-collection-made-for-outsiders	KILLED	security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two meth
 prn-update-without-suppressauth	KILLED	security.mjs: S8 every Print read and write of a locked collection passes suppressAuth (the collections are a
 run-backend-deletes-a-row	KILLED	security.mjs: S4 and looking at the public page writes nothing (1 writes)
-# 148 mutants, 148 killed, 0 survived
+cm-role-check-removed	KILLED	security.mjs: S3 Messages: view1 on all 12 methods [cmOverview -> no_event (wanted not_allowed); cmPreview ->
+cm-director-only-removed	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveSettings -> no_event (wanted director_only); cmSave
+cm-expiry-fails-open	KILLED	pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "not logged in" ("85ab18a5
+cm-token-coerced-to-text	KILLED	pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "not logged in" (["e9bcea1
+cm-lead-can-send	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmSend -> no_event (wanted director_only)]
+cm-lead-can-save-templates	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveTemplate -> no_event (wanted director_only)]
+cm-lead-can-export	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmExport -> no_event (wanted director_only)]
+cm-lead-can-open-links	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmLinks -> no_event (wanted director_only)]
+cm-lead-can-prepare	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmPrepare -> no_event (wanted director_only)]
+cm-lead-can-send-test-email	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmTest -> no_event (wanted director_only)]
+cm-lead-can-mark	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmMark -> no_event (wanted director_only)]
+cm-lead-can-change-settings	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveSettings -> no_event (wanted director_only)]
+cm-collection-made-for-outsiders	KILLED	security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two meth
+cm-update-without-suppressauth	KILLED	security.mjs: S8 every Messages read and write of its locked collection passes suppressAuth (the collection i
+cm-backend-deletes-a-row	KILLED	security.mjs: S8 nothing in Messages removes a row: a template is archived, a batch is a new batch, the log o
+cm-log-row-holds-text	KILLED	security.mjs: S8 the log row of a person (written in the two places that send or mark) and the row of a test 
+cm-writer-taken-from-call	KILLED	security.mjs: S5 a template saved with "by: boss" and an old date in the call is written, and noted, under th
+cm-address-in-the-export-note	KILLED	security.mjs: S6 the Results change notes hold no phone number, e-mail address or date of birth, and the reco
+cm-test-address-kept-in-the-log	KILLED	security.mjs: S6 the Messages change notes and everything kept in its collection (templates, frozen lists of 
+cm-send-claim-not-unique	KILLED	comms.mjs: K8 a log row is the batch, the person's id, the template, the state and who pressed Send: no na
+cm-send-deadline-ignored	KILLED	comms.mjs: K8 a call that runs out of time stops starting new people (10 of 10 sent) and says where to go 
+cm-send-never-stops-on-failures	KILLED	comms.mjs: K8 when nothing is accepted the call stops after the first few (10 failed of 10), says so and s
+cm-unsubscribed-still-counted-as-sent	KILLED	comms.mjs: K8 ten people go out in one call: nine e-mails sent, one left out because that person has unsub
+cm-send-whatsapp-batch-allowed	KILLED	comms.mjs: K8 a WhatsApp batch cannot be sent as e-mail   [wanted wrong_channel, got no error]
+cm-links-for-email-batch-allowed	KILLED	comms.mjs: K11 an e-mail batch has no links   [wanted wrong_channel, got no error]
+cm-marks-for-email-batch-allowed	KILLED	comms.mjs: K11 an e-mail batch cannot be marked   [wanted wrong_channel, got no error]
+cm-send-without-wix-email-set-up	KILLED	comms.mjs: K8 with no Wix e-mail named a send is refused   [wanted no_email_id, got no error]
+cm-prepare-key-clash-allowed	KILLED	comms.mjs: K7 the same key with another template is refused   [wanted key_in_use, got no error]
+cm-prepare-empty-audience-allowed	KILLED	comms.mjs: K7 a wrong request is refused (empty_audience): {"aud":{"who":"runners","pay":"unpaid","cat":"2
+cm-prepare-no-size-limit	KILLED	comms.mjs: K10 a batch of more than 5000 is refused   [wanted too_many, got no error]
+cm-prepare-archived-template-allowed	KILLED	comms.mjs: K7 an archived template cannot be sent   [wanted template_archived, got no error]
+cm-prepare-wrong-kind-of-template-allowed	KILLED	comms.mjs: K7 a wrong request is refused (template_mismatch): {"tplId":"volunteer"}   [wanted template_mis
+cm-prepare-without-race-link	KILLED	comms.mjs: K7 a template that uses the race link cannot be sent while the race has no link   [wanted no_li
+cm-batch-of-another-race	KILLED	comms.mjs: K14 a batch row that names another race is refused   [wanted no_batch, got no error]
+cm-registrations-of-another-race	KILLED	comms.mjs: K14 a person of another race in a stored list is skipped: nothing is sent to them   [got [1,0,1
+cm-volunteers-of-another-race	KILLED	comms.mjs: K14 a volunteer of another race in a stored list has no name and no link   [got [["Vol One","",
+cm-mark-person-outside-the-batch	KILLED	comms.mjs: K11 a person who is not in the batch cannot be marked   [wanted not_in_batch, got no error]
+cm-mark-any-status	KILLED	pentest-comms.mjs: ME and the values that were accepted were legal ones, for fields that take anything or may be l
+cm-mark-list-unchecked	KILLED	pentest-comms.mjs: ME and the values that were accepted were legal ones, for fields that take anything or may be l
+cm-test-email-limit-loosened	KILLED	comms.mjs: K13 the sixth test within an hour is refused   [wanted too_many_tests, got no error]
+cm-test-email-refused-tries-count	KILLED	pentest-comms.mjs: MH with five old tests and six refused ones in the books, a new test goes out: neither the old 
+cm-contact-name-starts-a-formula	KILLED	comms.mjs: K8 a contact is never given a name that starts like a formula
+cm-export-not-noted	KILLED	security.mjs: S6 control: the Messages changes made above (settings, a template, batches prepared and sent, W
+cm-whatsapp-links-not-noted	KILLED	security.mjs: S6 control: the Messages changes made above (settings, a template, batches prepared and sent, W
+cm-sending-not-noted	KILLED	security.mjs: S6 control: the Messages changes made above (settings, a template, batches prepared and sent, W
+cm-batch-not-noted	KILLED	security.mjs: S5 a batch prepared with "by: boss" and an old date in the call is written, and noted, under th
+cm-angle-brackets-kept-in-names	KILLED	unit-comms.mjs: M1 a line: line breaks and control characters become spaces, no angle brackets, no direction or
+cm-angle-brackets-kept-in-messages	KILLED	unit-comms.mjs: M1 a body: lines kept, runs of blank lines and spaces cut, no angle brackets, nothing trailing 
+cm-csv-formulas-run	KILLED	unit-comms.mjs: M12 a cell that would start a formula (= + - @, even after spaces, a tab or a return) gets a qu
+cm-csv-cells-unquoted	KILLED	unit-comms.mjs: M12 a cell that would start a formula (= + - @, even after spaces, a tab or a return) gets a qu
+cm-csv-quote-not-doubled	KILLED	unit-comms.mjs: M12 every cell is quoted, a quote is doubled, line breaks become spaces, non-text is empty   [g
+cm-email-address-unchecked	KILLED	unit-comms.mjs: M2 a list of addresses, a name with the address, a quote, a bracket, a space, a line break, two
+cm-link-plain-http	KILLED	unit-comms.mjs: M4 another scheme, a user name, a space, a quote, a bracket, a line break, a long text or somet
+cm-whatsapp-link-any-number	KILLED	unit-comms.mjs: M3 only digits make a chat address: a plus, a space, a letter, too short, too long or a leading
+cm-whatsapp-number-no-length-check	KILLED	unit-comms.mjs: M3 a number that cannot be a mobile one (a landline, too short, too long, all one digit, no dig
+cm-unknown-placeholder-allowed	KILLED	unit-comms.mjs: M7 a placeholder that the kind does not have is refused (a typo would go to everyone); any case
+cm-audience-unknown-choices-allowed	KILLED	unit-comms.mjs: M10 an audience that is not an object, has a key or a choice it does not know, mixes runner and
+cm-unpaid-runners-by-default	KILLED	unit-comms.mjs: M10 runners: paid ones, whatever else, unless the audience says more   [got {"who":"runners","p
+cm-already-sent-filter-off	KILLED	unit-comms.mjs: M10 "not yet sent" leaves out those who have had the template; the list of them only counts whe
+cm-failure-reason-keeps-address	KILLED	unit-comms.mjs: M11 a reason for the log has no address, long number, quote or tag in it, and is short   [got [
+cm-ui-chat-link-unchecked	KILLED	comms-ui.mjs: U13 four links that are not WhatsApp links are not made into links   [got 25, wanted 21]
+cm-ui-names-unescaped	KILLED	comms-ui.mjs: U20 the first screen, with markup in every name, label, subject and message it is told, has no 
+cm-ui-lead-offered-sending	KILLED	comms-ui.mjs: U1 a lead gets three sections, no "Settings"   [got ["Send","History","Templates","Settings"], 
+cm-ui-sending-goes-on-after-race-switch	KILLED	comms-ui.mjs: U10 changing the race while on another tab stops the sending too: at most the call already out,
+cm-ui-double-press-prepares-twice	KILLED	comms-ui.mjs: U9 and pressing it anyway asks the server for nothing   [got 6, wanted 5]
+cm-page-relay-list-open	KILLED	pagecode.mjs: Messages branch: "login" is refused (only the twelve Messages methods go through)
+# 214 mutants, 214 killed, 0 survived

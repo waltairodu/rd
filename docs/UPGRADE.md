@@ -1,3 +1,37 @@
+# Package 5a (Messages): what to change on a site that already runs Package 4
+
+Date: 2026-11-06. Installing for the first time? Ignore this page and follow SETUP.md.
+Nothing existing is edited by hand this time: two new backend files, one triggered e-mail made in Wix, and the /rd embed and page code are replaced with the files from this pack. No existing data is touched and no existing backend file changes.
+
+**Which package does your site run?** If /rd has a **Bibs & certificates** tab, it runs Package 4: follow the steps just below. If it has no such tab, it runs Package 3 or older: do the older steps at the bottom of this page first (Package 4, then 3, then 2), then these. The /rd embed and page code are replaced only once, with the files from this pack.
+
+## 1. Add two backend files (do this first)
+Code sidebar > Backend:
+- `comms.web.js`: **+ > Add a web module**, name it exactly `comms.web.js`, paste the contents of `1-backend/comms.web.js`.
+- `rd-comms.js`: **+ > Add a .js file**, name it exactly `rd-comms.js`, paste the contents of `1-backend/rd-comms.js`.
+
+Do this before step 3: the new /rd page code imports `comms.web.js`, and Wix will not save it until that file exists. `rd-print.js`, `rd-results.js`, `rd-data.js`, `rd-auth.js` and the other existing files stay exactly as they are.
+
+## 2. Make the Wix e-mail (once)
+RaceOS sends every message through one Wix **triggered e-mail**. In Wix: **Developer Tools > Triggered Emails > + New Campaign**. Design the look, add a text box for each paragraph and put a variable named `p1`, `p2` ... `p6` in them (**+ Add Variable**, small letters, blank fallback), put a variable named `subject` in the subject line, save the sender details, change the **Email ID** to something short such as `vtra_message`, and **publish** it (a draft is never sent). The full steps, with what to do if your editor will not take a variable in the subject line, are in SETUP.md under "Messages > Make the Wix e-mail". Keep the e-mail ID for step 4.
+
+## 3. Replace the /rd page
+- **Embed:** click the HTML element on /rd (ID `dirFrame`), choose **Enter Code**, select everything, paste `2-pages/rd/rd-embed.html`.
+- **Page code:** open the /rd page's code panel, select everything, paste `2-pages/rd/page-code.js`.
+
+## 4. Publish and check
+1. Publish the site.
+2. At /rd log in as a director. A **Messages** tab sits in the **People** group of the menu, right after **Volunteers**. Open it: **Send** shows the five ready-made messages, and **Settings** says "E-mail is not set up yet".
+3. Open **Settings**, type the e-mail ID from step 2 in **Wix e-mail ID**, check **Paragraph places in the Wix e-mail** (6 unless you made a different number of `p` variables), check **Country code for phone numbers** (91 for India) and press **Save**. The pill changes from "E-mail is not set up yet" to "E-mail is set up".
+4. Still in Settings, under **Check it**, use **Send a test** with your own address. It arrives with made-up details and `[TEST]` in the subject. Look at it on a phone.
+5. In the **live** CMS data you should now see `RDComms` (made on first use, locked to the site admin).
+6. Log in as a lead: the tab shows **Who gets it**, **History** and **Templates**, with no addresses, no phone numbers, no Settings and no send button. A viewer, desk, coach or sponsor login does not see the tab.
+7. Rehearse on a test race whose only runner is you: prepare **Your bib** for "Payment: Paid, Bib: Has a bib", press **Send e-mails to 1 person**, then **Sure? Send now**: one e-mail arrives. Press **Send e-mails** again: nothing more is sent. Open **History** to see the count.
+
+What each screen does, the placeholders, the limits and the privacy rules are in SETUP.md under "Messages".
+
+---
+
 # Package 4 (Bibs, certificates and the public runner page): what to change on a site that already runs Package 3
 
 Date: 2026-11-02. Installing for the first time? Ignore this page and follow SETUP.md.

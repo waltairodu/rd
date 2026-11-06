@@ -4,18 +4,18 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 5 | 727 | 0 |
-| 2. Penetration tests | 6 | 943 | 0 |
-| 3. Integration tests | 11 | 1549 | 0 |
-| 4. Security tests | 1 | 338 | 0 |
-| Component tests (older suites) | 18 | 1389 | 0 |
-| 5. Regression (older suites against the saved baseline) | 41 | 4946 | 0 |
+| 1. Unit tests | 6 | 847 | 0 |
+| 2. Penetration tests | 7 | 1146 | 0 |
+| 3. Integration tests | 13 | 2271 | 0 |
+| 4. Security tests | 1 | 418 | 0 |
+| Component tests (older suites) | 18 | 1414 | 0 |
+| 5. Regression (older suites against the saved baseline) | 41 | 5051 | 0 |
 
-**Total: 4946 checks passed, 0 failed.**
+**Total: 6096 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
-One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell).
+One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell), and the Messages rules (text cleaning, e-mail and chat-link checks, filling templates, CSV safety, who is in an audience).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -24,10 +24,11 @@ One piece on its own: password hashing, PINs, roles, the Team screen rules, the 
 | `unit-finance.mjs` | 117 | 0 |
 | `unit-results.mjs` | 119 | 0 |
 | `unit-print.mjs` | 120 | 0 |
+| `unit-comms.mjs` | 120 | 0 |
 
 ## 2. Penetration tests
 
-Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details) and the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find); every attack must fail.
+Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details), the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find) and the Messages tab (templates, audiences, sending twice, other races, lead and desk logins, hostile text on every screen); every attack must fail.
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -37,10 +38,11 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 | `pentest-finance-ui.mjs` | 32 | 0 |
 | `pentest-results.mjs` | 105 | 0 |
 | `pentest-print.mjs` | 135 | 0 |
+| `pentest-comms.mjs` | 203 | 0 |
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards) and Bibs & certificates (design, preview, print, public page, certificate).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) and Messages (template to audience to batch to e-mails sent, retry, chat links, history, export).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -55,14 +57,16 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `print.mjs` | 219 | 0 |
 | `print-ui.mjs` | 178 | 0 |
 | `runner-ui.mjs` | 99 | 0 |
+| `comms.mjs` | 477 | 0 |
+| `comms-ui.mjs` | 245 | 0 |
 
 ## 4. Security tests
 
-An audit of every method, Finance, Results, Print and the public runner page included, against the written role table, secrets, locks and shipped files.
+An audit of every method, Finance, Results, Print, Messages and the public runner page included, against the written role table, secrets, locks and shipped files.
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `security.mjs` | 338 | 0 |
+| `security.mjs` | 418 | 0 |
 
 ## Component tests (older suites)
 
@@ -85,7 +89,7 @@ Each backend method and each screen, one by one; these also form the regression 
 | `training-ai.mjs` | 32 | 0 |
 | `approvals-ui.mjs` | 60 | 0 |
 | `preview-ui.mjs` | 48 | 0 |
-| `pagecode.mjs` | 146 | 0 |
+| `pagecode.mjs` | 171 | 0 |
 | `ui.mjs` | 45 | 0 |
 | `rd-ui.mjs` | 58 | 0 |
 
@@ -109,7 +113,7 @@ Every suite that existed before a change must still pass at least as many checks
 | `finance.mjs` | 222 | 222 |
 | `integration-flow.mjs` | 100 | 100 |
 | `integration-ui.mjs` | 47 | 47 |
-| `pagecode.mjs` | 146 | 146 |
+| `pagecode.mjs` | 146 | 171 |
 | `pentest-finance-ui.mjs` | 32 | 32 |
 | `pentest-finance.mjs` | 118 | 118 |
 | `pentest-print.mjs` | 135 | 135 |
@@ -126,7 +130,7 @@ Every suite that existed before a change must still pass at least as many checks
 | `results.mjs` | 173 | 173 |
 | `runner-ui.mjs` | 99 | 99 |
 | `scen.mjs` | 97 | 97 |
-| `security.mjs` | 338 | 338 |
+| `security.mjs` | 338 | 418 |
 | `training-ai.mjs` | 32 | 32 |
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
@@ -291,6 +295,72 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | prn-collection-made-for-outsiders | KILLED | security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 |
 | prn-update-without-suppressauth | KILLED | security.mjs: S8 every Print read and write of a locked collection passes suppressAuth (th |
 | run-backend-deletes-a-row | KILLED | security.mjs: S4 and looking at the public page writes nothing (1 writes) |
+| cm-role-check-removed | KILLED | security.mjs: S3 Messages: view1 on all 12 methods [cmOverview -> no_event (wanted not_all |
+| cm-director-only-removed | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveSettings -> no_event (wanted dir |
+| cm-expiry-fails-open | KILLED | pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "n |
+| cm-token-coerced-to-text | KILLED | pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "n |
+| cm-lead-can-send | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmSend -> no_event (wanted director_on |
+| cm-lead-can-save-templates | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveTemplate -> no_event (wanted dir |
+| cm-lead-can-export | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmExport -> no_event (wanted director_ |
+| cm-lead-can-open-links | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmLinks -> no_event (wanted director_o |
+| cm-lead-can-prepare | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmPrepare -> no_event (wanted director |
+| cm-lead-can-send-test-email | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmTest -> no_event (wanted director_on |
+| cm-lead-can-mark | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmMark -> no_event (wanted director_on |
+| cm-lead-can-change-settings | KILLED | security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveSettings -> no_event (wanted dir |
+| cm-collection-made-for-outsiders | KILLED | security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 |
+| cm-update-without-suppressauth | KILLED | security.mjs: S8 every Messages read and write of its locked collection passes suppressAut |
+| cm-backend-deletes-a-row | KILLED | security.mjs: S8 nothing in Messages removes a row: a template is archived, a batch is a n |
+| cm-log-row-holds-text | KILLED | security.mjs: S8 the log row of a person (written in the two places that send or mark) and |
+| cm-writer-taken-from-call | KILLED | security.mjs: S5 a template saved with "by: boss" and an old date in the call is written,  |
+| cm-address-in-the-export-note | KILLED | security.mjs: S6 the Results change notes hold no phone number, e-mail address or date of  |
+| cm-test-address-kept-in-the-log | KILLED | security.mjs: S6 the Messages change notes and everything kept in its collection (template |
+| cm-send-claim-not-unique | KILLED | comms.mjs: K8 a log row is the batch, the person's id, the template, the state and who pre |
+| cm-send-deadline-ignored | KILLED | comms.mjs: K8 a call that runs out of time stops starting new people (10 of 10 sent) and s |
+| cm-send-never-stops-on-failures | KILLED | comms.mjs: K8 when nothing is accepted the call stops after the first few (10 failed of 10 |
+| cm-unsubscribed-still-counted-as-sent | KILLED | comms.mjs: K8 ten people go out in one call: nine e-mails sent, one left out because that  |
+| cm-send-whatsapp-batch-allowed | KILLED | comms.mjs: K8 a WhatsApp batch cannot be sent as e-mail   [wanted wrong_channel, got no er |
+| cm-links-for-email-batch-allowed | KILLED | comms.mjs: K11 an e-mail batch has no links   [wanted wrong_channel, got no error] |
+| cm-marks-for-email-batch-allowed | KILLED | comms.mjs: K11 an e-mail batch cannot be marked   [wanted wrong_channel, got no error] |
+| cm-send-without-wix-email-set-up | KILLED | comms.mjs: K8 with no Wix e-mail named a send is refused   [wanted no_email_id, got no err |
+| cm-prepare-key-clash-allowed | KILLED | comms.mjs: K7 the same key with another template is refused   [wanted key_in_use, got no e |
+| cm-prepare-empty-audience-allowed | KILLED | comms.mjs: K7 a wrong request is refused (empty_audience): {"aud":{"who":"runners","pay":" |
+| cm-prepare-no-size-limit | KILLED | comms.mjs: K10 a batch of more than 5000 is refused   [wanted too_many, got no error] |
+| cm-prepare-archived-template-allowed | KILLED | comms.mjs: K7 an archived template cannot be sent   [wanted template_archived, got no erro |
+| cm-prepare-wrong-kind-of-template-allowed | KILLED | comms.mjs: K7 a wrong request is refused (template_mismatch): {"tplId":"volunteer"}   [wan |
+| cm-prepare-without-race-link | KILLED | comms.mjs: K7 a template that uses the race link cannot be sent while the race has no link |
+| cm-batch-of-another-race | KILLED | comms.mjs: K14 a batch row that names another race is refused   [wanted no_batch, got no e |
+| cm-registrations-of-another-race | KILLED | comms.mjs: K14 a person of another race in a stored list is skipped: nothing is sent to th |
+| cm-volunteers-of-another-race | KILLED | comms.mjs: K14 a volunteer of another race in a stored list has no name and no link   [got |
+| cm-mark-person-outside-the-batch | KILLED | comms.mjs: K11 a person who is not in the batch cannot be marked   [wanted not_in_batch, g |
+| cm-mark-any-status | KILLED | pentest-comms.mjs: ME and the values that were accepted were legal ones, for fields that t |
+| cm-mark-list-unchecked | KILLED | pentest-comms.mjs: ME and the values that were accepted were legal ones, for fields that t |
+| cm-test-email-limit-loosened | KILLED | comms.mjs: K13 the sixth test within an hour is refused   [wanted too_many_tests, got no e |
+| cm-test-email-refused-tries-count | KILLED | pentest-comms.mjs: MH with five old tests and six refused ones in the books, a new test go |
+| cm-contact-name-starts-a-formula | KILLED | comms.mjs: K8 a contact is never given a name that starts like a formula |
+| cm-export-not-noted | KILLED | security.mjs: S6 control: the Messages changes made above (settings, a template, batches p |
+| cm-whatsapp-links-not-noted | KILLED | security.mjs: S6 control: the Messages changes made above (settings, a template, batches p |
+| cm-sending-not-noted | KILLED | security.mjs: S6 control: the Messages changes made above (settings, a template, batches p |
+| cm-batch-not-noted | KILLED | security.mjs: S5 a batch prepared with "by: boss" and an old date in the call is written,  |
+| cm-angle-brackets-kept-in-names | KILLED | unit-comms.mjs: M1 a line: line breaks and control characters become spaces, no angle brac |
+| cm-angle-brackets-kept-in-messages | KILLED | unit-comms.mjs: M1 a body: lines kept, runs of blank lines and spaces cut, no angle bracke |
+| cm-csv-formulas-run | KILLED | unit-comms.mjs: M12 a cell that would start a formula (= + - @, even after spaces, a tab o |
+| cm-csv-cells-unquoted | KILLED | unit-comms.mjs: M12 a cell that would start a formula (= + - @, even after spaces, a tab o |
+| cm-csv-quote-not-doubled | KILLED | unit-comms.mjs: M12 every cell is quoted, a quote is doubled, line breaks become spaces, n |
+| cm-email-address-unchecked | KILLED | unit-comms.mjs: M2 a list of addresses, a name with the address, a quote, a bracket, a spa |
+| cm-link-plain-http | KILLED | unit-comms.mjs: M4 another scheme, a user name, a space, a quote, a bracket, a line break, |
+| cm-whatsapp-link-any-number | KILLED | unit-comms.mjs: M3 only digits make a chat address: a plus, a space, a letter, too short,  |
+| cm-whatsapp-number-no-length-check | KILLED | unit-comms.mjs: M3 a number that cannot be a mobile one (a landline, too short, too long,  |
+| cm-unknown-placeholder-allowed | KILLED | unit-comms.mjs: M7 a placeholder that the kind does not have is refused (a typo would go t |
+| cm-audience-unknown-choices-allowed | KILLED | unit-comms.mjs: M10 an audience that is not an object, has a key or a choice it does not k |
+| cm-unpaid-runners-by-default | KILLED | unit-comms.mjs: M10 runners: paid ones, whatever else, unless the audience says more   [go |
+| cm-already-sent-filter-off | KILLED | unit-comms.mjs: M10 "not yet sent" leaves out those who have had the template; the list of |
+| cm-failure-reason-keeps-address | KILLED | unit-comms.mjs: M11 a reason for the log has no address, long number, quote or tag in it,  |
+| cm-ui-chat-link-unchecked | KILLED | comms-ui.mjs: U13 four links that are not WhatsApp links are not made into links   [got 25 |
+| cm-ui-names-unescaped | KILLED | comms-ui.mjs: U20 the first screen, with markup in every name, label, subject and message  |
+| cm-ui-lead-offered-sending | KILLED | comms-ui.mjs: U1 a lead gets three sections, no "Settings"   [got ["Send","History","Templ |
+| cm-ui-sending-goes-on-after-race-switch | KILLED | comms-ui.mjs: U10 changing the race while on another tab stops the sending too: at most th |
+| cm-ui-double-press-prepares-twice | KILLED | comms-ui.mjs: U9 and pressing it anyway asks the server for nothing   [got 6, wanted 5] |
+| cm-page-relay-list-open | KILLED | pagecode.mjs: Messages branch: "login" is refused (only the twelve Messages methods go thr |
 
 ## How to run
 

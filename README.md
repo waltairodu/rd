@@ -9,6 +9,9 @@ Software for running a VTRA race end to end, built on Wix (Velo). Started with t
 | Expo desk (bibs, T-shirts, selfie proof, stock, desks, findmybib sync) | Built, tested in a simulator | `wix/expo` |
 | Director Phase 1: command centre, volunteers, race day log, pacers, safety | Built, tested in a simulator | `wix/director` |
 | Finance: invoices, reimbursement claims, cash, orders (estimate, advance, actual), income and expenses | Built, tested in a simulator | `wix/director/finance.web.js` |
+| Waves & results: waves and corrals, start list, results file, board, awards | Built, tested in a simulator | `wix/director/results.web.js` |
+| Bibs, certificates and the public /runner page | Built, tested in a simulator | `wix/director/print.web.js`, `wix/director/runner.web.js` |
+| Messages: templates, audiences, e-mails through one Wix triggered e-mail, WhatsApp chat links, history | Built, tested in a simulator | `wix/director/comms.web.js` |
 | Registration admin, budget, clubs, ambassadors, academy, coach platform, Android | Designed as mockups, not built | `docs/mockups`, `docs/PLAN.md` |
 
 Neither package has run on a live Wix site yet. Rehearse on the published site before race day.

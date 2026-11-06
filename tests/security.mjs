@@ -1,4 +1,4 @@
-// SECURITY TESTS: an audit of how the six backends (RaceOS, Expo desk, Coaching, Finance, Results, Print) and the public runner page are
+// SECURITY TESTS: an audit of how the seven backends (RaceOS, Expo desk, Coaching, Finance, Results, Print, Messages) and the public runner page are
 // built and what they store and say. This is not an attack (pentest.mjs, pentest-finance.mjs, pentest-results.mjs and pentest-print.mjs
 // do that); every method is checked here against a written-down policy.
 //   S1  who may call what      the source is read: nothing is decided before the login is checked, and the only methods
@@ -6,12 +6,13 @@
 //   S2  no login, a fake login every method that needs a login refuses 11 kinds of fake, and writes nothing
 //   S3  the role table         every method x every kind of login (director, lead, viewer, desk, coach, other, athlete)
 //   S4  what is shown to whom  money and phone numbers are hidden from viewers; a lead sees only their own claims; public methods show nothing private
-//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all six backends
+//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all seven backends
 //   S6  secrets                passwords and PINs are never stored or sent back as typed; answers carry no secret; errors say nothing
 //   S7  database set-up        every collection is locked to the site admin; the shipped setup key refuses to run; nobody but a signed-in
-//                              director or lead can make Print's collection
+//                              director or lead can make the collections of Print and Messages
 //   S8  the shipped files      no key-like text, no dangerous calls, page-code lists match the backends, Finance never deletes money records,
-//                              Results never deletes a result, Print never deletes a design, the public runner page never writes anything
+//                              Results never deletes a result, Print never deletes a design, Messages deletes nothing and keeps no address,
+//                              phone number or message text in its log, the public runner page never writes anything
 import fs from 'fs';
 import * as R from './racedir.test.mjs';
 import * as X from './exposoft.test.mjs';
@@ -21,6 +22,7 @@ import * as F from './finance.test.mjs';
 import * as RS from './results.test.mjs';
 import * as P from './print.test.mjs';
 import * as U from './runner.test.mjs';
+import * as CM from './comms.test.mjs';
 import { C as DATA_C } from './rd-data.test.mjs';
 import wd from 'wix-data';
 import { collections } from 'wix-data.v2';
@@ -28,6 +30,7 @@ import { suite } from './lib.mjs';
 const { ok, eq, err, refused, done } = suite('Security');
 const SA = { suppressAuth: true };
 const DB = global.__DB;
+const CRM = global.__CRM;
 const D1 = 'Desk 1 - BIB';
 const src = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
@@ -144,6 +147,36 @@ let printMadeForOutsiders = -1;
     collections.createDataCollection = realCreate;
   }
 }
+// Messages makes its one collection the same way: only for a signed-in director or lead, never for an outsider.
+const COMMS_COLS = ['RDComms'];
+const commsDefs = [];
+let commsMadeForOutsiders = -1;
+{
+  const made = new Set();
+  const realQuery = wd.query;
+  const realCreate = collections.createDataCollection;
+  wd.query = (c) => {
+    const q = realQuery.call(wd, c);
+    if (COMMS_COLS.includes(c) && !made.has(c)) q.find = async () => { throw new Error('WDE0025: collection does not exist'); };
+    return q;
+  };
+  collections.createDataCollection = async (d) => {
+    commsDefs.push(d);
+    made.add(d._id);
+    return d;
+  };
+  try {
+    for (const f of [undefined, null, {}, { token: '' }, { token: 'short' }, { token: 'f'.repeat(64) }, { token: TOK.expired }, { token: TOK.orphan }, { token: TOK.view1 }, { token: TOK.desk1 }, { token: TOK.coach1 }, { token: TOK.sponsor1 }, { token: TOK.ath }]) {
+      await err(CM.cmOverview(Object.assign({ ev: 'nope' }, f)));
+      await err(CM.cmSaveSettings(Object.assign({ ev: 'nope', emailId: '', nvars: 6, cc: '91', link: '' }, f)));
+    }
+    commsMadeForOutsiders = commsDefs.length;
+    await err(CM.cmOverview({ token: TOK.boss, ev: 'nope' }));
+  } finally {
+    wd.query = realQuery;
+    collections.createDataCollection = realCreate;
+  }
+}
 
 /* =====================================================================================================
    S1. Who may call what: read from the source
@@ -157,6 +190,8 @@ const BACKENDS = [
   { id: 'Print', mod: P, file: 'wix/director/print.web.js', auth: /await pauth\(arg/, count: 6, pub: [] },
   // the public runner page: no login at all, by design; it only reads, and only what a director has switched on (S4 and S8 check that)
   { id: 'Runner', mod: U, file: 'wix/director/runner.web.js', auth: /(?!)/, count: 3, pub: ['pubRaces', 'pubFind', 'pubCert'] },
+  // Messages: templates, who gets what, e-mails through one Wix triggered e-mail with a log of each, WhatsApp links, a file of an audience
+  { id: 'Messages', mod: CM, file: 'wix/director/comms.web.js', auth: /await cauth\(arg/, count: 12, pub: [] },
 ];
 const BEFORE_LOGIN_CHECK = /wixData|wixEventsV2|guests\.|askClaude|elevate|collections\.|\bthrow\b|\bawait\b|\bif\b|\bfor\b/;
 for (const B of BACKENDS) {
@@ -245,6 +280,11 @@ for (const n of ['resFormFields', 'resSaveSettings', 'resSaveWaves', 'resAssign'
 const PRN_LEVEL = {};
 for (const n of ['prnOverview', 'prnPreview', 'prnBibs', 'prnCerts']) PRN_LEVEL[n] = 'view';
 for (const n of ['prnSaveTemplate', 'prnSavePublish']) PRN_LEVEL[n] = 'director';
+// Messages: a director or a lead may look at the templates, a preview, how many people a message reaches and how a batch went ('view');
+// writing a template, preparing and sending a batch, the WhatsApp links, a file of an audience and a test e-mail are the directors' ('director').
+const CM_LEVEL = {};
+for (const n of ['cmOverview', 'cmPreview', 'cmAudience', 'cmBatch']) CM_LEVEL[n] = 'view';
+for (const n of ['cmSaveSettings', 'cmSaveTemplate', 'cmPrepare', 'cmSend', 'cmLinks', 'cmMark', 'cmExport', 'cmTest']) CM_LEVEL[n] = 'director';
 for (const n of ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finDecideClaim', 'finPayClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid']) FIN_LEVEL[n] = 'manage';
 
 const TABLES = [
@@ -255,6 +295,7 @@ const TABLES = [
   { B: BACKENDS[4], level: RES_LEVEL, publics: BACKENDS[4].pub },
   { B: BACKENDS[5], level: PRN_LEVEL, publics: BACKENDS[5].pub },
   { B: BACKENDS[6], level: {}, publics: BACKENDS[6].pub }, // the runner page: all three methods are public on purpose
+  { B: BACKENDS[7], level: CM_LEVEL, publics: BACKENDS[7].pub },
 ];
 for (const { B, level, publics } of TABLES) {
   const unplaced = B.names.filter((n) => !level[n] && !publics.includes(n));
@@ -323,6 +364,16 @@ const PRN_WANT = {
   sponsor1: () => 'not_allowed',
   ath: () => 'not_logged_in',
 };
+const CM_WANT = {
+  boss: () => null,
+  dir2: () => null,
+  lead1: (l) => (l === 'director' ? 'director_only' : null),
+  view1: () => 'not_allowed',
+  desk1: () => 'not_allowed',
+  coach1: () => 'not_allowed',
+  sponsor1: () => 'not_allowed',
+  ath: () => 'not_logged_in',
+};
 // a call that gets past the door must fail quickly and harmlessly on a race that does not exist
 const probe =(token) => ({ token, ev: 'nope', event: 'nope', id: 'probe-item', kind: 'task', status: 'zzz', username: 'nope-user', athlete: 'nope', coach: 'nope' });
 const runMatrix = async (label, B, level, want) => {
@@ -345,6 +396,7 @@ await runMatrix('Training', BACKENDS[2], TR_LEVEL, TR_WANT);
 await runMatrix('Finance', BACKENDS[3], FIN_LEVEL, FIN_WANT);
 await runMatrix('Results', BACKENDS[4], RES_LEVEL, RES_WANT);
 await runMatrix('Print', BACKENDS[5], PRN_LEVEL, PRN_WANT);
+await runMatrix('Messages', BACKENDS[7], CM_LEVEL, CM_WANT);
 // "waived" needs the director: a lead may approve or reject a claim but not waive the rule
 await refused(R.decideQual(Object.assign(probe(TOK.lead1), { status: 'waived' })), 'director_only', 'S3 a lead cannot waive a qualification rule');
 await refused(R.decideQual(Object.assign(probe(TOK.view1), { status: 'waived' })), 'director_only', 'S3 a viewer cannot waive one either');
@@ -498,6 +550,68 @@ const PUB_ON = { startList: true, results: true, certs: true, note: 'Bring your 
   await asP('prnSavePublish', TOK.boss, { pub: PUB_ON }); // on again for the rest of the audit
 }
 
+// Messages. A director or a lead can LOOK (the templates, a preview, how many people a message reaches, how a batch went): those answers
+// carry names, bibs and categories, and never an e-mail address, a phone number, a date of birth, a registration id or a WhatsApp link.
+// The two answers that must hold contact details (the WhatsApp links and the file of an audience) are the directors' only.
+const MSG = { email: 'sec-batch-mail-1', wa: 'sec-batch-wa-1', vol: 'sec-batch-vol-1' };
+const MSG_HIDDEN = Object.values(RV).concat(['9848011111', '9848022222', 'one@leak.test', 'two@leak.test', 'tester@leak.test']);
+{
+  const asM = (fn, tok, o) => CM[fn](Object.assign({ token: tok, ev: EV }, o));
+  const RUN = { who: 'runners' };
+  const VOL = { who: 'volunteers' };
+  const sees = (text) => MSG_HIDDEN.filter((v) => text.includes(v)).concat(/REG~sec/.test(text) ? ['a registration id'] : []).concat(/wa\.me|mailto:|@leak\.test/i.test(text) ? ['a contact link or address'] : []).concat(/"(email|phone)"\s*:\s*(?!true|false)/.test(text) ? ['an address or number in a field'] : []).concat(/"(dob|regId|password|token)"\s*:/.test(text) ? ['a field named like a secret'] : []);
+  // the director sets everything up and sends once, so that there is something to look at
+  eq((await asM('cmSaveSettings', TOK.boss, { emailId: 'sec-mail-1', nvars: 6, cc: '91', link: 'https://vtra.run/sec' })).settings, { emailId: 'sec-mail-1', nvars: 6, cc: '91', link: 'https://vtra.run/sec' }, 'S4 control: the director sets up the Wix e-mail, the country code and the race link');
+  const pe = await asM('cmPrepare', TOK.boss, { key: MSG.email, via: 'email', tplId: 'bib', aud: RUN });
+  const pw = await asM('cmPrepare', TOK.boss, { key: MSG.wa, via: 'whatsapp', tplId: 'bib', aud: RUN });
+  const pv = await asM('cmPrepare', TOK.boss, { key: MSG.vol, via: 'email', tplId: 'volunteer', aud: VOL });
+  ok(pe.total === 1 && pw.total === 1 && pv.total === 2, 'S4 control: three batches are prepared (the runner by e-mail, the runner by WhatsApp, the two volunteers by e-mail)');
+  const mailed0 = CRM.sent.length;
+  const s1 = await asM('cmSend', TOK.boss, { batch: MSG.email, from: 0 });
+  const s2 = await asM('cmSend', TOK.boss, { batch: MSG.vol, from: 0 });
+  const toRunner = [...CRM.contacts.values()].filter((c) => (c.info.emails || []).some((x) => x.email === RV.email)).map((c) => c._id);
+  ok(s1.sent === 1 && s2.sent === 2 && s1.failed + s2.failed === 0 && CRM.sent.length === mailed0 + 3 && CRM.sent.some((x) => toRunner.includes(x.contactId)), 'S4 control: the three e-mails go to Wix, one of them to the runner\'s own address');
+  const again = await asM('cmSend', TOK.boss, { batch: MSG.email, from: 0 });
+  ok(again.sent === 0 && again.busy === 1 && CRM.sent.length === mailed0 + 3, 'S4 pressing Send again on a batch that has gone out sends nothing more: each person is already in the log');
+  eq(await asM('cmTest', TOK.boss, { to: 'tester@leak.test', tplId: 'bib' }), { sent: true, why: '' }, 'S4 control: a test e-mail to an address the director types goes out');
+  const links = await asM('cmLinks', TOK.boss, { batch: MSG.wa, from: 0 });
+  ok(links.items.length === 1 && links.items[0].link.startsWith('https://wa.me/91' + RV.phone + '?text='), 'S4 control: the director\'s WhatsApp page holds the runner\'s number inside the chat link');
+  const file = await asM('cmExport', TOK.boss, { aud: RUN, cols: ['name', 'bib', 'email', 'phone'] });
+  ok(file.csv.includes(RV.email) && file.csv.includes(RV.phone), 'S4 control: and the file of an audience holds the e-mail address and the phone number (so the checks below are real ones)');
+  eq(await asM('cmMark', TOK.boss, { batch: MSG.wa, status: 'skipped', ids: ['REG~sec~42'] }), { marked: 1, already: 0 }, 'S4 control: the runner is left out of the WhatsApp batch (so the batch has a person to name as a problem)');
+  const looks = (tok) => Promise.all([asM('cmOverview', tok), asM('cmPreview', tok, { tplId: 'bib', aud: RUN }), asM('cmAudience', tok, { tplId: 'bib', aud: RUN }), asM('cmBatch', tok, { batch: MSG.email }), asM('cmBatch', tok, { batch: MSG.wa }), asM('cmAudience', tok, { aud: VOL }), asM('cmPreview', tok, { tplId: 'volunteer', aud: VOL })]);
+  for (const [who, tok] of [['a director', TOK.boss], ['a lead', TOK.lead1]]) {
+    const answers = await looks(tok);
+    const text = JSON.stringify(answers);
+    ok(text.includes('Secret Runner') && answers[2].total === 1 && answers[2].withEmail === 1 && answers[2].withPhone === 1 && answers[4].problems.length === 1, 'S4 control: ' + who + ' sees the runner by name, how many people the message reaches, and who a batch did not reach (so the check below is a real one)');
+    const seen = sees(text);
+    ok(!seen.length, 'S4 ' + who + '\'s seven answers (overview, two previews, two audiences, two batches) carry no e-mail address, phone number, date of birth, registration id or WhatsApp link' + (seen.length ? ' [saw ' + seen + ']' : ''));
+  }
+  {
+    const [ov, pv1, au, bt, bw] = await looks(TOK.boss);
+    eq(Object.keys(ov).sort(), ['batches', 'cats', 'cols', 'counts', 'limits', 'me', 'race', 'settings', 'templates', 'vars'], 'S4 the overview has exactly ten things (who is asking, the race, its categories, the settings, the templates, the batches, the counts, the placeholders, the file columns and the limits)');
+    eq([Object.keys(ov.me).sort(), Object.keys(ov.race).sort(), Object.keys(ov.settings).sort()], [['name', 'role'], ['date', 'id', 'name', 'venue'], ['cc', 'emailId', 'link', 'nvars']], 'S4 and who is asking, the race and the settings have only their expected fields');
+    eq(Object.keys(ov.batches[0]).sort(), ['at', 'aud', 'by', 'key', 'label', 'noContact', 'total', 'tpl', 'tplName', 'via'], 'S4 each batch in it has exactly ten things (counts and words, no person)');
+    eq(Object.keys(pv1).sort(), ['cut', 'joined', 'noLink', 'nvars', 'paras', 'sample', 'subject', 'whatsapp', 'whatsappCut'], 'S4 a preview has exactly nine things');
+    eq(Object.keys(pv1.sample).sort(), ['bib', 'fake', 'name'], 'S4 and the person in it is a name and a bib');
+    eq(Object.keys(au).sort(), ['label', 'missing', 'sample', 'sentBefore', 'total', 'withEmail', 'withPhone'], 'S4 an audience answer has exactly seven things');
+    eq(Object.keys(au.sample[0]).sort(), ['bib', 'cat', 'email', 'name', 'phone'], 'S4 and each person in its sample has five: a name, a bib, a category, and yes or no for the e-mail and the phone');
+    ok(au.sample.length >= 1 && au.sample.every((p) => typeof p.email === 'boolean' && typeof p.phone === 'boolean'), 'S4 the e-mail and the phone in it are yes or no, never the address or the number');
+    eq(Object.keys(bt).sort(), ['at', 'by', 'counts', 'key', 'label', 'moreProblems', 'noContact', 'problems', 'resume', 'total', 'tpl', 'tplName', 'via'], 'S4 a batch report has exactly thirteen things');
+    eq(Object.keys(bw.problems[0]).sort(), ['bib', 'name', 'status', 'why'], 'S4 and a person it did not reach is a name, a bib, a state and a reason, nothing else');
+  }
+  {
+    // a lead can look but not send or change anything
+    const w1 = WRITES.length;
+    const m1 = CRM.sent.length;
+    const c1 = CRM.calls.length;
+    const tries = [['cmSend', { batch: MSG.email, from: 0 }], ['cmPrepare', { key: 'sec-lead-try', via: 'email', tplId: 'bib', aud: RUN }], ['cmLinks', { batch: MSG.wa, from: 0 }], ['cmMark', { batch: MSG.wa, status: 'sent', ids: ['REG~sec~42'] }], ['cmExport', { aud: RUN }], ['cmTest', { to: 'tester@leak.test', tplId: 'bib' }], ['cmSaveTemplate', { id: 'sec-lead-tpl', name: 'x', kind: 'runner', subject: 's', body: 'b' }]];
+    const got = [];
+    for (const [fn, o] of tries) got.push(await err(asM(fn, TOK.lead1, o)));
+    ok(got.every((g) => g === 'director_only') && WRITES.length === w1 && CRM.sent.length === m1 && CRM.calls.length === c1, 'S4 a lead is refused all seven sending and changing calls (send, prepare, WhatsApp links, mark, file, test e-mail, template) with director_only, and they write nothing, make no contact and send nothing' + (got.every((g) => g === 'director_only') ? '' : ' [' + got + ']'));
+  }
+}
+
 /* =====================================================================================================
    S5. Sessions and tokens
    ===================================================================================================== */
@@ -533,7 +647,10 @@ const PUB_ON = { startList: true, results: true, certs: true, note: 'Bring your 
   const rdir = (t) => err(RS.resFormFields({ token: t, ev: EV }));
   const pcall = (t) => err(P.prnOverview({ token: t, ev: EV }));
   const pdir = (t) => err(P.prnSavePublish({ token: t, ev: 'nope', pub: {} })); // past the door, a race that is not there answers no_event
+  const mcall = (t) => err(CM.cmOverview({ token: t, ev: EV }));
+  const mdir = (t) => err(CM.cmSaveSettings({ token: t, ev: 'nope', emailId: '', nvars: 6, cc: '91', link: '' })); // past the door, a race that is not there answers no_event
   ok(!GATE.includes(await pcall(tok)) && (await pdir(tok)) === 'director_only', 'S5 a lead can look at the bibs and certificates but not change a design or the public page (control)');
+  ok(!GATE.includes(await mcall(tok)) && (await mdir(tok)) === 'director_only', 'S5 a lead can look at the messages but not send or change any (control)');
   ok(!GATE.includes(await call(tok)), 'S5 a lead can write (control)');
   ok(!GATE.includes(await fcall(tok)), 'S5 a lead can use their reimbursement claims in Finance (control)');
   ok(!GATE.includes(await rcall(tok)) && (await rdir(tok)) === 'director_only', 'S5 a lead can look at the results but not change the setup (control)');
@@ -544,32 +661,38 @@ const PUB_ON = { startList: true, results: true, certs: true, note: 'Bring your 
   eq(await fcall(tok), 'not_allowed', 'S5  and Finance closes at once too');
   eq(await rcall(tok), 'not_allowed', 'S5  and Results closes at once too');
   eq(await pcall(tok), 'not_allowed', 'S5  and Print closes at once too');
+  eq(await mcall(tok), 'not_allowed', 'S5  and Messages closes at once too');
   await set('desk');
   eq(await call(tok), 'not_allowed', 'S5 made desk staff: the same token is refused by RaceOS');
   eq(await fcall(tok), 'not_allowed', 'S5  and by Finance');
   eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
   eq(await pcall(tok), 'not_allowed', 'S5  and by Print');
+  eq(await mcall(tok), 'not_allowed', 'S5  and by Messages');
   eq((await R.whoami({ token: tok })).role, 'desk', 'S5  (and whoami still answers, as it does for desk staff)');
   await set('coach');
   eq(await call(tok), 'not_allowed', 'S5 made a coach: refused');
   eq(await fcall(tok), 'not_allowed', 'S5  and by Finance');
   eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
   eq(await pcall(tok), 'not_allowed', 'S5  and by Print');
+  eq(await mcall(tok), 'not_allowed', 'S5  and by Messages');
   await refused(R.whoami({ token: tok }), 'not_allowed', 'S5  and whoami refuses too');
   await set('director');
   ok(!GATE.includes(await err(F.finLedger({ token: tok, ev: EV }))), 'S5 promoted to director: the same token opens the whole of Finance at once');
   ok(!GATE.includes(await rdir(tok)), 'S5  and the setup of Results at once');
   ok(!GATE.includes(await pdir(tok)), 'S5  and the designs and public page of Print at once');
+  ok(!GATE.includes(await mdir(tok)), 'S5  and sending and changing messages at once');
   await set('lead');
   ok(!GATE.includes(await call(tok)), 'S5 made a lead again: writes again');
   eq(await err(F.finLedger({ token: tok, ev: EV })), 'director_only', 'S5  and the director-only part of Finance closes again at once');
   eq(await rdir(tok), 'director_only', 'S5  and the setup of Results closes again at once');
   eq(await pdir(tok), 'director_only', 'S5  and the designs and public page of Print close again at once');
+  eq(await mdir(tok), 'director_only', 'S5  and sending and changing messages close again at once');
   await wd.bulkRemove('ExpoStaff', [row._id], SA);
   await refused(R.whoami({ token: tok }), 'not_logged_in', 'S5 login removed: the token stops working at once');
   await refused(F.finListClaims({ token: tok, ev: EV }), 'not_logged_in', 'S5  in Finance too');
   await refused(RS.resBoard({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Results');
   await refused(P.prnOverview({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Print');
+  await refused(CM.cmOverview({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Messages');
   await wd.insert('ExpoStaff', Object.assign({}, row, { _id: undefined }), SA);
 }
 {
@@ -598,6 +721,18 @@ const PUB_ON = { startList: true, results: true, certs: true, note: 'Bring your 
   const design = [...DB.RDPrint.values()].find((x) => x._id === 'tpl~' + EV + '~cert');
   const note = [...DB.RDAudit.values()].filter((x) => x.action === 'certificate design saved').pop();
   ok(design && design.by === 'dir2' && design.at !== '1999-01-01' && Date.now() - Date.parse(design.at) < 60000 && note && note.by === 'dir2', 'S5 a design saved with "by: boss" and an old date in the call is written, and noted, under the logged-in director\'s own name and the real time');
+  // Messages: a lead's or a viewer's token with "boss" and "director" in the call is still what it is; a template and a batch are written, and noted, under the logged-in director's own name
+  await refused(CM.cmSaveSettings({ token: TOK.lead1, ev: EV, emailId: 'evil-mail', nvars: 6, cc: '91', link: '', username: 'boss', role: 'director', by: 'boss' }), 'director_only', 'S5 a lead\'s token with "username: boss" and "role: director" in a Messages call is still a lead');
+  await refused(CM.cmSend({ token: TOK.view1, ev: EV, batch: MSG.email, from: 0, username: 'boss', role: 'admin' }), 'not_allowed', 'S5  and a viewer\'s token cannot send a batch either');
+  eq((await CM.cmOverview({ token: TOK.dir2, ev: EV })).settings.emailId, 'sec-mail-1', 'S5  and the Wix e-mail setting is still the director\'s');
+  await CM.cmSaveTemplate({ token: TOK.dir2, ev: EV, id: 'sec-tpl-by', name: 'Who wrote this', kind: 'runner', subject: 'Hello {firstname}', body: 'Your bib is {bib}.', by: 'boss', username: 'boss', byName: 'The Director', at: '1999-01-01' });
+  const tplRow = [...DB.RDComms.values()].find((x) => x._id === 'tpl~' + EV + '~sec-tpl-by');
+  const tplNote = [...DB.RDAudit.values()].filter((x) => x.action === 'message template saved').pop();
+  ok(tplRow && tplRow.by === 'dir2' && tplRow.at !== '1999-01-01' && Date.now() - Date.parse(tplRow.at) < 60000 && tplNote && tplNote.by === 'dir2', 'S5 a template saved with "by: boss" and an old date in the call is written, and noted, under the logged-in director\'s own name and the real time');
+  await CM.cmPrepare({ token: TOK.dir2, ev: EV, key: 'sec-batch-by-1', via: 'whatsapp', tplId: 'sec-tpl-by', aud: { who: 'runners' }, by: 'boss', username: 'boss', byName: 'The Director', at: '1999-01-01' });
+  const batRow = [...DB.RDComms.values()].find((x) => x._id === 'bat~' + EV + '~sec-batch-by-1');
+  const batNote = [...DB.RDAudit.values()].filter((x) => x.action === 'WhatsApp batch prepared').pop();
+  ok(batRow && batRow.by === 'dir2' && batRow.at !== '1999-01-01' && Date.now() - Date.parse(batRow.at) < 60000 && batNote && batNote.by === 'dir2', 'S5 a batch prepared with "by: boss" and an old date in the call is written, and noted, under the logged-in director\'s own name and the real time');
 }
 {
   const t = (await R.login({ username: 'view1', password: 'Sec-pass-1' })).token;
@@ -614,15 +749,18 @@ const PUB_ON = { startList: true, results: true, certs: true, note: 'Bring your 
   const t = (await R.login({ username: 'dir2', password: 'Sec-pass-1' })).token;
   ok(!GATE.includes(await err(F.finOverview({ token: t, ev: EV }))), 'S5 a director\'s new session opens Finance');
   ok(!GATE.includes(await err(P.prnOverview({ token: t, ev: EV }))), 'S5  and Print');
+  ok(!GATE.includes(await err(CM.cmOverview({ token: t, ev: EV }))), 'S5  and Messages');
   await R.logout({ token: t });
   await refused(F.finOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 after logout Finance refuses the token too');
   await refused(RS.resBoard({ token: t, ev: EV }), 'not_logged_in', 'S5 and so does Results');
-  await refused(P.prnOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Print (one session for all six backends)');
+  await refused(P.prnOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Print');
+  await refused(CM.cmOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Messages (one session for all seven backends)');
   const expired = await session('dir2', 1000);
   await wd.update('ExpoSessions', Object.assign({}, [...DB.ExpoSessions.values()].find((s) => s.token === expired), { expires: new Date(Date.now() - 1000).toISOString() }), SA);
   await refused(F.finOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5 a session that has run out is refused by Finance');
   await refused(RS.resBoard({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Results');
   await refused(P.prnOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Print');
+  await refused(CM.cmOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Messages');
 }
 
 /* =====================================================================================================
@@ -662,6 +800,13 @@ ok(!JSON.stringify([...DB.RDAudit.values()]).match(new RegExp([made.secret, made
   const stored = JSON.stringify([...DB.RDPrint.values()]);
   ok(DB.RDPrint.size >= 2 && !Object.values(RV).some((v) => notes.includes(v) || stored.includes(v)) && !Object.values(TOK).some((v) => notes.includes(v) || stored.includes(v)) && !/token|password|passwd/i.test(stored), 'S6 the Print change notes and the saved designs and switches hold no phone number, e-mail address, date of birth, token or password');
 }
+{
+  const notes = JSON.stringify([...DB.RDAudit.values()].filter((x) => /^(message |e-mail |WhatsApp |audience exported|test e-mail)/.test(x.action)));
+  ok(['message settings saved', 'message template saved', 'e-mail batch prepared', 'WhatsApp batch prepared', 'e-mail sending started', 'e-mail sending finished', 'WhatsApp links opened', 'audience exported', 'test e-mail'].every((a) => notes.includes(a)), 'S6 control: the Messages changes made above (settings, a template, batches prepared and sent, WhatsApp links opened, a file made, a test e-mail) are all in the change notes');
+  const stored = JSON.stringify([...DB.RDComms.values()]);
+  ok(DB.RDComms.size >= 10 && !MSG_HIDDEN.some((v) => notes.includes(v) || stored.includes(v)) && !Object.values(TOK).some((v) => notes.includes(v) || stored.includes(v)) && !/token|password|passwd/i.test(stored), 'S6 the Messages change notes and everything kept in its collection (templates, frozen lists of people, the log of each message) hold no e-mail address, phone number, date of birth, token or password');
+  ok(!/Secret|Vol One|Vol Two/.test(notes + stored) && !/REG~sec|wa\.me/.test(notes), 'S6 and no name of a person and no WhatsApp link: the log holds registration ids and states only, and the change notes hold counts and words');
+}
 // the PIN of an athlete
 ok(!all.includes('"' + ATH_PIN + '"'), 'S6 an athlete\'s PIN is not in the database as typed');
 const athRow = [...DB.TrainAthletes.values()][0];
@@ -687,6 +832,7 @@ const READS = [
   () => F.finOverview(asBoss), () => F.finSettings(asBoss), () => F.finListInvoices(asBoss), () => F.finListOrders(asBoss), () => F.finListClaims(asBoss), () => F.finCash(asBoss), () => F.finLedger(asBoss), () => F.finListClaims({ token: TOK.lead1, ev: EV }),
   () => RS.resOverview(asBoss), () => RS.resFormFields(asBoss), () => RS.resStartList(asBoss), () => RS.resBoard(asBoss), () => RS.resAwards(asBoss), () => RS.resBoard({ token: TOK.lead1, ev: EV }),
   () => P.prnOverview(asBoss), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'bib' }), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'cert' }), () => P.prnBibs(asBoss), () => P.prnCerts(asBoss), () => P.prnOverview({ token: TOK.lead1, ev: EV }),
+  () => CM.cmOverview(asBoss), () => CM.cmPreview({ token: TOK.boss, ev: EV, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmAudience({ token: TOK.boss, ev: EV, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmBatch({ token: TOK.boss, ev: EV, batch: MSG.email }), () => CM.cmLinks({ token: TOK.boss, ev: EV, batch: MSG.wa }), () => CM.cmExport({ token: TOK.boss, ev: EV, aud: { who: 'runners' } }), () => CM.cmOverview({ token: TOK.lead1, ev: EV }),
   () => U.pubRaces(), () => U.pubFind({ ev: EV, q: 'secret' }), () => U.pubCert({ ev: EV, bib: '42' }),
 ];
 {
@@ -704,7 +850,7 @@ const READS = [
     const l = leaks(r);
     if (l.length) bad.push(read.toString().slice(6, 40) + ' ' + l.join(','));
   }
-  ok(answered >= 51, 'S6 control: ' + answered + ' of ' + READS.length + ' screens\' calls were answered with real data');
+  ok(answered >= 58, 'S6 control: ' + answered + ' of ' + READS.length + ' screens\' calls were answered with real data');
   ok(!bad.length, 'S6 no answer holds a password, PIN hash, salt, failure count, lock time or token' + (bad.length ? ' [' + bad.join('; ') + ']' : ''));
 }
 const edited = await R.saveTeam({ token: TOK.boss, username: 'new.lead', name: 'New Lead', role: 'lead', edit: true });
@@ -781,6 +927,22 @@ eq(printDefs.map((d) => d._id), PRINT_COLS, 'S7 and it is exactly RDPrint');
 ok(printDefs.every((d) => d.fields.length === 5 && d.fields.every((f) => f.type === 'TEXT')), 'S7 with its five fields (event, kind, json, by, at), stored as text');
 ok((printText.match(/await ensureCollections\(\)/g) || []).length === 1 && /throw new Error\('director_only'\);\s*await ensureCollections\(\);/.test(printText), 'S7 Print makes its collection in one place only: the last step of the login check, after the person has been let in');
 ok(!/SETUP_KEY|ensureSetup|createDataCollection/.test(runnerText) && !/SETUP_KEY|ensureSetup/.test(printText), 'S7 the public runner page makes nothing and Print has no set-up call or key: there is nothing for an outsider to guess');
+// Messages (the one collection of the templates, the frozen lists of people and the log of every message)
+const commsText = src('wix/director/comms.web.js');
+eq(commsMadeForOutsiders, 0, 'S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two methods) makes the Messages collection: it is made only for a signed-in director or lead');
+ok(commsDefs.length === 1 && locked(commsDefs[0]), 'S7 Messages makes its one collection on first use by a director or lead, readable, changeable and emptied only by the site admin (the templates, the frozen lists of people and the log of every message are never open to a visitor)');
+eq(commsDefs.map((d) => d._id), COMMS_COLS, 'S7 and it is exactly RDComms');
+ok(commsDefs.every((d) => d.fields.length === 10 && d.fields.every((f) => f.type === 'TEXT')), 'S7 with its ten fields (event, kind, ref, sub, who, status, why, json, by, at), stored as text');
+ok((commsText.match(/await ensureCollections\(\)/g) || []).length === 1 && /throw new Error\('director_only'\);\s*await ensureCollections\(\);/.test(commsText), 'S7 Messages makes its collection in one place only: the last step of the login check, after the person has been let in');
+ok(!/SETUP_KEY|ensureSetup/.test(commsText), 'S7 Messages has no set-up call or key: there is nothing for an outsider to guess');
+{
+  const have = new Set([...commsDefs.map((d) => d._id), ...rdIds]);
+  const lack = missing(consts(commsText), have);
+  ok(consts(commsText).length === 2 && !lack.length, 'S7 every collection Messages names (its own, and the volunteers of RaceOS) is created by its own set-up or the RaceOS one' + (lack.length ? ' [' + lack + ']' : ''));
+  const own = [...commsText.matchAll(/wixData\.(?:query|get|insert|update|save|bulk\w+)\(\s*'([^']+)'/g)].map((m) => m[1]);
+  const names = [...new Set([...commsText.matchAll(/\bC\.([A-Z]+)\b/g)].map((m) => m[1]))];
+  ok(!own.length && names.length >= 4 && names.every((k) => k in DATA_C), 'S7 Messages names no collection by a loose text: the ' + names.length + ' it reads (' + names.join(', ') + ') come from the shared list, and its own is one constant' + (own.length ? ' [own: ' + own + ']' : ''));
+}
 {
   const have = new Set([...rdIds, ...resDefs.map((d) => d._id), ...printDefs.map((d) => d._id)]);
   const used = Object.values(DATA_C);
@@ -955,6 +1117,34 @@ ok(![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED, ...RES_ALLOW
   ok(['wix/director/rd-print.js', 'wix/director/print.web.js', 'wix/director/runner.web.js', 'wix/director/rd-data.js'].every((f) => !/\.(phone|email|dob)\b/.test(code(src(f)))), 'S8 none of the four files that make the papers and the public answers reads a phone number, e-mail address or date of birth field');
   const prnScreen = src('wix/director/director-embed.html').split('PRINT-START')[1].split('PRINT-END')[0];
   ok(prnScreen.length > 2000 && !/\.(dob|phone|email)\b/.test(prnScreen) && !/\.(dob|phone|email)\b/.test(code(src('wix/director/runner-embed.html'))), 'S8 the Bibs & certificates screen and the public runner screen never read a date of birth, phone number or e-mail address out of an answer');
+}
+// Messages: offered by the director page only, every method reachable, written so that nothing is deleted and no log row holds an address, a number or a message.
+const COMMS_ALLOWED = listOf(DP, 'COMMS_ALLOWED');
+ok(COMMS_ALLOWED, 'S8 the director page has its seventh list (Messages)');
+eq(COMMS_ALLOWED.slice().sort(), BACKENDS[7].names.slice().sort(), 'S8 the director page offers exactly the 12 Messages methods (none forgotten, none extra)');
+ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^cm[A-Z]/.test(n)) && ![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED, ...RES_ALLOWED, ...PRN_ALLOWED].some((n) => BACKENDS[7].names.includes(n)), 'S8 no other page (volunteer, athlete, coach, public runner) and no other list offers a Messages method');
+{
+  const pc = src(DP);
+  ok(/import \* as comms from 'backend\/comms\.web';/.test(pc) && /msg\.mod === 'comms'/.test(pc) && /COMMS_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Messages and refuses a Messages call that is not on its list');
+  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*throw tidyError\(e, 'comms'\);/.test(commsText), 'S8 every Messages method answers through the wrapper that turns an unexpected error into "server_error"');
+  const cl = commsText.split('\n');
+  const noSA = cl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
+  ok(!noSA.length, 'S8 every Messages read and write of its locked collection passes suppressAuth (the collection is admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
+  const cq = commsText.split(/;\s*\n/).filter((x) => /wixData\.query\(/.test(x));
+  const noSAq = cq.filter((x) => !/\.find\(SA\)/.test(x) && !/all\(\(\) => wixData\.query\(/.test(x)).map((x) => x.trim().slice(0, 60));
+  ok(cq.length >= 8 && !noSAq.length, 'S8 and so does every query (' + cq.length + ' of them end in find(SA), or are handed to the helper that does)' + (noSAq.length ? ' [' + noSAq + ']' : ''));
+  ok(!/\.remove\(|bulkRemove\(|\.truncate\(/.test(commsText), 'S8 nothing in Messages removes a row: a template is archived, a batch is a new batch, the log of a message is never deleted');
+  ok(!/arg\.(username|user|role|by|byName|me|as)\b/.test(commsText), 'S8 no Messages method reads who is asking from the call (the session token is the only identity)');
+  eq([...commsText.matchAll(/^import[\s\S]*?from '([^']+)';/gm)].map((m) => m[1]).sort(), ['./rd-auth.js', './rd-comms.js', './rd-data.js', './rd-results.js', 'wix-auth', 'wix-crm-backend', 'wix-data', 'wix-data.v2', 'wix-web-module'], 'S8 Messages talks only to the database, the Wix contacts and triggered e-mails and the shared readers: no outside request, no secret store, no members, no events, no payments');
+  ok(!/wix-fetch|wix-secrets|wix-members|wix-events|wix-pay|wix-stores|\bfetch\(/.test(commsText), 'S8 and nothing in it makes a request to another site or reads a stored secret');
+  ok((commsText.match(/triggeredEmails\.emailContact\(/g) || []).length === 2 && /async function deliver[\s\S]*?triggeredEmails\.emailContact\(cfg\.emailId, c\.id, \{ variables: msg\.variables \}\)/.test(commsText), 'S8 an e-mail is handed to Wix in exactly two places: to a person of a batch (inside the one step that sends) and as a test e-mail');
+  const rcpRows = commsText.match(/kind: 'rcp'[^}]*\}/g) || [];
+  const tstRows = commsText.match(/kind: 'tst'[^}]*\}/g) || [];
+  ok(rcpRows.length === 2 && rcpRows.every((r) => /json: ''/.test(r)) && tstRows.length === 1 && tstRows.every((r) => /who: ''/.test(r) && /json: ''/.test(r)), 'S8 the log row of a person (written in the two places that send or mark) and the row of a test e-mail hold no text: json is empty, and a test row holds no person');
+  ok(/await wixData\.insert\(COMMS, row, SA\)[\s\S]*?r = await deliver\(/.test(commsText), 'S8 a person\'s log row is written before the e-mail is handed to Wix, so a repeated call can never send twice');
+  const screen = src('wix/director/director-embed.html').split('COMMS-START')[1].split('COMMS-END')[0];
+  ok(screen.length > 8000 && !/\.dob\b/.test(screen) && !/mailto:/.test(screen) && !/esc\(\s*\w+\.(email|phone)\b/.test(screen), 'S8 the Messages screen never reads a date of birth out of an answer, makes no mailto link, and shows an e-mail address or a phone number nowhere: only yes or "-" for whether a person can be reached');
+  ok(/function cmWaOk\(/.test(screen) && /var ok=cmWaOk\(it\.link\)/.test(screen) && (screen.match(/href="'\+esc\(it\.link\)/g) || []).length === 1, 'S8 and the one place that turns a chat link into a link on the screen checks it first: a wa.me address with digits and a short text, nothing else');
 }
 // source collections of the race lists are only ever read
 {

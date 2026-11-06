@@ -5,6 +5,7 @@ import * as EX from './exposoft.test.mjs';
 import * as TR from './training.test.mjs';
 import * as FN from './finance.test.mjs';
 import * as PR from './print.test.mjs';
+import * as CM from './comms.test.mjs';
 import * as PUB from './runner.test.mjs';
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log('  FAIL', m); } };
@@ -150,6 +151,38 @@ for (const [f, id] of files) {
   ok(r19.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Print branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
 }
 
+// The Messages branch of the director page code: relays only the twelve Messages methods, with the token it is given.
+{
+  const src = fs.readFileSync('../wix/director/director-page-code.js', 'utf8').replace(/^import .*$/gm, '');
+  let ready, handler = null; const posts = []; const seen = [];
+  const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
+  const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
+  const comms = { cmOverview: async (a) => { seen.push(a); return { fine: 1 }; }, cmSend: async () => { throw new Error('no_batch'); }, login: async () => ({ token: 'leak' }) };
+  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, comms, console);
+  ready();
+  const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
+  const r1 = await call(1, 'cmOverview', 'comms', { token: 'T'.repeat(30), ev: 'e1' });
+  ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Messages branch: cmOverview is relayed with the token and race it was given');
+  const r2 = await call(2, 'cmExport', 'comms');
+  ok(r2.ok === false && r2.error === 'backend_old', 'Messages branch: a listed method missing in the backend says backend_old, not a crash');
+  const r3 = await call(3, 'cmSend', 'comms');
+  ok(r3.ok === false && r3.error === 'no_batch', 'Messages branch: an error from the backend is passed on as its plain code');
+  for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'comms'], [12, 'cmSend '], [13, 'CMSEND'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'cmSendAll'], [18, 'cm']]) {
+    const r = await call(id, m, 'comms');
+    ok(r.ok === false && r.error === 'page_code_old', 'Messages branch: "' + m + '" is refused (only the twelve Messages methods go through)');
+  }
+  const r19 = await call(19, ['cmOverview'], 'comms');
+  ok(r19.ok === false, 'Messages branch: a method that is not a string is refused');
+  const r20 = await call(20, 'cmOverview', 'rd');
+  ok(r20.ok === false && r20.error === 'page_code_old', 'a Messages method sent without the Messages tag is not relayed through the RaceOS branch');
+  const r21 = await call(21, 'cmOverview', 'prn');
+  ok(r21.ok === false && r21.error === 'page_code_old', 'a Messages method sent with the Print tag is not relayed through the Print branch');
+  const r22 = await call(22, 'cmOverview', 'comms', null);
+  ok(r22.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Messages branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
+  const r23 = await call(23, 'prnOverview', 'comms');
+  ok(r23.ok === false && r23.error === 'page_code_old', 'a Print method sent with the Messages tag is refused');
+}
+
 // The public runner page code: three read-only public methods and nothing else; the race comes from the link.
 {
   const src = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8').replace(/^import .*$/gm, '');
@@ -225,6 +258,9 @@ for (const [f, id] of files) {
   const PN = list('PRN_ALLOWED');
   ok(PN.every((m) => typeof PR[m] === 'function') && Object.keys(PR).filter((m) => typeof PR[m] === 'function').every((m) => PN.includes(m)) && new Set(PN).size === PN.length, 'the Print list and the print backend are the same ' + PN.length + ' methods (none missing, none extra, none twice)');
   ok(!PN.some((m) => A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no print method is also listed under another module');
+  const CMA = list('COMMS_ALLOWED');
+  ok(CMA.length === 12 && CMA.every((m) => typeof CM[m] === 'function') && Object.keys(CM).filter((m) => typeof CM[m] === 'function').every((m) => CMA.includes(m)) && new Set(CMA).size === CMA.length, 'the Messages list and the Messages backend are the same ' + CMA.length + ' methods (none missing, none extra, none twice)');
+  ok(CMA.every((m) => /^cm[A-Z]/.test(m)) && !CMA.some((m) => PN.includes(m) || A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no Messages method is also listed under another module');
   const rsrc = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8');
   const RA = rsrc.match(/const ALLOWED = \[([^\]]*)\]/)[1].split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean);
   ok(RA.length === 3 && RA.every((m) => typeof PUB[m] === 'function') && Object.keys(PUB).filter((m) => typeof PUB[m] === 'function').every((m) => RA.includes(m)), 'the runner page lists the three public methods, and the public backend has no others');

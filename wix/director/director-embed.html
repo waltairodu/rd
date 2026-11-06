@@ -182,7 +182,7 @@ function api(method,arg,ms,mod){
   });
 }
 // Back to the login page: the session is over (logged out, expired, or ended by a director).
-function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.loginErr=why?msg(why):'';render()}
+function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.cm=null;S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -228,6 +228,7 @@ async function loadTab(){
     else if(t==='fin'&&(man()||isLead()))await finLoad();
     else if(t==='res'&&(man()||isLead()))await resLoad();
     else if(t==='prn'&&(man()||isLead()))await prnLoad();
+    else if(t==='comms'&&(man()||isLead()))await cmLoad();
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -248,12 +249,12 @@ function loginView(){
    +'<label class="f">Setup key<input id="suKey" type="password"></label><label class="f">New admin username<input id="suUser"></label><label class="f">New admin password<input id="suPass" type="password"></label>'
    +'<button class="btn" type="submit">Create database</button><div id="suMsg" class="muted" role="status">'+esc(S.setupErr)+'</div></form></details></div>';
 }
-var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4',print:'M7 8V3h10v5M7 17H4v-8h16v8h-3M7 14h10v7H7z'};
+var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4',print:'M7 8V3h10v5M7 17H4v-8h16v8h-3M7 14h10v7H7z',mail:'M3 6h18v12H3zM3 7l9 7 9-7'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['comms','Messages','mail'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
-  if(id==='fin'||id==='res'||id==='prn')return man()||isLead();
+  if(id==='fin'||id==='res'||id==='prn'||id==='comms')return man()||isLead();
   if(id==='coaching'||id==='setup'||id==='team')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
@@ -550,7 +551,7 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='comms'&&(man()||isLead())?cmView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
   app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
 }
@@ -824,6 +825,7 @@ document.addEventListener('click',function(e){
   else if(act.indexOf('fin-')===0)finAct(b,act,id);
   else if(act.indexOf('res-')===0)resAct(b,act,id);
   else if(act.indexOf('prn-')===0)prnAct(b,act,id);
+  else if(act.indexOf('cm-')===0)cmAct(b,act,id);
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
@@ -943,6 +945,7 @@ document.addEventListener('submit',function(e){
   else if(id==='finForm'||id==='finSetForm')finSubmit(f,id,d);
   else if(id==='resForm'||id==='resSetForm'||id==='resPlaceForm')resSubmit(f,id,d);
   else if(id==='prnForm'||id==='prnPubForm')prnSubmit(f,id,d);
+  else if(id==='cmTplForm'||id==='cmSetForm')cmSubmit(f,id,d);
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
 /* ---------- finance: invoices, orders, claims, cash, the ledger (FINANCE-BEGIN) ---------- */
@@ -1782,6 +1785,472 @@ document.addEventListener('change',function(e){
   else if(t.form&&t.form.id==='prnPubForm'&&t.name==='results'){var ce=t.form.elements.certs;if(ce){if(!t.checked)ce.checked=false;ce.disabled=!t.checked}}
 });
 /* ---------- bibs and certificates: end (PRINT-END) ---------- */
+
+/* ---------- Messages: templates, who gets what, e-mails, WhatsApp chats, a file (COMMS-START) ----------
+   Everything for the Messages tab lives in this block. It talks to comms.web.js through the page (calls tagged mod:'comms').
+   A director writes the messages (templates), picks who gets one, sends it, opens WhatsApp chats and downloads a file of the people;
+   a lead can only look: the messages, who one would reach, how it looks and how a batch went. The server decides who may do what; this
+   only hides what would be refused. The words of a message are made on the server and everything that comes back is shown as text,
+   never as markup. No e-mail address or phone number is kept here: the only ones that ever arrive are inside the WhatsApp links of the
+   page the director asks for, and a link is used only if it is a wa.me address made of digits and escaped text. A batch is frozen on
+   the server before anything is sent, and a person is never sent to twice, so pressing a button again after a lost connection is safe. */
+S.cm=null;
+var CSUBS=[['send','Send'],['hist','History'],['tpl','Templates'],['set','Settings']];
+var CSUBS_LEAD=[['send','Who gets it'],['hist','History'],['tpl','Templates']];
+var CM_PAY=[['paid','Paid'],['unpaid','Not paid yet'],['all','Paid and not paid']];
+var CM_BIB=[['any','With or without a bib'],['has','Has a bib'],['none','No bib yet']];
+var CM_RES=[['any','Any result'],['fin','Finished'],['dnf','Did not finish'],['dns','Did not start'],['dsq','Disqualified'],['none','No result yet']];
+var CM_WAVE=[['any','In a wave or not'],['has','In a wave'],['none','Not in a wave yet']];
+var CM_VST=[['any','Any status'],['applied','Applied'],['approved','Approved'],['reserve','Reserve'],['declined','Declined']];
+var CM_STATE={sent:'Sent',failed:'Not sent',skipped:'Left out',sending:'Not sure'};
+var CM_WHY={unsubscribed:'asked not to get e-mails',no_email:'no e-mail address',person_removed:'no longer in the race',whatsapp:'by WhatsApp'};
+(function(){var add={
+  director_only:'Only a director can do that.',
+  bad_batch:'That batch could not be found. Prepare it again.',
+  bad_via:'Pick e-mail or WhatsApp.',
+  template_archived:'That message is archived. Restore it in Templates, or pick another.',
+  template_mismatch:'That message and those people do not go together: a runner message goes to runners and a volunteer message to volunteers.',
+  key_in_use:'That batch was already prepared with other choices. Start again.',
+  no_email_id:'Add the Wix e-mail ID in Settings first.',
+  no_link:'This message uses {link}, but this race has no link yet. Add it in Settings.',
+  empty_audience:'Nobody in this group can be reached that way.',
+  too_many:'That is more than 5,000 people. Narrow it down, for example to one category.',
+  batch_damaged:'This batch is damaged. Prepare it again.',
+  no_batch:'That batch was not found.',
+  wrong_channel:'That batch goes the other way (e-mail or WhatsApp).',
+  cm_bad_from:'The sending got out of step. Press the button again.',
+  cm_bad_status:'That mark is not valid.',
+  bad_ids:'Those people could not be read. Reload the page and try again.',
+  not_in_batch:'That person is not in this batch.',
+  bad_columns:'Tick at least one column.',
+  too_many_tests:'Five test e-mails were sent in the last hour. Wait a while.',
+  cm_bad_template:'Check the message: it needs a name, a subject and some text.',
+  unknown_placeholder:'The message uses a word in curly brackets that does not exist. Use only the ones listed.',
+  too_many_templates:'There are 40 messages already. Archive some first.',
+  cm_bad_settings:'Check the settings: the e-mail ID has letters, digits, dashes and underscores; paragraphs are 1 to 12; the country code is digits (91 for India); the race link starts with https://.',
+  bad_audience:'Those choices do not fit this race. Change them and try again.',
+  no_template:'That message was not found.'};
+  Object.keys(add).forEach(function(k){if(!ERR[k])ERR[k]=add[k]})})();
+/* Four error codes are also used by other tabs for other things (age groups, bib designs, results, print-outs). They would show those tabs' sentences here, so they are renamed on the way in. */
+var CM_CLASH={bad_from:1,bad_status:1,bad_template:1,bad_settings:1};
+function ca(m,a,ms){return api(m,a,ms,'comms').catch(function(e){if(e&&CM_CLASH[e.message]===1)throw new Error('cm_'+e.message);throw e})}
+function cmSubs(){return man()?CSUBS:CSUBS_LEAD}
+function cmSub(){var c=S.cm,l=cmSubs(),s=(c&&c.sub)||'send';for(var i=0;i<l.length;i++)if(l[i][0]===s)return s;return 'send'}
+function cmN(n,one,many){return n+' '+(n===1?one:many)}
+function cmIn(list,v,d){for(var i=0;i<list.length;i++)if(list[i][0]===v)return v;return d}
+function cmWhen(iso){var s=String(iso||'');return s?fdate(s.slice(0,10))+' '+ftime(s):''}
+function cmDef(){return {pay:'paid',cat:'',bib:'any',result:'any',wave:'any',vstatus:'any',notSent:'',uncertain:false}}
+function cmNew(){return {ev:S.ev,sub:'send',err:'',ov:null,who:'runners',aud:cmDef(),tplId:'',seq:0,au:null,auErr:'',pv:null,pvErr:'',via:'email',key:'',
+  batch:null,rep:null,repErr:'',prog:null,sending:false,stopReq:false,wa:null,marking:false,edit:null,epv:null,epvErr:'',
+  testTo:'',testTpl:'',testMsg:'',testing:false,cols:['name','bib','cat','email'],fileMsg:'',filing:false}}
+function cmKind(c){return c.who==='volunteers'?'volunteer':'runner'}
+function cmTpls(c,kind,withArchived){return ((c.ov&&c.ov.templates)||[]).filter(function(t){return t.kind===kind&&(withArchived||!t.archived)})}
+function cmTplById(c,id){var l=(c.ov&&c.ov.templates)||[];for(var i=0;i<l.length;i++)if(l[i].id===id)return l[i];return null}
+// Keeps the choices on the screen valid after the messages or the categories changed.
+function cmFix(c){
+  var ov=c.ov;if(!ov)return;
+  if(c.aud.cat&&ov.cats.indexOf(c.aud.cat)<0)c.aud.cat='';
+  var ts=cmTpls(c,cmKind(c));if(!ts.some(function(t){return t.id===c.tplId}))c.tplId=ts.length?ts[0].id:'';
+  var ns=cmTplById(c,c.aud.notSent);if(!ns||ns.kind!==cmKind(c))c.aud.notSent='';
+  if(!c.aud.notSent)c.aud.uncertain=false;
+  var tt=cmTplById(c,c.testTpl);if(!tt||tt.archived){var open=ov.templates.filter(function(t){return !t.archived});c.testTpl=open.length?open[0].id:''}
+}
+// The choices as the server wants them: a volunteer audience has no runner filters and a runner audience has no status.
+function cmAudOut(c){var a=c.aud,o={who:c.who};
+  if(c.who==='runners'){o.pay=a.pay;o.cat=a.cat;o.bib=a.bib;o.result=a.result;o.wave=a.wave}else o.vstatus=a.vstatus;
+  o.notSent=a.notSent;o.uncertain=!!a.uncertain;return o}
+// A stored audience (from a batch of the list) as the screen's choices; anything that is not a known choice becomes the standard one.
+function cmAudIn(c,x){var d=cmDef(),o=x&&typeof x==='object'?x:{};
+  d.pay=cmIn(CM_PAY,o.pay,d.pay);d.bib=cmIn(CM_BIB,o.bib,d.bib);d.result=cmIn(CM_RES,o.result,d.result);d.wave=cmIn(CM_WAVE,o.wave,d.wave);d.vstatus=cmIn(CM_VST,o.vstatus,d.vstatus);
+  d.cat=typeof o.cat==='string'&&c.ov.cats.indexOf(o.cat)>=0?o.cat:'';d.notSent=typeof o.notSent==='string'&&cmTplById(c,o.notSent)?o.notSent:'';d.uncertain=o.uncertain===true;return d}
+function cmChk(name,label,on){return '<label class="f" style="flex-direction:row;align-items:center;gap:8px;grid-column:1/-1"><input type="checkbox" name="'+name+'"'+(on?' checked':'')+'> '+esc(label)+'</label>'}
+function cmWaOk(u){return /^https:\/\/wa\.me\/[1-9]\d{10,14}\?text=[A-Za-z0-9%._~!*'()-]*$/.test(String(u||''))}
+function cmFocus(name){var el=document.querySelector('#cmAudForm [name="'+name+'"]');if(el&&el.focus)el.focus()}
+
+/* ---------- loading ---------- */
+async function cmLoad(){
+  if(!S.cm||S.cm.ev!==S.ev)S.cm=cmNew();
+  var c=S.cm;c.err='';
+  try{var ov=await ca('cmOverview');if(S.cm!==c)return;c.ov=ov;cmFix(c)}catch(e){if(S.cm!==c)return;c.err=msg(e.message);toast(c.err,true)}
+  if(!c.err&&cmSub()==='send')cmRefresh();
+}
+async function cmReload(){var c=S.cm;if(!c)return;var ov=await ca('cmOverview');if(S.cm!==c)return;c.ov=ov;cmFix(c);render();if(cmSub()==='send')cmRefresh()}
+// Who a message reaches and how it looks: asked again each time a choice changes. An answer to an earlier question is dropped.
+function cmRefresh(){
+  var c=S.cm;if(!c||!c.ov||cmSub()!=='send')return;
+  var seq=++c.seq;c.au=null;c.auErr='';c.pv=null;c.pvErr='';cmPaint();
+  var aud=cmAudOut(c),t=c.tplId;
+  ca('cmAudience',t?{tplId:t,aud:aud}:{aud:aud}).then(function(r){if(S.cm!==c||seq!==c.seq)return;c.au=r;cmPaint()},function(e){if(S.cm!==c||seq!==c.seq)return;c.auErr=msg(e.message);cmPaint()});
+  if(t)ca('cmPreview',{tplId:t,aud:aud}).then(function(r){if(S.cm!==c||seq!==c.seq)return;c.pv=r;cmPaint()},function(e){if(S.cm!==c||seq!==c.seq)return;c.pvErr=msg(e.message);cmPaint()});
+}
+// The parts of the screen that change while a person is working are painted on their own, so a field they are in is not rebuilt.
+function cmPaint(){
+  var c=S.cm;if(!c||S.tab!=='comms')return;
+  var a=$('#cmAu'),p=$('#cmPv'),g=$('#cmGo');
+  if(a)a.innerHTML=cmAuHtml();if(p)p.innerHTML=cmPvHtml();if(g)g.innerHTML=cmGoHtml();
+}
+
+/* ---------- the screen ---------- */
+function cmView(){
+  var c=S.cm;if(!c||c.ev!==S.ev)return planLoading();
+  var sub=cmSub(),list=cmSubs();
+  var nav='<div class="row" role="tablist" aria-label="Messages sections">'+list.map(function(t){return '<button class="btn sm'+(sub===t[0]?' pri':'')+'" role="tab" aria-selected="'+(sub===t[0])+'" data-act="cm-sub" data-sub="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
+  var body=c.err?'<div class="card"><p class="muted" role="alert">'+esc(c.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="retry">Try again</button></div></div>'
+    :!c.ov?planLoading():sub==='send'?cmSendView():sub==='hist'?cmHistView():sub==='tpl'?cmTplView():cmSetView();
+  return '<div class="stack">'+nav+(man()?'':'<p class="muted">You can see who a message would reach, how it looks and how each batch went. Directors send the messages.</p>')+body+'</div>';
+}
+function cmSendView(){
+  var c=S.cm,ov=c.ov,a=c.aud,isR=c.who==='runners',kind=cmKind(c),ts=cmTpls(c,kind),prior=cmTpls(c,kind,true);
+  var filters=isR
+    ?fsel('Payment','pay',a.pay,CM_PAY)+fsel('Category','cat',a.cat,[['','All categories']].concat(ov.cats.map(function(x){return [x,x]})))+fsel('Bib','bib',a.bib,CM_BIB)+fsel('Result','result',a.result,CM_RES)+fsel('Wave','wave',a.wave,CM_WAVE)
+    :fsel('Status','vstatus',a.vstatus,CM_VST);
+  var left=fsel('Leave out people who already got','notSent',a.notSent,[['','Nobody is left out']].concat(prior.map(function(t){return [t.id,t.name+(t.archived?' (archived)':'')]})));
+  var unsure=a.notSent?cmChk('uncertain','Also include people whose earlier message may not have arrived (the connection broke while it was being sent)',a.uncertain):'';
+  var pick=ts.length?fsel('Message','tplId',c.tplId,ts.map(function(t){return [t.id,t.name]})):'<p class="muted" style="grid-column:1/-1">There is no message for '+(isR?'runners':'volunteers')+'. Write one in Templates.</p>';
+  var form='<form id="cmAudForm" class="card"><h3>Who gets it, and what</h3><div class="form" style="margin-top:8px">'+fsel('Who','who',c.who,[['runners','Runners'],['volunteers','Volunteers']])+filters+left+unsure+pick+'</div></form>';
+  return form+'<div id="cmAu">'+cmAuHtml()+'</div><div id="cmPv">'+cmPvHtml()+'</div>'+(man()?'<div id="cmGo">'+cmGoHtml()+'</div>'+cmFileCard():'');
+}
+function cmAuHtml(){
+  var c=S.cm;
+  if(c.auErr)return '<div class="card"><h3>Who this reaches</h3><p class="muted" role="alert" style="margin-top:6px">'+esc(c.auErr)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="cm-refresh">Try again</button></div></div>';
+  var r=c.au;if(!r)return '<div class="card"><h3>Who this reaches</h3><p class="muted" role="status" style="margin-top:6px">Counting...</p></div>';
+  var isR=c.who==='runners';
+  var pills=pill(cmN(r.total,'person','people'),r.total?'good':'warn')+(r.total?pill(r.withEmail+' with an e-mail address',r.withEmail?'':'warn')+pill(r.withPhone+' with a WhatsApp number',r.withPhone?'':'warn'):'')+(r.sentBefore?pill(r.sentBefore+' already got this message','warn'):'');
+  var miss=Object.keys(r.missing||{}).map(function(k){return '<li>{'+esc(k)+'} is blank for '+cmN(r.missing[k],'person','people')+'. They would see a dash instead.</li>'}).join('');
+  var rows=(r.sample||[]).map(function(p){return '<tr><td>'+esc(p.name)+'</td>'+(isR?'<td>'+esc(p.bib||'-')+'</td><td>'+esc(p.cat||'-')+'</td>':'')+'<td>'+(p.email?'Yes':'-')+'</td><td>'+(p.phone?'Yes':'-')+'</td></tr>'}).join('');
+  var table=rows?'<div class="scroll" style="margin-top:8px"><table><tr><th>Name</th>'+(isR?'<th>Bib</th><th>Category</th>':'')+'<th>E-mail</th><th>WhatsApp</th></tr>'+rows+'</table></div>'+(r.total>(r.sample||[]).length?'<p class="muted" style="margin-top:6px">... and '+(r.total-r.sample.length)+' more.</p>':''):'<p class="muted" style="margin-top:8px">Nobody matches these choices.</p>';
+  return '<div class="card"><h3>Who this reaches</h3><p style="margin-top:6px">'+esc(r.label)+'</p><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">'+pills+'</div>'+(miss?'<ul class="muted" style="margin:8px 0 0 18px">'+miss+'</ul>':'')+table+'</div>';
+}
+// A message as one person would get it. who says whose details are shown.
+function cmMsgBody(p,who){
+  var paras=(p.paras||[]).map(function(x){return '<p style="margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere">'+esc(x)+'</p>'}).join('');
+  var warn=[];
+  if(p.noLink)warn.push('This message uses {link}, but this race has no link yet. Add it in Settings.');
+  if(p.joined)warn.push('The Wix e-mail has '+p.nvars+' places for paragraphs, so the last '+cmN(p.joined+1,'paragraph is','paragraphs are')+' put together in one.');
+  if(p.cut)warn.push('A paragraph is longer than 1,200 characters and would be cut.');
+  return '<p class="muted" role="status" style="margin-top:6px">'+esc(who)+'</p>'
+    +'<div style="margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:8px"><p><b>Subject:</b> '+esc(p.subject)+'</p>'+paras+'</div>'
+    +warn.map(function(w){return '<p style="margin-top:6px;color:var(--bad)" role="alert">'+esc(w)+'</p>'}).join('')
+    +'<details style="margin-top:8px"><summary class="muted">As a WhatsApp message'+(p.whatsappCut?' (cut to fit)':'')+'</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0;font:inherit">'+esc(p.whatsapp)+'</pre></details>';
+}
+function cmPvHtml(){
+  var c=S.cm,t=cmTplById(c,c.tplId),h='<div class="card"><h3>How it looks</h3>';
+  if(!t)return h+'<p class="muted" style="margin-top:6px">Choose a message to see how it looks.</p></div>';
+  if(c.pvErr)return h+'<p class="muted" role="alert" style="margin-top:6px">'+esc(c.pvErr)+'</p></div>';
+  var p=c.pv;if(!p)return h+'<p class="muted" role="status" style="margin-top:6px">Loading the preview...</p></div>';
+  var who=p.sample.fake?'Showing a made-up '+(c.who==='runners'?'runner':'volunteer')+' (nobody matches these choices yet)':'Showing '+(p.sample.bib?'bib '+p.sample.bib+', ':'')+p.sample.name;
+  return h+cmMsgBody(p,who)+(man()&&c.ov.settings.emailId?cmTestBox(false):'')+'</div>';
+}
+function cmTestBox(withPick){
+  var c=S.cm,ts=c.ov.templates.filter(function(t){return !t.archived});
+  return '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><b>Send a test</b><p class="muted" style="margin:2px 0 6px">One e-mail to an address you choose, with made-up details, to see how it arrives. Five an hour at most.</p>'
+    +'<div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px">'+(withPick?'<label class="f">Message<select id="cmTestTpl">'+ts.map(function(t){return '<option value="'+esc(t.id)+'"'+(t.id===c.testTpl?' selected':'')+'>'+esc(t.name)+'</option>'}).join('')+'</select></label>':'')
+    +'<label class="f">Send it to<input id="cmTestTo" type="text" inputmode="email" value="'+esc(c.testTo)+'" maxlength="120" autocomplete="off" placeholder="your own e-mail address"></label><button class="btn" data-act="cm-test"'+(c.testing?' disabled':'')+'>Send the test</button></div>'
+    +'<p class="muted" id="cmTestMsg" role="status" style="margin-top:6px">'+esc(c.testMsg)+'</p></div>';
+}
+function cmTestPaint(){var c=S.cm,m=$('#cmTestMsg');if(m)m.textContent=c?c.testMsg:'';var b=document.querySelector('[data-act="cm-test"]');if(b)b.disabled=!!(c&&c.testing)}
+async function cmTestSend(){
+  var c=S.cm;if(!c||!man()||c.testing)return;
+  var to=String(c.testTo||'').trim(),tpl=cmSub()==='set'?c.testTpl:c.tplId;
+  if(!to){toast('Type the address to send the test to.',true);return}
+  if(!tpl){toast('Choose a message first.',true);return}
+  c.testing=true;c.testMsg='Sending...';cmTestPaint();
+  try{
+    var r=await ca('cmTest',{to:to,tplId:tpl},40000);if(S.cm!==c)return;
+    c.testMsg=r.sent?'Test sent to '+to+'. It can take a minute to arrive.':'Not sent: '+(r.why==='unsubscribed'?'that address asked not to get e-mails.':(r.why||'Wix did not accept it.'));
+    toast(r.sent?'Test e-mail sent':'Test e-mail not sent',!r.sent);
+  }catch(e){if(S.cm!==c)return;c.testMsg=msg(e.message);toast(c.testMsg,true)}
+  c.testing=false;cmTestPaint();
+}
+
+/* ---------- preparing and sending (directors) ---------- */
+function cmGoHtml(){
+  var c=S.cm;if(!c)return '';
+  return (cmSub()==='send'&&man()?cmPrepCard():'')+(c.batch?cmBatchCard():'');
+}
+function cmPrepCard(){
+  var c=S.cm,ov=c.ov,r=c.au,email=c.via==='email',t=cmTplById(c,c.tplId),set=ov.settings,warn=[];
+  if(email&&!set.emailId)warn.push('The Wix e-mail is not set up yet.');
+  if(t&&/\{link\}/i.test(t.subject+' '+t.body)&&!set.link)warn.push('This message uses {link}, but this race has no link yet.');
+  var reach=r?(email?r.withEmail:r.withPhone):0,ready=!!c.batch&&!!c.key&&c.batch.key===c.key;
+  var how='<div class="row" role="group" aria-label="How to send">'+[['email','E-mail'],['whatsapp','WhatsApp']].map(function(v){return '<button class="btn sm'+(c.via===v[0]?' pri':'')+'" data-act="cm-via" data-via="'+v[0]+'" aria-pressed="'+(c.via===v[0])+'">'+v[1]+'</button>'}).join('')+'</div>';
+  var note=email?'E-mails go through the Wix e-mail you set up. Anybody who asked Wix not to get e-mails is left out.':'You get a chat for each person with the message ready in it. You press Send in WhatsApp yourself, then mark the person as done here.';
+  var can=!!t&&!!r&&reach>0&&!c.sending&&!ready;
+  var label=ready?'Prepared (see below)':!t?'Choose a message first':!r?'Counting...':reach?'Prepare to send to '+cmN(reach,'person','people'):'Nobody here can be reached this way';
+  return '<div class="card"><h3>Send it</h3><div style="margin-top:8px">'+how+'</div><p class="muted" style="margin-top:8px">'+esc(note)+' Preparing fixes who is in the batch; nothing is sent yet.</p>'
+    +warn.map(function(w){return '<p style="margin-top:6px;color:var(--bad)" role="alert">'+esc(w)+' <button class="btn sm" data-act="cm-goset">Open Settings</button></p>'}).join('')
+    +'<div class="row" style="margin-top:10px"><button class="btn pri" data-act="cm-prep"'+(can?'':' disabled')+'>'+esc(label)+'</button></div></div>';
+}
+function cmCounts(rep){
+  var n=rep.counts;
+  return '<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">'+pill(n.sent+' sent',n.sent?'good':'')+(n.failed?pill(n.failed+' not sent','bad'):'')+(n.skipped?pill(n.skipped+' left out'):'')+(n.sending?pill(n.sending+' not sure','warn'):'')+(n.waiting?pill(n.waiting+' waiting','warn'):'')+'</div>'
+    +(n.sending?'<p class="muted" style="margin-top:6px">"Not sure" means the connection broke while the e-mail was going out. It is never sent again by itself. Look in Wix; if it did not go, prepare a retry and tick the box to include it.</p>':'');
+}
+function cmProblems(rep){
+  if(!rep.problems||!rep.problems.length)return '';
+  return '<div class="scroll" style="margin-top:8px"><table><tr><th>Name</th><th>Bib</th><th>What happened</th></tr>'+rep.problems.map(function(p){return '<tr><td>'+esc(p.name||'(no longer in the race)')+'</td><td>'+esc(p.bib||'-')+'</td><td>'+esc((CM_STATE[p.status]||p.status)+(p.why?': '+(CM_WHY[p.why]||p.why):''))+'</td></tr>'}).join('')+'</table></div>'+(rep.moreProblems?'<p class="muted" style="margin-top:6px">... and '+rep.moreProblems+' more.</p>':'');
+}
+function cmProgText(pr,total){
+  if(pr.state==='running')return (pr.note||'Sending...')+' '+(pr.next||0)+' of '+total+' handled. Sent '+pr.sent+(pr.failed?', not sent '+pr.failed:'')+(pr.skipped?', left out '+pr.skipped:'')+'. Keep this page open.';
+  if(pr.state==='stopped')return 'Stopped: several e-mails in a row did not go out. Send a test from Settings to see why. Press Resume to go on with the people who have not been tried; those who failed can be retried afterwards.';
+  if(pr.state==='paused')return 'Paused at '+(pr.next||0)+' of '+total+'. Press Resume to go on.';
+  if(pr.state==='error')return pr.note+' Press Resume: nobody is sent to twice.';
+  return 'Finished. This time: sent '+pr.sent+(pr.failed?', not sent '+pr.failed:'')+(pr.skipped?', left out '+pr.skipped:'')+'.';
+}
+function cmWaHtml(){
+  var c=S.cm,w=c.wa,b=c.batch;
+  if(!w)return '<div class="row" style="margin-top:10px"><button class="btn pri" data-act="cm-wa">Show the chats</button></div><p class="muted" style="margin-top:6px">The chats hold phone numbers. Opening them is written in the audit trail.</p>';
+  if(w.err)return '<p class="muted" role="alert" style="margin-top:8px">'+esc(w.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="cm-wa">Try again</button></div>';
+  var pg=w.pages[w.at];if(!pg)return '<p class="muted" role="status" style="margin-top:8px">Loading the chats...</p>';
+  var rows=pg.items.map(function(it){var ok=cmWaOk(it.link);
+    return '<tr><td>'+esc(it.name||'(no longer in the race)')+(it.bib?' <small class="muted">bib '+esc(it.bib)+'</small>':'')+'</td><td>'+(it.done?pill('Done','good'):ok?'<a class="btn sm pri" href="'+esc(it.link)+'" target="_blank" rel="noopener noreferrer">Open chat</a>':pill('No number','warn'))+'</td><td>'+(it.done?'':'<button class="btn sm" data-act="cm-wa-mark" data-id="'+esc(it.id)+'"'+(c.marking?' disabled':'')+'>Mark as sent</button> <button class="btn sm" data-act="cm-wa-skip" data-id="'+esc(it.id)+'"'+(c.marking?' disabled':'')+'>Leave out</button>')+'</td></tr>'}).join('');
+  var first=pg.from+1,last=pg.from+pg.items.length,open=pg.items.some(function(it){return !it.done});
+  return '<p class="muted" style="margin-top:10px">Press Open chat, press Send in WhatsApp, then come back and press Mark as sent.</p>'
+    +'<div class="scroll" style="margin-top:8px"><table><tr><th>Person</th><th>Chat</th><th>When done</th></tr>'+rows+'</table></div>'
+    +'<div class="row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="cm-wa-prev"'+(w.at>0?'':' disabled')+'>Back</button><span class="muted" role="status">People '+first+' to '+last+' of '+pg.total+'</span><button class="btn sm" data-act="cm-wa-next"'+(pg.next!==null&&pg.next!==undefined?'':' disabled')+'>Next</button>'+(open?'<button class="btn sm" data-act="cm-wa-all"'+(c.marking?' disabled':'')+'>Mark everybody on this page as sent</button>':'')+'</div>';
+}
+function cmBatchCard(){
+  var c=S.cm,b=c.batch,rep=c.rep,pr=c.prog,email=b.via==='email',mine=man();
+  var head='<div class="row between" style="gap:10px;flex-wrap:wrap;align-items:flex-start"><div><h3>'+esc(b.tplName||'Batch')+' '+pill(email?'E-mail':'WhatsApp')+'</h3><p class="muted" style="margin-top:4px">'+esc(b.label)+' · '+cmN(b.total,'person','people')+(b.noContact?' · '+b.noContact+' left out (no '+(email?'e-mail address':'WhatsApp number')+')':'')+(b.at?' · prepared '+esc(cmWhen(b.at)):'')+'</p></div>'+(c.sending?'':'<button class="btn sm" data-act="cm-close">Close</button>')+'</div>';
+  var body=rep?cmCounts(rep)+cmProblems(rep):c.repErr?'<p class="muted" role="alert" style="margin-top:8px">'+esc(c.repErr)+'</p>':'<p class="muted" role="status" style="margin-top:8px">Reading the numbers...</p>';
+  var live=pr&&(c.sending||pr.state!=='done'||pr.sent||pr.failed||pr.skipped)?'<div style="margin-top:10px">'+bar(pr.state==='done'?b.total:(pr.next||0),b.total)+'<p class="muted" role="status" aria-live="polite" style="margin-top:6px">'+esc(cmProgText(pr,b.total))+'</p></div>':'';
+  var left=rep?rep.resume:0,n=rep?rep.counts:null,btns='';
+  if(mine&&email){
+    if(c.sending)btns+='<button class="btn" data-act="cm-stop">Stop</button>';
+    else if(left!==null){var resume=!!pr&&pr.state!=='done'||!!rep&&rep.counts.waiting<rep.total;btns+='<button class="btn pri" data-act="cm-send" data-arm="cm-send">'+(S.armed==='cm-send'?'Sure? Send now':(resume?'Resume: send to the people not yet handled':'Send e-mails to '+cmN(b.total,'person','people')))+'</button>'}
+    if(!c.sending&&n&&(n.failed||n.sending)&&b.aud)btns+='<button class="btn" data-act="cm-retry">Prepare a retry</button>';
+  }
+  if(!c.sending)btns+='<button class="btn" data-act="cm-rep">Update the numbers</button>';
+  var wa=mine&&!email?cmWaHtml():'';
+  return '<div class="card">'+head+live+body+(btns?'<div class="row" style="margin-top:10px;flex-wrap:wrap">'+btns+'</div>':'')+wa+'</div>';
+}
+async function cmReport(){
+  var c=S.cm;if(!c||!c.batch)return;
+  var key=c.batch.key;c.repErr='';
+  try{var r=await ca('cmBatch',{batch:key});if(S.cm!==c||!c.batch||c.batch.key!==key)return;c.rep=r}
+  catch(e){if(S.cm!==c||!c.batch||c.batch.key!==key)return;c.repErr=msg(e.message)}
+  cmPaint();
+}
+// Sends the people of the batch a few at a time, as long as the page stays open. The server never sends to a person twice, so a
+// press after a lost connection, a second screen or a second press is safe; it only counts them as already handled.
+async function cmSendRun(){
+  var c=S.cm;if(!c||!man()||c.sending||!c.batch||c.batch.via!=='email')return;
+  var b=c.batch,from=c.rep&&typeof c.rep.resume==='number'?c.rep.resume:0;
+  if(c.rep&&c.rep.resume===null){toast('Everybody in this batch has been handled.');return}
+  var pr=c.prog={next:from,sent:0,failed:0,skipped:0,busy:0,state:'running',note:''},calls=0,stall=0;
+  c.sending=true;c.stopReq=false;cmPaint();
+  try{
+    for(;;){
+      if(S.cm!==c||c.ev!==S.ev)return; // another race or a new login: the work stops here, and the batch report shows where it got to
+      var r=await ca('cmSend',{batch:b.key,from:pr.next},45000);
+      if(S.cm!==c)return;
+      pr.sent+=r.sent;pr.failed+=r.failed;pr.skipped+=r.skipped;pr.busy+=r.busy;calls++;
+      if(r.next===null||r.next===undefined){pr.next=null;pr.state='done';break}
+      if(typeof r.next!=='number'||r.next<pr.next||calls>800)throw new Error('bad_from');
+      stall=r.next===pr.next?stall+1:0;if(stall>=3)throw new Error('bad_from');
+      pr.next=r.next;
+      if(r.stopped){pr.state='stopped';break}
+      if(c.stopReq){pr.state='paused';break}
+      cmPaint();
+    }
+  }catch(e){if(S.cm!==c)return;pr.state='error';pr.note=msg(e.message)+'.'}
+  c.sending=false;cmPaint();
+  await cmReport();
+  if(S.cm===c&&cmSub()!=='send')return;
+  try{if(S.cm===c){var ov=await ca('cmOverview');if(S.cm===c){c.ov=ov;cmFix(c);cmPaint()}}}catch(x){}
+}
+// WhatsApp: a page of chats at a time (the server makes the links), and a mark for each person who was messaged.
+async function cmWaLoad(at){
+  var c=S.cm;if(!c||!man()||!c.batch||c.batch.via!=='whatsapp')return;
+  if(!c.wa)c.wa={pages:[],at:0,err:''};
+  var w=c.wa,key=c.batch.key,from=at>0&&w.pages[at-1]?w.pages[at-1].next:0;w.err='';
+  if(at>0&&(from===null||from===undefined)){return}
+  cmPaint();
+  try{
+    var r=await ca('cmLinks',{batch:key,from:from},40000);if(S.cm!==c||c.wa!==w)return;
+    w.pages[at]=r;w.at=at;
+  }catch(e){if(S.cm!==c||c.wa!==w)return;w.err=msg(e.message)}
+  cmPaint();
+}
+async function cmWaMark(ids,status){
+  var c=S.cm,w=c&&c.wa;if(!c||!man()||!w||!c.batch||c.marking||!ids.length)return;
+  c.marking=true;cmPaint();
+  try{
+    await ca('cmMark',{batch:c.batch.key,status:status,ids:ids});if(S.cm!==c)return;
+    var pg=w.pages[w.at];if(pg)pg.items.forEach(function(it){if(ids.indexOf(it.id)>=0)it.done=true});
+    toast(ids.length===1?(status==='sent'?'Marked as sent':'Left out'):cmN(ids.length,'person','people')+' marked');
+  }catch(e){if(S.cm===c)toast(msg(e.message),true)}
+  c.marking=false;cmPaint();cmReport();
+}
+
+/* ---------- a file of the people (directors) ---------- */
+function cmFileCard(){
+  var c=S.cm;
+  return '<div class="card"><h3>A file of these people</h3><p class="muted" style="margin-top:6px">A spreadsheet (CSV) of the people chosen above, for a mail merge or a print list. It can hold e-mail addresses and phone numbers, so keep it safe. Each download is written in the audit trail.</p>'
+    +'<div class="row" style="gap:14px;flex-wrap:wrap;margin-top:8px">'+c.ov.cols.map(function(k){return '<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="cm-col" value="'+esc(k.key)+'"'+(c.cols.indexOf(k.key)>=0?' checked':'')+'> '+esc(k.head)+'</label>'}).join('')+'</div>'
+    +'<div class="row" style="margin-top:10px;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn" data-act="cm-file"'+(c.filing?' disabled':'')+'>Download the file</button><span class="muted" id="cmFileMsg" role="status">'+esc(c.fileMsg)+'</span></div></div>';
+}
+function cmFilePaint(){var c=S.cm,m=$('#cmFileMsg');if(m)m.textContent=c?c.fileMsg:'';var b=document.querySelector('[data-act="cm-file"]');if(b)b.disabled=!!(c&&c.filing)}
+async function cmFile(){
+  var c=S.cm;if(!c||!man()||c.filing)return;
+  if(!c.cols.length){toast(msg('bad_columns'),true);return}
+  c.filing=true;c.fileMsg='Preparing the file...';cmFilePaint();
+  var text='',from=0,pages=0,total=0;
+  try{
+    for(;;){
+      var r=await ca('cmExport',{aud:cmAudOut(c),cols:c.cols.slice(),from:from},60000);if(S.cm!==c)return;
+      text+=r.csv;total=r.total;pages++;
+      c.fileMsg='Preparing the file: '+Math.min(from+r.count,total)+' of '+total;cmFilePaint();
+      if(r.next===null||r.next===undefined)break;
+      if(typeof r.next!=='number'||r.next<=from||pages>600)throw new Error('bad_from');
+      from=r.next;
+    }
+    if(!total)c.fileMsg='Nobody matches these choices, so there is no file.';
+    else{download((slug(raceName())||'race').replace(/\./g,'-')+'-people.csv',String.fromCharCode(65279)+text,'text/csv;charset=utf-8');c.fileMsg=cmN(total,'row','rows')+' in the file.';toast('File ready')}
+  }catch(e){if(S.cm!==c)return;c.fileMsg=msg(e.message);toast(c.fileMsg,true)}
+  c.filing=false;cmFilePaint();
+}
+
+/* ---------- history ---------- */
+function cmHistView(){
+  var c=S.cm,l=c.ov.batches||[];
+  var table=l.length?'<div class="card"><h3>Batches</h3><div class="scroll" style="margin-top:8px"><table><tr><th>When</th><th>Message</th><th>Who</th><th>How</th><th>People</th><th></th></tr>'+l.map(function(b){
+    return '<tr><td>'+esc(cmWhen(b.at))+'</td><td>'+esc(b.tplName)+'</td><td>'+esc(b.label)+'</td><td>'+esc(b.via==='email'?'E-mail':'WhatsApp')+'</td><td>'+b.total+(b.noContact?' <small class="muted">(+'+b.noContact+' without contact)</small>':'')+'</td><td><button class="btn sm" data-act="cm-open" data-id="'+esc(b.key)+'">Open</button></td></tr>'}).join('')+'</table></div></div>'
+    :'<div class="card"><h3>Batches</h3><p class="muted" style="margin-top:6px">Nothing has been prepared for this race yet.</p></div>';
+  return (c.batch?'<div id="cmGo">'+cmGoHtml()+'</div>':'')+table;
+}
+
+/* ---------- templates ---------- */
+function cmUnknownList(e){
+  var vars=(S.cm.ov.vars[e.kind]||[]),seen={},out=[];
+  (String(e.subject||'')+'\n'+String(e.body||'')).replace(/\{([A-Za-z][A-Za-z0-9_]{0,19})\}/g,function(m,k){var l=k.toLowerCase();if(vars.indexOf(l)<0&&!seen[l]){seen[l]=1;out.push('{'+k+'}')}return m});
+  return out;
+}
+function cmUnknownText(e){var u=cmUnknownList(e);return u.length?'Not a word that can be filled in: '+u.join(' ')+'. Check the spelling, or take it out.':''}
+function cmEpvHtml(){var c=S.cm;if(c.epvErr)return '<p class="muted" role="alert" style="margin-top:8px">'+esc(c.epvErr)+'</p>';if(!c.epv)return '';return cmMsgBody(c.epv,'Showing a made-up '+(c.edit&&c.edit.kind==='volunteer'?'volunteer':'runner'))}
+function cmEpvPaint(text){var el=$('#cmEPv');if(!el)return;el.innerHTML=text?'<p class="muted" role="status" style="margin-top:8px">'+esc(text)+'</p>':cmEpvHtml()}
+function cmEditHint(){var c=S.cm,el=$('#cmEUnk');if(el&&c&&c.edit)el.textContent=cmUnknownText(c.edit)}
+function cmEditRead(){
+  var c=S.cm,f=$('#cmTplForm');if(!c||!c.edit||!f)return;var e=c.edit,get=function(n){var el=f.elements.namedItem(n);return el&&'value' in el?el.value:null};
+  var v;if((v=get('name'))!==null)e.name=v;if((v=get('subject'))!==null)e.subject=v;if((v=get('body'))!==null)e.body=v;if(e.isNew&&(v=get('kind'))!==null)e.kind=v==='volunteer'?'volunteer':'runner';
+}
+function cmEditForm(){
+  var c=S.cm,e=c.edit,vars=(c.ov.vars[e.kind]||[]);
+  return '<form id="cmTplForm" class="card"><h3>'+(e.isNew?'New message':'Change the message')+'</h3>'
+    +'<p class="muted" style="margin-top:6px">Words in curly brackets are filled in for each person: '+esc(vars.map(function(v){return '{'+v+'}'}).join(' '))+'. A blank line starts a new paragraph.</p>'
+    +'<div class="form" style="margin-top:8px">'+fi('Name','name',e.name,{attr:'maxlength="60"',req:1})
+    +(e.isNew?fsel('Goes to','kind',e.kind,[['runner','Runners'],['volunteer','Volunteers']]):'<label class="f">Goes to<input value="'+(e.kind==='volunteer'?'Volunteers':'Runners')+'" disabled></label>')
+    +fi('Subject','subject',e.subject,{attr:'maxlength="120"',req:1,span:1})
+    +'<label class="f" style="grid-column:1/-1">Text<textarea name="body" rows="10" maxlength="4000" required>'+esc(e.body)+'</textarea></label></div>'
+    +'<p id="cmEUnk" role="status" style="margin-top:6px;color:var(--bad)">'+esc(cmUnknownText(e))+'</p>'
+    +'<div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" data-act="cm-tpl-pv">Show how it looks</button><button class="btn" type="button" data-act="cm-tpl-cancel">Cancel</button></div>'
+    +'<div id="cmEPv">'+cmEpvHtml()+'</div></form>';
+}
+function cmTplView(){
+  var c=S.cm,mine=man();
+  var list=c.ov.templates.map(function(t){
+    return '<div class="card"><div class="row between" style="gap:10px;flex-wrap:wrap;align-items:flex-start"><div><b>'+esc(t.name)+'</b> '+pill(t.kind==='runner'?'Runners':'Volunteers')+(t.starter&&!t.saved?pill('Standard wording'):'')+(t.starter&&t.saved?pill('Edited'):'')+(t.archived?pill('Archived','warn'):'')+'</div>'
+      +(mine?'<div class="row"><button class="btn sm" data-act="cm-tpl-edit" data-id="'+esc(t.id)+'">Edit</button><button class="btn sm" data-act="cm-tpl-arch" data-id="'+esc(t.id)+'">'+(t.archived?'Restore':'Archive')+'</button></div>':'')+'</div>'
+      +'<p style="margin-top:6px"><b>Subject:</b> '+esc(t.subject)+'</p><details style="margin-top:6px"><summary class="muted">Show the text</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0;font:inherit">'+esc(t.body)+'</pre></details></div>'}).join('');
+  return (mine?'<div class="row"><button class="btn pri" data-act="cm-tpl-new">New message</button></div>':'')+(c.edit&&mine?cmEditForm():'')+list;
+}
+
+/* ---------- settings (directors) ---------- */
+function cmSetView(){
+  var c=S.cm,s=c.ov.settings,nv=[];for(var i=1;i<=c.ov.limits.paragraphs;i++)nv.push([String(i),String(i)]);
+  var form='<form id="cmSetForm" class="card"><h3>E-mail and chat settings</h3><p class="muted" style="margin-top:6px">The e-mail ID, the paragraph places and the country code are for the whole site. The link is for this race only.</p>'
+    +'<div class="form" style="margin-top:8px">'+fi('Wix e-mail ID','emailId',s.emailId,{attr:'maxlength="80" autocomplete="off"'})+fsel('Paragraph places in the Wix e-mail','nvars',String(s.nvars),nv)
+    +fi('Country code for phone numbers','cc',s.cc,{attr:'maxlength="3" inputmode="numeric"'})+fi('Link of this race (where {link} goes)','link',s.link,{attr:'maxlength="200" placeholder="https://www.vtra.run/..." autocomplete="off"',span:1})+'</div>'
+    +'<div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save</button>'+(s.emailId?pill('E-mail is set up','good'):pill('E-mail is not set up yet','warn'))+'</div></form>';
+  var ps=[];for(var j=1;j<=s.nvars;j++)ps.push('p'+j);
+  var help='<div class="card"><h3>The Wix e-mail</h3><p class="muted" style="margin-top:6px">Wix sends the e-mails. In Wix, make one triggered e-mail with the variables <b>subject</b>, '+ps.map(function(x){return '<b>'+x+'</b>'}).join(', ')+': the subject goes in its subject line and each paragraph variable goes under the one before it. A paragraph a message does not use is sent blank. Then copy the ID of that e-mail into the box above. The setup guide lists the steps.</p></div>';
+  return form+help+'<div class="card"><h3>Check it</h3>'+cmTestBox(true)+'</div>';
+}
+
+/* ---------- what the buttons do ---------- */
+function cmAct(b,act,id){
+  var c=S.cm;if(!c)return;
+  if(act==='cm-sub'){cmEditRead();c.sub=b.getAttribute('data-sub')||'send';S.armed=null;render();if(c.sub==='send')cmRefresh();else if(c.sub==='hist')loadTab()}
+  else if(act==='cm-refresh')cmRefresh();
+  else if(act==='cm-goset'){c.sub='set';render()}
+  else if(act==='cm-via'){if(c.sending)return;c.via=b.getAttribute('data-via')==='whatsapp'?'whatsapp':'email';c.key='';cmPaint()}
+  else if(act==='cm-prep'){
+    if(!man()||c.sending||!c.tplId)return;
+    if(!c.key)c.key=newKey();
+    var key=c.key,via=c.via,tplId=c.tplId,aud=cmAudOut(c);
+    run(async function(){
+      var r=await ca('cmPrepare',{key:key,via:via,tplId:tplId,aud:aud},60000);if(S.cm!==c)return;
+      var t=cmTplById(c,tplId)||{};
+      c.batch={key:r.batch,via:r.via,tpl:tplId,tplName:t.name||'',label:r.label,total:r.total,noContact:r.noContact,at:'',by:'',aud:aud};
+      c.rep=null;c.repErr='';c.prog=null;c.wa=null;
+      toast(r.again?'That batch was already prepared':'Prepared: '+cmN(r.total,'person','people'));
+      cmPaint();await cmReport();
+      try{var ov=await ca('cmOverview');if(S.cm===c){c.ov=ov;cmFix(c);cmPaint()}}catch(x){}
+    })}
+  else if(act==='cm-send')cmSendRun();
+  else if(act==='cm-stop'){if(c.sending){c.stopReq=true;if(c.prog)c.prog.note='Stopping after this step...';cmPaint()}}
+  else if(act==='cm-close'){if(!c.sending){c.batch=null;c.rep=null;c.prog=null;c.wa=null;S.armed=null;cmPaint()}}
+  else if(act==='cm-rep'){if(!c.sending)cmReport()}
+  else if(act==='cm-open'){
+    var hb=(c.ov.batches||[]).filter(function(x){return x.key===id})[0];if(!hb||c.sending)return;
+    c.batch={key:hb.key,via:hb.via,tpl:hb.tpl,tplName:hb.tplName,label:hb.label,total:hb.total,noContact:hb.noContact,at:hb.at,by:hb.by,aud:hb.aud};
+    c.rep=null;c.repErr='';c.prog=null;c.wa=null;S.armed=null;render();cmReport()}
+  else if(act==='cm-retry'){
+    var rb=c.batch;if(!man()||c.sending||!rb||!rb.aud)return;
+    c.who=rb.aud.who==='volunteers'?'volunteers':'runners';c.aud=cmAudIn(c,rb.aud);c.aud.notSent=rb.tpl;c.aud.uncertain=false;c.tplId=rb.tpl;c.via=rb.via;c.key='';c.sub='send';cmFix(c);S.armed=null;render();cmRefresh()}
+  else if(act==='cm-wa'){c.wa=null;cmWaLoad(0)}
+  else if(act==='cm-wa-next'){var w1=c.wa;if(w1&&w1.pages[w1.at+1]){w1.at++;cmPaint()}else if(w1)cmWaLoad(w1.at+1);cmReport()}
+  else if(act==='cm-wa-prev'){var w2=c.wa;if(w2&&w2.at>0){w2.at--;cmPaint()}}
+  else if(act==='cm-wa-mark')cmWaMark([id],'sent');
+  else if(act==='cm-wa-skip')cmWaMark([id],'skipped');
+  else if(act==='cm-wa-all'){var w3=c.wa,pg=w3&&w3.pages[w3.at];if(pg)cmWaMark(pg.items.filter(function(it){return !it.done}).map(function(it){return it.id}),'sent')}
+  else if(act==='cm-test')cmTestSend();
+  else if(act==='cm-file')cmFile();
+  else if(act==='cm-tpl-new'){if(!man())return;c.edit={id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:'',kind:'runner',subject:'',body:'',archived:false,isNew:true};c.epv=null;c.epvErr='';render();var nf=$('#cmTplForm');if(nf&&nf.scrollIntoView)nf.scrollIntoView({block:'center'})}
+  else if(act==='cm-tpl-edit'){var t=cmTplById(c,id);if(!man()||!t)return;c.edit={id:t.id,name:t.name,kind:t.kind,subject:t.subject,body:t.body,archived:!!t.archived,isNew:false};c.epv=null;c.epvErr='';render();var ef=$('#cmTplForm');if(ef&&ef.scrollIntoView)ef.scrollIntoView({block:'center'})}
+  else if(act==='cm-tpl-cancel'){c.edit=null;c.epv=null;c.epvErr='';render()}
+  else if(act==='cm-tpl-pv'){
+    cmEditRead();var e=c.edit;if(!e)return;c.epv=null;c.epvErr='';cmEpvPaint('Loading the preview...');
+    ca('cmPreview',{tpl:{name:e.name,kind:e.kind,subject:e.subject,body:e.body}}).then(function(r){if(S.cm!==c||c.edit!==e)return;c.epv=r;cmEpvPaint()},function(x){if(S.cm!==c||c.edit!==e)return;c.epvErr=msg(x.message);cmEpvPaint()})}
+  else if(act==='cm-tpl-arch'){var at=cmTplById(c,id);if(!man()||!at)return;
+    run(async function(){await ca('cmSaveTemplate',{id:at.id,name:at.name,kind:at.kind,subject:at.subject,body:at.body,archived:!at.archived});await cmReload();toast(at.archived?'Message restored':'Message archived')})}
+}
+function cmSubmit(f,id,d){
+  var c=S.cm;if(!c||!man()||!c.ov)return;
+  if(id==='cmTplForm'){cmEditRead();var e=c.edit;if(!e)return;
+    run(async function(){await ca('cmSaveTemplate',{id:e.id,name:e.name,kind:e.kind,subject:e.subject,body:e.body,archived:!!e.archived});if(S.cm!==c)return;c.edit=null;c.epv=null;c.epvErr='';await cmReload();toast('Message saved')});return}
+  if(id==='cmSetForm'){
+    run(async function(){var r=await ca('cmSaveSettings',{emailId:String(d.emailId||'').trim(),nvars:parseInt(d.nvars,10),cc:String(d.cc||'').trim(),link:String(d.link||'').trim()});if(S.cm!==c)return;c.ov.settings=r.settings;render();toast('Settings saved')})}
+}
+
+/* ---------- listeners for the Messages screens ---------- */
+document.addEventListener('change',function(e){
+  var t=e.target,c=S.cm;if(!t||!c||S.tab!=='comms'||c.ev!==S.ev||!c.ov)return;
+  if(t.form&&t.form.id==='cmAudForm'){
+    var n=t.name;
+    if(n==='who'){c.who=t.value==='volunteers'?'volunteers':'runners';c.aud=cmDef();c.tplId='';cmFix(c);c.key='';render();cmFocus('who');cmRefresh();return}
+    if(n==='tplId')c.tplId=t.value;
+    else if(n==='uncertain')c.aud.uncertain=!!t.checked;
+    else if(n==='notSent'){c.aud.notSent=t.value;if(!t.value)c.aud.uncertain=false;cmFix(c);c.key='';render();cmFocus('notSent');cmRefresh();return}
+    else if(n==='pay')c.aud.pay=cmIn(CM_PAY,t.value,'paid');
+    else if(n==='cat')c.aud.cat=c.ov.cats.indexOf(t.value)>=0?t.value:'';
+    else if(n==='bib')c.aud.bib=cmIn(CM_BIB,t.value,'any');
+    else if(n==='result')c.aud.result=cmIn(CM_RES,t.value,'any');
+    else if(n==='wave')c.aud.wave=cmIn(CM_WAVE,t.value,'any');
+    else if(n==='vstatus')c.aud.vstatus=cmIn(CM_VST,t.value,'any');
+    else return;
+    c.key='';cmRefresh();
+  }
+  else if(t.classList&&t.classList.contains('cm-col'))c.cols=[].map.call(document.querySelectorAll('.cm-col:checked'),function(x){return x.value});
+  else if(t.id==='cmTestTpl')c.testTpl=t.value;
+  else if(t.form&&t.form.id==='cmTplForm'){cmEditRead();if(t.name==='kind')render();else cmEditHint()}
+});
+document.addEventListener('input',function(e){
+  var t=e.target,c=S.cm;if(!t||!c||S.tab!=='comms'||c.ev!==S.ev)return;
+  if(t.id==='cmTestTo')c.testTo=t.value;
+  else if(t.form&&t.form.id==='cmTplForm'){cmEditRead();cmEditHint()}
+});
+/* ---------- messages: end (COMMS-END) ---------- */
 
 function navLabel(t){return t[0]==='fin'&&!man()?'My claims':t[1]}
 

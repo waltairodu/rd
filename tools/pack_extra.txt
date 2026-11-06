@@ -11,3 +11,6 @@ backend wix/director/runner.web.js
 backend wix/director/rd-print.js
 backend wix/director/rd-data.js
 page runner wix/director/runner-embed.html wix/director/runner-page-code.js
+# Package 5a: Communications (messages to runners and volunteers)
+backend wix/director/comms.web.js
+backend wix/director/rd-comms.js

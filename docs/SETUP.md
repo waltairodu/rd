@@ -4,7 +4,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## A. The files and where each one goes
 
-**Backend files** (code sidebar > Backend). The first seven are web modules (`.web.js`); the other seven are plain files: create them with **+ > Add a .js file** and give them exactly these names.
+**Backend files** (code sidebar > Backend). The first eight are web modules (`.web.js`); the other eight are plain files: create them with **+ > Add a .js file** and give them exactly these names.
 
 | File in this pack | Name in Wix | Notes |
 |---|---|---|
@@ -15,6 +15,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 | 1-backend/results.web.js | results.web.js | Waves and corrals, results, awards. Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/print.web.js | print.web.js | **New.** Bibs, certificates and the runner page's switches (staff only). Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/runner.web.js | runner.web.js | **New.** The public /runner page's server side: three read-only methods that anyone may call, and that show a race only after a director has turned a switch on for it. Add it **before** you paste the page code of /runner |
+| 1-backend/comms.web.js | comms.web.js | **New.** Messages to runners and volunteers: templates, who a message goes to, e-mails through one Wix triggered e-mail with a log, WhatsApp chat links, a file of people (staff only). Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/rd-auth.js | **rd-auth.js** | Passwords, PINs, roles. Every `.web.js` file imports it |
 | 1-backend/ai-core.js | **ai-core.js** | Optional AI helper (works without a key) |
 | 1-backend/rd-approvals.js | **rd-approvals.js** | Approvals library and the letter writer |
@@ -22,6 +23,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 | 1-backend/rd-results.js | **rd-results.js** | Results rules: times, age groups, waves, awards. `results.web.js` imports it |
 | 1-backend/rd-print.js | **rd-print.js** | **New.** Bib and certificate designs and the rules for what the public page may show. `print.web.js` and `runner.web.js` import it |
 | 1-backend/rd-data.js | **rd-data.js** | **New.** Reads a race, its registrations, results and waves for the papers and the runner page (reading only). `print.web.js` and `runner.web.js` import it |
+| 1-backend/rd-comms.js | **rd-comms.js** | **New.** Messages rules: filling a template, cleaning names and links, who is in an audience, chat links, CSV safety. `comms.web.js` imports it |
 
 **Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code in the page's code panel)
 
@@ -38,7 +40,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 ## B. First-time steps
 
 1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets).
-2. **Backend.** Add the fourteen files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
+2. **Backend.** Add the sixteen files above. In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
 3. **Pages.** Create /rd, /volunteer, /train, /coach and /runner (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
 4. **Publish** the site. Everything works on the published site only.
 5. **First login at /rd.** Open "First-time setup (owner only)" on the login screen and enter the setup key plus a new admin username and password. This creates every collection (the Expo desk's too) locked to the site admin, and the first admin login. It does nothing to logins that already exist. Check that the new collections appear in the **live** CMS data.
@@ -80,6 +82,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 - Use the Desk 1 login on a second phone for Desk 2: it is refused.
 - Undo from each desk and watch the stock go back.
 - On the Team screen: make a new desk login, log in with it in a private window, then **Sign out** it and watch the private window return to the login.
+- Messages: on a test race whose only runner is you (your own e-mail and phone in the registration), send yourself a test from **Settings**, then prepare **Your bib** for "Payment: Paid, Bib: Has a bib" and send it: one e-mail arrives. Press **Send e-mails** again: nothing more is sent, because you were already handled. Open **History** and check the count. Prepare a **WhatsApp** batch, open the chat, send it from WhatsApp and press **Mark as sent**. Log in as a lead: the tab shows no addresses and no send button.
 
 ## Planning tabs
 After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.
@@ -211,9 +214,70 @@ The link to share is `https://www.vtra.run/runner?ev=RACE_ID`; the Runner page s
 
 **Limits to know**
 - Certificates and bibs use fonts every computer has (Arial, Georgia). There is no photo of the runner on them.
-- Printing goes through the browser's print window; there is no direct printer control and no e-mailing of certificates yet (that comes with the communications package).
+- Printing goes through the browser's print window; there is no direct printer control. A certificate is not attached to an e-mail: send the runner page link with **Messages** (the **Thank you and results** message has a `{link}`) and each finisher opens and prints their own.
 - The public page needs Results to be imported on Waves & results first; a runner whose bib is not in the timing file shows no result.
 - Search matches the name as registered (letters and digits only, no spaces or punctuation), so "d'souza" is found by "dsouza" and by "souza".
+- The /rd page accepts replies to its calls from any frame on the same page (see the note under Finance). Keep it free of third-party embedded content.
+
+## Messages (/rd > People > Messages)
+A **Messages** tab sits in the **People** group of the menu, right after **Volunteers**. It uses the same login. The set-up is two backend files, `comms.web.js` and `rd-comms.js` (add them **before** you paste the new /rd page code: that code imports `comms.web.js`, so Wix will not save it until the file exists), and one **triggered e-mail** that you make once in Wix (the steps are just below). One locked collection, **RDComms**, is made the first time a director or lead opens the tab (if you prefer to make it by hand, give it the text columns `event`, `kind`, `ref`, `sub`, `who`, `status`, `why`, `json`, `by` and `at`, and set all four permissions to Admin).
+
+**What it does.** You write a message once, choose who it goes to (runners or volunteers, narrowed by category, payment, bib, wave, result or volunteer status), press **Prepare** to fix the list of people, and then **send e-mails** (Wix sends them, one person at a time, with a log) or **open WhatsApp chats** with the text ready. Nothing goes out by itself: a director presses each button. RaceOS does not send WhatsApp or SMS on its own and has no AI drafting; you write the words, or edit one of the five ready-made messages.
+
+**Who can do what** (the server decides, the screen only mirrors it): a **director** writes messages, prepares and sends, opens the WhatsApp chats, downloads a file of people and sends a test. A **lead** can only look: the messages, a preview, how many people a message would reach, and how a batch went. A lead never sees an e-mail address or a phone number, and sends nothing. Viewers, desk staff, coaches and sponsors do not see the tab and are refused if they ask. Everything belongs to one race: pick the race at the top as everywhere else and nothing leaks to another race.
+
+### Make the Wix e-mail (once, in Wix)
+Wix sends the e-mails; RaceOS does not design them. You design the look once (logo, colours, footer) and RaceOS fills the words in for each person. Every message you send uses this one e-mail.
+1. In Wix open **Developer Tools > Triggered Emails** (it is also in the code sidebar under **Developer Tools**) and click **+ New Campaign**.
+2. Design the e-mail. Add one text box for each paragraph, one under the other (six boxes is the default; see "How many paragraphs" below).
+3. Click into the first text box, click **+ Add Variable**, name it exactly `p1` (small letters) and press **Add**. Do the same for the next boxes: `p2`, `p3`, `p4`, `p5`, `p6`. Leave the **Fallback value** blank, or type a single space.
+4. Add one more variable named exactly `subject` and put it in the **subject line** of the e-mail. (Wix lets you put a variable in the subject line but not a fallback value. If your editor offers no way to put a variable in the subject line, keep a fixed subject line and put `subject` as a heading at the top of the e-mail instead.)
+5. Click **Preview & Test** if you like, then **Save & Continue**. The first time, Wix asks for the **sender's name** and a **reply-to e-mail**. Use an address on your own domain if you have one: e-mails with a Gmail or Yahoo reply-to address tend to land in spam.
+6. On the next window change the **Email ID** to something short you will recognise, for example `vtra_message` (letters, digits, dashes and underscores only), and press **Save**. Then **publish** the e-mail: a draft is never sent.
+7. In RaceOS open **People > Messages > Settings**. Type the same ID in **Wix e-mail ID**, check **Paragraph places in the Wix e-mail** (6 unless you made a different number of `p` variables), check **Country code for phone numbers** (91 for India) and press **Save**. The pill next to the button changes from "E-mail is not set up yet" to "E-mail is set up".
+8. Still in Settings, under **Check it**, choose a message, type your own address in **Send a test** and press **Send the test**. It arrives within a minute with made-up details and `[TEST]` in front of the subject. Check the look on a phone.
+
+Wix counts every e-mail against the site's monthly Email Marketing balance (triggered e-mails keep sending even after the balance is used up). A runner who is not yet a contact in Wix is added as a contact (name and e-mail only) so that Wix can send to them. Anybody who has asked Wix not to get e-mails is left out and shown as "left out".
+
+**How many paragraphs.** A message is cut at every blank line into paragraphs, and the e-mail has a place for each: `p1`, `p2`, and so on. If a message has more paragraphs than the e-mail has places, the extra ones are joined into the last place (the preview says so). A place a message does not use is sent as an empty space. The Settings box **Paragraph places in the Wix e-mail** says how many `p` variables your Wix e-mail has (1 to 12); keep the two numbers the same. A paragraph is cut at 1,200 letters and a message at 4,000; the preview says when something would be cut. Look at the test e-mail to see how a line break inside a paragraph looks in your design: if Wix shows it as a space, put a blank line between the two lines instead.
+
+### The four screens
+| Screen | What it does |
+|---|---|
+| Send | Choose the message and who it goes to, see how many people that is and who they are (names, bibs, a tick for an address and for a number, never the address itself), then prepare and send. A lead sees this as **Who gets it**, with the counting only. |
+| History | Every batch prepared for this race: when, which message, who, how, how many people. **Open** shows how it went and who was not reached. |
+| Templates | The messages: edit, preview (**Show how it looks**), write a **New message**, archive. |
+| Settings | **E-mail and chat settings** (the Wix e-mail ID, paragraph places and country code for the whole site; the link of this race) and **Check it**, the test e-mail. Directors only. |
+
+**Messages.** Five are ready: **Your bib**, **Race kit collection**, **Race week information**, **Thank you and results** (runners) and **Volunteer reminder** (volunteers). Edit and save one, or write your own with **New message**: a name, who it is for, a subject (up to 120 letters) and the text (up to 4,000). Put a placeholder in curly brackets where a person's own detail goes:
+- Runners: `{name}`, `{firstname}`, `{bib}`, `{bibname}`, `{cat}`, `{size}`, `{wave}`, `{start}`, `{corral}`, `{time}`, `{place}`, `{race}`, `{date}`, `{venue}`, `{link}`
+- Volunteers: `{name}`, `{firstname}`, `{race}`, `{date}`, `{venue}`, `{link}`
+
+A placeholder the message does not know is refused when you save, so a typing slip never reaches a runner. A detail that is not known (no bib yet, no wave, no result) shows as a dash. `{wave}`, `{start}` and `{corral}` come from **Waves & results** (Waves), `{time}` and `{place}` from the imported results, `{bibname}` and `{size}` from the registration. `{link}` is the **Link of this race (where {link} goes)** that you type in Settings for this race (for example the page with the collection details, or the runner page `https://www.vtra.run/runner?ev=RACE_ID`); it must start with `https://`, and a message that uses `{link}` warns you until one is set. Nothing is deleted: **Archive** hides a message from the Send list and keeps it for the History. Each race holds up to 40 messages of its own.
+
+**Who gets it.** For runners: **Payment** (Paid, which is the default; Not paid yet; Paid and not paid), **Category**, **Bib** (With or without a bib, Has a bib, No bib yet), **Result** (Any result, Finished, Did not finish, Did not start, Disqualified, No result yet) and **Wave** (In a wave or not, In a wave, Not in a wave yet). For volunteers: **Status** (Any status, Applied, Approved, Reserve, Declined). **Leave out people who already got** (a message) skips everybody who was already sent that message, so you can send to the latecomers only; the box **Also include people whose earlier message may not have arrived** brings back the ones who show as "not sure". The screen counts the people, how many have an e-mail address and how many have a phone number, and lists the first few.
+
+**Prepare, then send.** **Prepare to send to N people** fixes the list: the people are found at that moment and kept (up to 5,000 in a batch); nothing is sent yet. A person with no e-mail address (or no usable phone number, for WhatsApp) is counted as "left out". Then:
+- **E-mail.** Press **Send e-mails to N people**, then **Sure? Send now** (a second press, so a slip of the finger cannot send). The page sends in small groups and shows how far it has got; keep the page open. **Stop** pauses after the current group; **Resume** carries on with the people not yet handled. If several e-mails in a row fail, it stops by itself: send a test from Settings to see why (usually the Wix e-mail ID is wrong or the e-mail is not published).
+- **WhatsApp.** **Show the chats** lists the people with an **Open chat** button each: it opens WhatsApp with the message ready. You press Send in WhatsApp yourself, come back and press **Mark as sent** (or **Mark everybody on this page as sent**). A ten-digit number gets the country code from Settings; a number that cannot be a mobile number shows "No number". Opening the chats is written to the audit trail (who and how many, never the numbers).
+- **A file of these people** (**Download the file**). The CSV of the people chosen on the Send screen, with the columns you tick (name, bib, category, T-shirt size, e-mail, phone, wave, start, corral), for a mail merge or a print list. It can hold addresses and numbers, so keep it safe: each download is written to the audit trail. A cell that would start a formula in a spreadsheet is made harmless.
+
+**Safe to repeat.** A batch is sent **at most once to each person**: the log row of a person is made before the e-mail goes out, so two directors pressing Send together, a second tab, a lost connection or a repeated press never send twice; they only count the person as already handled. If the connection breaks at the very moment an e-mail is going out, that person shows as **not sure** and is never sent again by itself: look in Wix, and if it did not go, press **Prepare a retry** (it opens Send with "Leave out people who already got this message" chosen for you) and tick **Also include people whose earlier message may not have arrived**. A person who failed can be retried the same way, without the tick. A double press on Prepare makes one batch, not two. A batch keeps its people **and its words** as they were when you pressed Prepare, so editing a message afterwards changes nothing in a batch that is already prepared (prepare a new one to use the new words); details such as the wave, the result and the race link are read at the moment each e-mail is made.
+
+**Privacy.** The log (RDComms) holds ids and states only: no e-mail address, no phone number, no message text, no name. The History and the failure list show a name and a bib, never an address or a number. Only the WhatsApp chats and the CSV carry contact details; both are for directors only and both are written to the audit trail without the details. A name a runner typed never becomes markup: it is shown as plain text on every screen and in every e-mail. The test e-mail uses made-up details and goes to an address you type (5 an hour for a race); the address is not kept.
+
+**In what order to use it**
+1. Make the Wix e-mail and send yourself a test (once).
+2. For each race, in **Settings**, type the **Link of this race** if your messages use `{link}`.
+3. **Your bib** after bibs are assigned (Registrations or **Bibs and sync**): Runners, Payment: Paid, Bib: Has a bib.
+4. **Race week information** after the waves are placed on **Waves & results**: Runners, Payment: Paid, Wave: In a wave.
+5. **Thank you and results** after the results are imported: Runners, Result: Finished. Later, for the latecomers only, choose the same message under **Leave out people who already got**.
+
+**Limits to know**
+- E-mail goes through one Wix triggered e-mail (one look for every message). There is no open or click report in RaceOS: Wix shows its own statistics under Triggered Emails.
+- A batch holds up to 5,000 people. The page must stay open while e-mails go out; if it closes, press **Resume**.
+- WhatsApp is one chat per person that you send yourself; there is no automatic WhatsApp or SMS.
+- Waiver and report tabs (including "waiver not signed" as an audience) come with the next package.
 - The /rd page accepts replies to its calls from any frame on the same page (see the note under Finance). Keep it free of third-party embedded content.
 
 ## Approvals template (/rd > Approvals)

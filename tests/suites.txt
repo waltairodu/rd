@@ -16,3 +16,8 @@ integration print.mjs
 integration print-ui.mjs
 integration runner-ui.mjs
 pentest pentest-print.mjs
+# Package 5a: Communications (messages to runners and volunteers)
+unit unit-comms.mjs
+integration comms.mjs
+integration comms-ui.mjs
+pentest pentest-comms.mjs
