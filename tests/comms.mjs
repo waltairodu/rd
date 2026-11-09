@@ -4,10 +4,11 @@
 // RaceOS, Results and Communications backends and a stand-in for the Wix contacts and triggered e-mails.
 //   K1 who may call what   K2 overview   K3 settings   K4 templates   K5 previews   K6 who a message reaches   K7 preparing a batch
 //   K8 sending   K9 how a batch went   K10 a big batch   K11 WhatsApp   K12 the file   K13 the test e-mail   K14 the other race
-//   K15 what is kept
+//   K15 what is kept   K16 who has signed the waiver (an audience of the people who have, or have not, signed)
 import * as R from './racedir.test.mjs';
 import * as S from './results.test.mjs';
 import * as CM from './comms.test.mjs';
+import * as WV from './waivers.test.mjs';
 import * as L from './rd-comms.test.mjs';
 import * as A from './rd-auth.test.mjs';
 import wd from 'wix-data';
@@ -867,5 +868,111 @@ eq([BOARD.filter((x) => x.status === 'fin').length, BOARD.length >= 10], [8, tru
   const KNOWN = new Set([EVA, EVB, EVE, EVF, EVG, '']);
   ok(mine.every((r) => KNOWN.has(r.event)), 'K15 every row belongs to a race of this test or to the whole site');
   ok(rows('RDAudit').filter((a) => /message|e-mail|WhatsApp|audience|test e-mail/.test(a.action)).every((a) => a.by && a.at && a.target), 'K15 every entry in the audit log says who, when and for which race');
+}
+/* ---------- K16 who has signed the waiver ---------- */
+{
+  const W = (fn, who, o, ev) => WV[fn](Object.assign({ token: TOK[who], ev: ev === undefined ? EVA : ev }, o || {}));
+  const aud = (o, ev) => call('cmAudience', 'boss', { aud: Object.assign({ who: 'runners' }, o) }, ev);
+  const vaud = (o) => call('cmAudience', 'boss', { aud: Object.assign({ who: 'volunteers' }, o) });
+  const n = async (o) => (await aud(o)).total;
+  const bibs = (a) => a.sample.map((x) => x.bib);
+  const volId = (name) => String(rows('RDVolunteers').find((x) => x.name === name)._id);
+  // before the race has a waiver nobody has signed: "not signed" is everybody, "signed" nobody, and no collection is needed to say so
+  eq([await n({ waiver: 'signed' }), await n({ waiver: 'unsigned' }), await n({ waiver: 'any' }), await n({})], [0, 12, 12, 12], 'K16 before the race has a waiver nobody has signed: "signed" reaches nobody, "not signed" everybody, "any" as before');
+  const none0 = snap();
+  await refused(call('cmPrepare', 'boss', { key: K(), tplId: 'bib', aud: { who: 'runners', waiver: 'signed' }, via: 'email' }), 'empty_audience', 'K16 a batch for "signed" is refused as empty');
+  ok(snap() === none0 && (!DB.RDWaivers || DB.RDWaivers.size === 0), 'K16 and writes nothing, not a row of the waivers either (asking never makes the Waivers collection: only the Waivers screen does)');
+  // the director sets the waiver up: the text, the question of the form that is the waiver, papers for two runners and a volunteer
+  const t1 = await W('wvSaveText', 'boss', { title: 'Waiver for {race}', text: 'I, {name}, run {race} on {date} at my own risk, and I have read this waiver in full.', base: 0 });
+  await W('wvSaveSettings', 'boss', { question: 'I agree to the waiver', accept: ['yes'], formVersion: 1, minVersion: 1 });
+  const r103 = rows('RDRegs').find((r) => r._id === regId(EVA, '103'));
+  await wd.update('RDRegs', Object.assign({}, r103, { form: JSON.stringify(JSON.parse(r103.form).concat([{ name: 'I agree to the waiver', value: 'Yes' }])) }), SA);
+  const p1 = await W('wvRecord', 'boss', { who: 'runners', ids: [regId(EVA, '101'), regId(EVA, '102')], ver: 1, note: 'paper at the expo' });
+  const p2 = await W('wvRecord', 'boss', { who: 'volunteers', ids: [volId('Vol One')] });
+  eq([t1.ver, p1.recorded, p2.recorded], [1, 2, 1], 'K16 control: the waiver is saved, the question of the form is named, and papers are recorded for two runners and a volunteer');
+  // who has signed: two papers and one answer of the form
+  const sg = await aud({ waiver: 'signed' });
+  const un = await aud({ waiver: 'unsigned' });
+  eq([sg.total, un.total, sg.total + un.total], [3, 9, 12], 'K16 three have signed (two papers and one answer of the form), nine have not: together the twelve paid runners');
+  eq([bibs(sg), sg.label, un.label], [['101', '102', '103'], 'Runners' + DOT + 'paid' + DOT + 'waiver signed', 'Runners' + DOT + 'paid' + DOT + 'waiver not signed'], 'K16 the people who have signed, and the audience in words');
+  eq(bibs(un), ['104', '105', '106', '201', '202', '203', '301', '302'], 'K16 the others, in bib order (the ninth, with no bib, is not among the eight shown)');
+  noLeak([sg, un], 'K16 neither answer holds an e-mail address or phone number');
+  eq([Object.keys(sg).sort(), Object.keys(sg.sample[0]).sort()], [Object.keys(await aud({})).sort(), ['bib', 'cat', 'email', 'name', 'phone']], 'K16 an answer for a waiver choice has the same things in it as one without, and a person in it only whether they can be reached');
+  eq([await n({ waiver: 'signed', pay: 'all' }), await n({ waiver: 'unsigned', pay: 'all' }), await n({ waiver: 'signed', cat: '10 K' }), await n({ waiver: 'signed', cat: '21 K' }), await n({ waiver: 'unsigned', cat: '10 K' }), await n({ waiver: 'unsigned', cat: '21 K' }), await n({ waiver: 'unsigned', bib: 'none' }), await n({ waiver: 'signed', result: 'fin' }), await n({ waiver: 'unsigned', result: 'fin' })], [3, 10, 3, 0, 4, 5, 1, 3, 5], 'K16 it works with the other choices: unpaid ones, a category, no bib, a result');
+  // the Waivers screen and the audience say the same
+  const wlist = await W('wvList', 'boss', { who: 'runners', filter: 'signed', from: 0 });
+  const wtodo = await W('wvList', 'boss', { who: 'runners', filter: 'todo', from: 0 });
+  eq([wlist.items.map((x) => x.name.toLowerCase()).sort(), wtodo.total], [sg.sample.map((x) => x.name.toLowerCase()).sort(), un.total], 'K16 the Waivers screen and the Messages audience agree: the same three have signed, and as many still have to');
+  // volunteers: a paper, and a declined one who is never asked for the waiver on the Waivers screen
+  const vs = await vaud({ waiver: 'signed' });
+  const vu = await vaud({ waiver: 'unsigned' });
+  eq([vs.total, vu.total, (await vaud({ waiver: 'unsigned', vstatus: 'approved' })).total, (await vaud({ waiver: 'signed', vstatus: 'applied' })).total, vs.label, vu.label], [1, 3, 1, 0, 'Volunteers' + DOT + 'waiver signed', 'Volunteers' + DOT + 'waiver not signed'], 'K16 volunteers: one has signed (a paper); of the three who have not, one is approved; the audience also holds the declined one unless a status is chosen');
+  eq((await W('wvList', 'boss', { who: 'volunteers', filter: 'todo', from: 0 })).total, 2, 'K16 control: the Waivers screen asks the waiver of two volunteers (the declined one is not asked)');
+  noLeak([vs, vu], 'K16 and no volunteer answer holds an address or a number');
+  // it is read each time the audience is asked: a paper recorded a moment ago counts, a record marked as a mistake does not
+  await W('wvRecord', 'boss', { who: 'runners', ids: [regId(EVA, '104')], ver: 1 });
+  eq([await n({ waiver: 'signed' }), await n({ waiver: 'unsigned' })], [4, 8], 'K16 a paper recorded a moment ago counts at once');
+  const rec = await W('wvRecords', 'boss', { who: 'runners', id: regId(EVA, '104') });
+  await W('wvVoid', 'boss', { id: rec.records[0].id, reason: 'recorded for the wrong person' });
+  eq([await n({ waiver: 'signed' }), await n({ waiver: 'unsigned' })], [3, 9], 'K16 and a record that is marked as a mistake counts no more');
+  const v4 = rows('RDVolunteers').find((x) => x.name === 'Vol Four');
+  await wd.update('RDVolunteers', Object.assign({}, v4, { waiverAt: new Date().toISOString(), waiverVersion: 'v1' }), SA);
+  eq([(await vaud({ waiver: 'signed' })).total, (await vaud({ waiver: 'unsigned' })).total], [2, 2], 'K16 a volunteer who accepted the waiver on the sign-up page has signed');
+  await wd.update('RDVolunteers', v4, SA);
+  eq([(await vaud({ waiver: 'signed' })).total, (await vaud({ waiver: 'unsigned' })).total], [1, 3], 'K16 control: put back, they have not');
+  // damaged rows in the collection change nobody's answer
+  const JUNK = [
+    { _id: 'junk~1', event: EVA, kind: 'sig', sub: 'runner', ref: regId(EVA, '105'), who: 'paper', status: '', why: '', json: '{not json', by: '', at: '' },
+    { _id: 'junk~2', event: EVA, kind: 'sig', sub: 'runner', ref: regId(EVA, '105'), who: 'paper', status: '', why: '', json: JSON.stringify({ ver: 0 }), by: '', at: '' },
+    { _id: 'junk~3', event: EVA, kind: 'sig', sub: 'runner', ref: regId(EVA, '105'), who: 'paper', status: '', why: '', json: JSON.stringify({ ver: '9999999' }), by: '', at: '' },
+    { _id: 'junk~4', event: EVA, kind: 'sig', sub: 'nobody', ref: regId(EVA, '105'), who: 'paper', status: '', why: '', json: JSON.stringify({ ver: 1 }), by: '', at: '' },
+    { _id: 'junk~5', event: EVA, kind: 'ver', sub: '', ref: '', who: '', status: '', why: '', json: 'null', by: '', at: '' },
+    { _id: 'junk~6', event: EVA, kind: 'vd', sub: '', ref: '', who: '', status: '', why: '', json: '[]', by: '', at: '' },
+    { _id: 'junk~7', event: EVA, kind: 'sig', sub: 'runner', ref: regId(EVB, '101'), who: 'paper', status: '', why: '', json: JSON.stringify({ ver: 1 }), by: '', at: '' },
+    { _id: 'junk~8', event: EVB, kind: 'sig', sub: 'runner', ref: regId(EVA, '105'), who: 'paper', status: '', why: '', json: JSON.stringify({ ver: 1 }), by: '', at: '' },
+  ];
+  for (const j of JUNK) await wd.insert('RDWaivers', j, SA);
+  eq([await n({ waiver: 'signed' }), await n({ waiver: 'unsigned' }), (await aud({ waiver: 'unsigned' }, EVB)).total, (await aud({ waiver: 'signed' }, EVB)).total], [3, 9, 1, 0], 'K16 rows that are damaged, or that belong to a person or race they do not name, change nobody\'s answer, here or in the other race (one of them even names a runner of the other race)');
+  // a batch for the people who have not signed: exactly them, then sent: to nobody who has signed
+  const KW = K();
+  const pw = await call('cmPrepare', 'boss', { key: KW, tplId: 'bib', aud: { who: 'runners', waiver: 'unsigned' }, via: 'email' });
+  const wbat = JSON.parse(rows('RDComms').find((x) => x._id === 'bat~' + EVA + '~' + KW).json);
+  const wmem = rows('RDComms').filter((x) => x.kind === 'mem' && x.ref === KW);
+  eq([pw.total, pw.noContact, pw.label, wbat.aud.waiver, wbat.aud.who], [7, 2, 'Runners' + DOT + 'paid' + DOT + 'waiver not signed', 'unsigned', 'runners'], 'K16 a batch for the runners who have not signed: seven have a plain e-mail address, two have none; it keeps the choice it was made with');
+  eq(JSON.parse(wmem[0].json).ids, ['106', '201', '202', '203', '301', '302', 'nina'].map((k) => regId(EVA, k)), 'K16 and holds exactly those seven, in bib order, nobody who has signed');
+  ok(!/@|98123|Asha|Rao|Chitra|Bina/.test(wmem[0].json + JSON.stringify(wbat)), 'K16 the rows hold no name, address or number');
+  crmReset();
+  const tw = await sendAll(KW);
+  const emailOf = (c) => ((JSON.stringify((c || {}).info || {}).match(/[\w.+-]+@[\w.-]+/) || [''])[0]).toLowerCase();
+  const got = CRM.sent.map((x) => emailOf(CRM.contacts.get(x.contactId))).sort();
+  eq([tw.sent, tw.failed, tw.skipped, CRM.sent.length], [7, 0, 0, 7], 'K16 sending it: seven e-mails, one for each person on the list');
+  eq(got, ['eve@example.com', 'f@example.com', 'indu@example.com', 'indu@example.com', 'jai@example.com', 'lakshmi@example.com', 'nina@example.com'], 'K16 to the seven who have not signed and have an address: none to Asha, Bina or Chitra, who have');
+  eq([logOf(KW).length, logOf(KW).filter((x) => x.status === 'sent').length], [7, 7], 'K16 the log has a row for each of the seven');
+  noLeak(logOf(KW), 'K16 and no row of it holds an address or number');
+  ok(rows('RDAudit').some((a) => a.action === 'e-mail sending finished') && !/Asha|Chitra|Bina|Indu Menon|Jai Shah|Kiran|Lakshmi|Nina/.test(JSON.stringify(rows('RDAudit'))), 'K16 the audit log notes the send and names nobody');
+  noLeak(rows('RDAudit'), 'K16 and holds no address or number');
+  // the roles: a lead may look, a viewer may not; a wrong choice is refused; asking changes nothing
+  eq((await call('cmAudience', 'lead1', { aud: { who: 'runners', waiver: 'signed' } })).total, 3, 'K16 a lead can look at who has signed');
+  await refused(call('cmAudience', 'view1', { aud: { who: 'runners', waiver: 'signed' } }), 'not_allowed', 'K16 a viewer cannot');
+  await refused(call('cmAudience', null, { aud: { who: 'runners', waiver: 'signed' } }), 'not_logged_in', 'K16 nor can anybody who is not logged in');
+  for (const bad of ['SIGNED', 'Signed', 'yes', 'no', '', ' signed', 'signed ', null, 5, 0, true, false, ['signed'], {}, { v: 'signed' }]) await refused(call('cmAudience', 'boss', { aud: { who: 'runners', waiver: bad } }), 'bad_audience', 'K16 a wrong waiver choice is refused: ' + JSON.stringify(bad));
+  for (const bad of [{ who: 'volunteers', waiver: 'later' }, { who: 'runners', waiver: 'signed', waivers: 'signed' }, { who: 'runners', Waiver: 'signed' }]) await refused(call('cmAudience', 'boss', { aud: bad }), 'bad_audience', 'K16 a wrong audience is refused: ' + JSON.stringify(bad));
+  await refused(call('cmPrepare', 'boss', { key: K(), tplId: 'bib', aud: { who: 'runners', waiver: 'x' }, via: 'email' }), 'bad_audience', 'K16 and a batch for one is refused');
+  const calm = snap();
+  await aud({ waiver: 'signed' });
+  await aud({ waiver: 'unsigned' });
+  await vaud({ waiver: 'signed' });
+  await call('cmPreview', 'boss', { tplId: 'bib', aud: { who: 'runners', waiver: 'unsigned' } });
+  ok(snap() === calm, 'K16 asking who has signed, and previewing for them, writes nothing');
+  // a new text: those who signed an older one are "not signed" until they sign the one that counts
+  const t2 = await W('wvSaveText', 'boss', { title: 'Waiver for {race} (second)', text: 'I, {name}, run {race} on {date} at my own risk, and I have read this second waiver in full.', base: 1 });
+  await W('wvSaveSettings', 'boss', { question: 'I agree to the waiver', accept: ['yes'], formVersion: 1, minVersion: 2 });
+  eq([t2.ver, await n({ waiver: 'signed' }), await n({ waiver: 'unsigned' })], [2, 0, 12], 'K16 when the newest text is the one that counts, those who signed the first are "not signed" again');
+  eq([(await W('wvList', 'boss', { who: 'runners', filter: 'older', from: 0 })).total, (await W('wvList', 'boss', { who: 'runners', filter: 'none', from: 0 })).total], [3, 9], 'K16 control: the Waivers screen calls three of them "signed an older text", apart from the nine who have not signed at all');
+  await W('wvRecord', 'boss', { who: 'runners', ids: [regId(EVA, '101')], ver: 2 });
+  eq([bibs(await aud({ waiver: 'signed' })), await n({ waiver: 'unsigned' })], [['101'], 11], 'K16 and one who signs the new text is "signed" again');
+  // the other race has its own waivers
+  eq([(await aud({ waiver: 'signed' }, EVB)).total, (await aud({ waiver: 'unsigned' }, EVB)).total], [0, 1], 'K16 the other race has its own waivers: nobody has signed there, though a runner there has the same bib as one here');
+  eq(removes, 0, 'K16 nothing was deleted by any of it');
 }
 done();

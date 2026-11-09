@@ -1,3 +1,43 @@
+# Package 5b (Waivers): what to change on a site that already runs Package 5a
+
+Date: 2026-11-09. Installing for the first time? Ignore this page and follow SETUP.md.
+Two new backend files, three existing backend files replaced with the versions in this pack (a few lines changed in each, for the new **Waiver** choice of Messages), and the /rd embed and page code replaced. No existing data is touched. One new locked collection, `RDWaivers`, is made the first time a director or lead opens the new tab.
+
+**Which package does your site run?** If /rd has a **Messages** tab, it runs Package 5a: follow the steps just below. If it has no such tab, it runs Package 4 or older: do the older steps at the bottom of this page first (Package 5a, then 4, then 3, then 2), then these. The /rd embed and page code are replaced only once, with the files from this pack.
+
+## 1. Add two backend files (do this first)
+Code sidebar > Backend:
+- `waivers.web.js`: **+ > Add a web module**, name it exactly `waivers.web.js`, paste the contents of `1-backend/waivers.web.js`.
+- `rd-waiver.js`: **+ > Add a .js file**, name it exactly `rd-waiver.js`, paste the contents of `1-backend/rd-waiver.js`.
+
+Do this before steps 2 and 3: the new `comms.web.js` and the new /rd page code import these files, and Wix will not save them until the files exist.
+
+## 2. Replace three backend files
+Open each of these in the Backend list, select everything and paste the version from this pack (`1-backend/...`). Do `rd-data.js` and `rd-comms.js` first, then `comms.web.js`:
+- `rd-data.js` (one new line: the name of the waivers collection),
+- `rd-comms.js` (the Waiver choice of "Who gets it"),
+- `comms.web.js` (reads who has signed, only when a message asks for it).
+
+All other backend files (`racedir.web.js`, `finance.web.js`, `results.web.js`, `print.web.js`, `runner.web.js`, `rd-print.js` and the rest) stay exactly as they are. Your message templates, settings and history are not touched.
+
+## 3. Replace the /rd page
+- **Embed:** click the HTML element on /rd (ID `dirFrame`), choose **Enter Code**, select everything, paste `2-pages/rd/rd-embed.html`.
+- **Page code:** open the /rd page's code panel, select everything, paste `2-pages/rd/page-code.js`.
+
+## 4. Publish and check
+1. Publish the site.
+2. At /rd log in as a director. A **Waivers** tab sits in the **People** group of the menu, right after **Messages**. Open it: its four screens are **Who has signed**, **Waiver text**, **Print papers** and **Setup**.
+3. In **Waiver text** press **Use the standard wording**, check the text and press **Save as version 1**. In **Setup** pick the question of your registration form that is the waiver, type which answers mean signed (one on each line), then save. In **Who has signed** the registered runners now show who agreed on the form.
+4. Rehearse on a test race: tick yourself and press **Record 1 paper as signed**, then **Sure?**. You move to "Signed". Press it once more: nothing changes. Open **Records** for yourself, mark the record as a mistake with a reason and you go back to "Not signed at all".
+5. In **Print papers** print one page for yourself and one blank page. The paper holds a name, a bib and a category, and no phone number or e-mail address.
+6. In **Messages** > **Who gets it** the new **Waiver** choice (Signed or not, Has signed the waiver, Has not signed the current waiver) is there. Pick "Has not signed the current waiver" and the count is the people still listed in "still to sign".
+7. In the **live** CMS data you should now see `RDWaivers` (made on first use, locked to the site admin).
+8. Log in as a lead: the tab shows **Who has signed**, **Waiver text** (read-only) and **Print papers**; a lead can record a paper and print, and cannot save a text, change the setup or mark a record as a mistake. A viewer, desk, coach or sponsor login does not see the tab.
+
+What each screen does, how "signed" is decided, the privacy rules and the limits are in SETUP.md under "Waivers".
+
+---
+
 # Package 5a (Messages): what to change on a site that already runs Package 4
 
 Date: 2026-11-06. Installing for the first time? Ignore this page and follow SETUP.md.

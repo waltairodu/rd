@@ -14,3 +14,6 @@ page runner wix/director/runner-embed.html wix/director/runner-page-code.js
 # Package 5a: Communications (messages to runners and volunteers)
 backend wix/director/comms.web.js
 backend wix/director/rd-comms.js
+# Package 5b: Waivers (the text in versions, who has signed, papers on the day, papers to print)
+backend wix/director/waivers.web.js
+backend wix/director/rd-waiver.js

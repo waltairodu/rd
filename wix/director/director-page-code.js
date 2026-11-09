@@ -8,6 +8,7 @@ import * as fin from 'backend/finance.web';
 import * as res from 'backend/results.web';
 import * as prn from 'backend/print.web';
 import * as comms from 'backend/comms.web';
+import * as wv from 'backend/waivers.web';
 
 // Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
 function pickFrame(byId) {
@@ -45,6 +46,11 @@ const PRN_ALLOWED = ['prnOverview', 'prnSaveTemplate', 'prnPreview', 'prnBibs', 
 // Calls arrive tagged mod:'comms' with the session token added by the screen. The backend decides who may use each one (directors
 // everything; leads only look).
 const COMMS_ALLOWED = ['cmOverview', 'cmPreview', 'cmAudience', 'cmSaveSettings', 'cmSaveTemplate', 'cmPrepare', 'cmSend', 'cmBatch', 'cmLinks', 'cmMark', 'cmExport', 'cmTest'];
+
+// The Waivers tab (the text of the waiver in versions, which question of the form is the waiver, who has signed, papers signed on the day,
+// papers to print). Calls arrive tagged mod:'wv' with the session token added by the screen. The backend decides who may use each one
+// (directors everything; leads look, print and record a paper).
+const WV_ALLOWED = ['wvOverview', 'wvText', 'wvList', 'wvRecords', 'wvSheet', 'wvRecord', 'wvSaveText', 'wvSaveSettings', 'wvVoid'];
 
 $w.onReady(function () {
   const frame = pickFrame($w('#dirFrame'));
@@ -134,6 +140,20 @@ $w.onReady(function () {
       }
       try {
         const result = await comms[msg.method](msg.arg || {});
+        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+      } catch (e) {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
+      }
+      return;
+    }
+    if (msg.mod === 'wv') {
+      if (WV_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+      if (typeof wv[msg.method] !== 'function') {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+        return;
+      }
+      try {
+        const result = await wv[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });

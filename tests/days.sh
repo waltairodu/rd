@@ -11,8 +11,8 @@ for k in 30 60 90; do
     const jan1 = Date.UTC(new Date(now).getUTCFullYear() + 1, 0, 1);
     console.log(String(jan1 - k * 86400000 + (now % 86400000) - now));")
   echo "== a race $k days away is on 1 January (clock moved by $skew ms) =="
-  for s in print.mjs pentest-print.mjs runner-ui.mjs pentest-results.mjs results.mjs results-ui.mjs print-ui.mjs comms.mjs pentest-comms.mjs comms-ui.mjs security.mjs; do
-    out=$(SKEW_MS=$skew sh run.sh -r ./skew.cjs $s 2>&1 | grep -E "passed|FAIL" | tr '\n' ' ')
+  for s in print.mjs pentest-print.mjs runner-ui.mjs pentest-results.mjs results.mjs results-ui.mjs print-ui.mjs comms.mjs pentest-comms.mjs comms-ui.mjs waivers.mjs pentest-waivers.mjs waivers-ui.mjs security.mjs; do
+    out=$(SKEW_MS=$skew sh run.sh -r ./skew.cjs $s 2>&1 | grep -a -E "passed|FAIL" | tr '\n' ' ')
     printf '%-20s %s\n' "$s" "$out"
     case "$out" in *" 0 failed"*) ;; *) fail=1 ;; esac
   done

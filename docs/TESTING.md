@@ -4,18 +4,18 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 6 | 847 | 0 |
-| 2. Penetration tests | 7 | 1146 | 0 |
-| 3. Integration tests | 13 | 2271 | 0 |
-| 4. Security tests | 1 | 418 | 0 |
-| Component tests (older suites) | 18 | 1414 | 0 |
-| 5. Regression (older suites against the saved baseline) | 41 | 5051 | 0 |
+| 1. Unit tests | 7 | 984 | 0 |
+| 2. Penetration tests | 8 | 1461 | 0 |
+| 3. Integration tests | 15 | 3091 | 0 |
+| 4. Security tests | 1 | 487 | 0 |
+| Component tests (older suites) | 18 | 1451 | 0 |
+| 5. Regression (older suites against the saved baseline) | 49 | 7474 | 0 |
 
-**Total: 6096 checks passed, 0 failed.**
+**Total: 7474 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
-One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell), and the Messages rules (text cleaning, e-mail and chat-link checks, filling templates, CSV safety, who is in an audience).
+One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell), the Messages rules (text cleaning, e-mail and chat-link checks, filling templates, CSV safety, who is in an audience), and the Waivers rules (the waiver text and its versions, which answers count as signed, who has signed, the papers to print).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -24,11 +24,12 @@ One piece on its own: password hashing, PINs, roles, the Team screen rules, the 
 | `unit-finance.mjs` | 117 | 0 |
 | `unit-results.mjs` | 119 | 0 |
 | `unit-print.mjs` | 120 | 0 |
-| `unit-comms.mjs` | 120 | 0 |
+| `unit-comms.mjs` | 129 | 0 |
+| `unit-waiver.mjs` | 128 | 0 |
 
 ## 2. Penetration tests
 
-Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details), the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find) and the Messages tab (templates, audiences, sending twice, other races, lead and desk logins, hostile text on every screen); every attack must fail.
+Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details), the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find) the Messages tab (templates, audiences, sending twice, other races, lead and desk logins, hostile text on every screen) and the Waivers tab (hostile texts and names on the screens and the printed papers, recording twice, marking a mistake, other races, lead and desk logins, damaged data); every attack must fail.
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -38,11 +39,12 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 | `pentest-finance-ui.mjs` | 32 | 0 |
 | `pentest-results.mjs` | 105 | 0 |
 | `pentest-print.mjs` | 135 | 0 |
-| `pentest-comms.mjs` | 203 | 0 |
+| `pentest-comms.mjs` | 212 | 0 |
+| `pentest-waivers.mjs` | 306 | 0 |
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) and Messages (template to audience to batch to e-mails sent, retry, chat links, history, export).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -57,16 +59,18 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `print.mjs` | 219 | 0 |
 | `print-ui.mjs` | 178 | 0 |
 | `runner-ui.mjs` | 99 | 0 |
-| `comms.mjs` | 477 | 0 |
-| `comms-ui.mjs` | 245 | 0 |
+| `comms.mjs` | 533 | 0 |
+| `comms-ui.mjs` | 267 | 0 |
+| `waivers.mjs` | 433 | 0 |
+| `waivers-ui.mjs` | 309 | 0 |
 
 ## 4. Security tests
 
-An audit of every method, Finance, Results, Print, Messages and the public runner page included, against the written role table, secrets, locks and shipped files.
+An audit of every method, Finance, Results, Print, Messages, Waivers and the public runner page included, against the written role table, secrets, locks and shipped files.
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `security.mjs` | 418 | 0 |
+| `security.mjs` | 487 | 0 |
 
 ## Component tests (older suites)
 
@@ -89,7 +93,7 @@ Each backend method and each screen, one by one; these also form the regression 
 | `training-ai.mjs` | 32 | 0 |
 | `approvals-ui.mjs` | 60 | 0 |
 | `preview-ui.mjs` | 48 | 0 |
-| `pagecode.mjs` | 171 | 0 |
+| `pagecode.mjs` | 208 | 0 |
 | `ui.mjs` | 45 | 0 |
 | `rd-ui.mjs` | 58 | 0 |
 
@@ -104,21 +108,25 @@ Every suite that existed before a change must still pass at least as many checks
 | `approvals.mjs` | 228 | 228 |
 | `bibs-ai-ui.mjs` | 27 | 27 |
 | `coaching-ui.mjs` | 15 | 15 |
+| `comms-ui.mjs` | 267 | 267 |
+| `comms.mjs` | 533 | 533 |
 | `dash-ui.mjs` | 15 | 15 |
 | `dash.mjs` | 38 | 38 |
 | `director-ui.mjs` | 73 | 73 |
-| `director.mjs` | 209 | 211 |
+| `director.mjs` | 211 | 211 |
 | `expo-int.mjs` | 65 | 65 |
 | `finance-ui.mjs` | 180 | 180 |
 | `finance.mjs` | 222 | 222 |
 | `integration-flow.mjs` | 100 | 100 |
 | `integration-ui.mjs` | 47 | 47 |
-| `pagecode.mjs` | 146 | 171 |
+| `pagecode.mjs` | 208 | 208 |
+| `pentest-comms.mjs` | 212 | 212 |
 | `pentest-finance-ui.mjs` | 32 | 32 |
 | `pentest-finance.mjs` | 118 | 118 |
 | `pentest-print.mjs` | 135 | 135 |
 | `pentest-results.mjs` | 105 | 105 |
 | `pentest-ui.mjs` | 131 | 131 |
+| `pentest-waivers.mjs` | 306 | 306 |
 | `pentest.mjs` | 422 | 422 |
 | `plan-ui.mjs` | 51 | 51 |
 | `plan.mjs` | 98 | 98 |
@@ -130,20 +138,26 @@ Every suite that existed before a change must still pass at least as many checks
 | `results.mjs` | 173 | 173 |
 | `runner-ui.mjs` | 99 | 99 |
 | `scen.mjs` | 97 | 97 |
-| `security.mjs` | 338 | 418 |
+| `security.mjs` | 487 | 487 |
 | `training-ai.mjs` | 32 | 32 |
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
 | `ui.mjs` | 45 | 45 |
 | `unit-auth.mjs` | 122 | 122 |
+| `unit-comms.mjs` | 129 | 129 |
 | `unit-finance.mjs` | 117 | 117 |
 | `unit-print.mjs` | 120 | 120 |
 | `unit-results.mjs` | 119 | 119 |
 | `unit-team.mjs` | 249 | 249 |
+| `unit-waiver.mjs` | 128 | 128 |
+| `waivers-ui.mjs` | 309 | 309 |
+| `waivers.mjs` | 433 | 433 |
 
 ## Do the tests really catch mistakes? (mutation spot-checks)
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
+
+**317 protections removed, 317 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b. Every one is run again once for the final pack.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -361,6 +375,109 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | cm-ui-sending-goes-on-after-race-switch | KILLED | comms-ui.mjs: U10 changing the race while on another tab stops the sending too: at most th |
 | cm-ui-double-press-prepares-twice | KILLED | comms-ui.mjs: U9 and pressing it anyway asks the server for nothing   [got 6, wanted 5] |
 | cm-page-relay-list-open | KILLED | pagecode.mjs: Messages branch: "login" is refused (only the twelve Messages methods go thr |
+| wv-role-check-removed | KILLED | security.mjs: S3 Waivers: view1 on all 9 methods [wvOverview -> no_event (wanted not_allow |
+| wv-director-only-removed | KILLED | security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveText -> no_event (wanted director_ |
+| wv-expiry-fails-open | KILLED | pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not |
+| wv-token-coerced-to-text | KILLED | pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not |
+| wv-lead-can-save-text | KILLED | security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveText -> no_event (wanted director_ |
+| wv-lead-can-save-settings | KILLED | security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveSettings -> no_event (wanted direc |
+| wv-lead-can-void | KILLED | security.mjs: S3 Waivers: lead1 on all 9 methods [wvVoid -> no_event (wanted director_only |
+| wv-collection-made-for-outsiders | KILLED | security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 |
+| wv-collection-made-for-wrong-kinds | KILLED | security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 |
+| wv-update-without-suppressauth | KILLED | security.mjs: S8 every Waivers read and write of its locked collection passes suppressAuth |
+| wv-record-insert-without-suppressauth | KILLED | security.mjs: S8 every Waivers read and write of its locked collection passes suppressAuth |
+| wv-backend-deletes-a-row | KILLED | security.mjs: S8 nothing in Waivers removes a row: a text is a new version, a mistake is m |
+| wv-writer-taken-from-call | KILLED | security.mjs: S5 a text saved with "by: boss" and an old date in the call is written, and  |
+| wv-note-in-the-change-notes | KILLED | security.mjs: S6 and no name of a person is kept: a record holds a registration id, the ki |
+| wv-reason-in-the-change-notes | KILLED | pentest-waivers.mjs: WF the audit trail never holds what a note or a reason said (28 rows) |
+| wv-name-in-the-change-notes | KILLED | security.mjs: S6 and no name of a person is kept: a record holds a registration id, the ki |
+| wv-record-already-check-removed | KILLED | waivers.mjs: V6 recording the same paper again changes nothing   [got {"recorded":1,"alrea |
+| wv-record-any-version | KILLED | waivers.mjs: V6 a runner's paper is for a saved version: undefined   [wanted wv_bad_versio |
+| wv-record-other-race-allowed | KILLED | pentest-waivers.mjs: WC the runners of race B, recorded in race A, are "unknown" and nothi |
+| wv-record-unpaid-allowed | KILLED | waivers.mjs: V6 a runner of another race, a made-up id, an unpaid runner and a volunteer a |
+| wv-record-declined-volunteer-allowed | KILLED | waivers.mjs: V6 a paper for a volunteer (the version is the volunteer waiver's); a decline |
+| wv-record-no-id-limit | KILLED | pentest-waivers.mjs: WE wvRecord.ids: 18 wrong values are all refused as wv_bad_ids (["a", |
+| wv-record-id-type-unchecked | KILLED | pentest-waivers.mjs: WE wvRecord.ids: 18 wrong values are all refused as wv_bad_ids ([1]-> |
+| wv-record-row-not-unique | KILLED | pentest-waivers.mjs: WD the record says who really made it, when, for whom and which versi |
+| wv-record-failed-write-counted-as-done | KILLED | pentest-waivers.mjs: WK two writes fail: three papers are recorded, none is called "alread |
+| wv-record-failed-write-lost | KILLED | pentest-waivers.mjs: WK two writes fail: three papers are recorded, none is called "alread |
+| wv-record-budget-ignored | KILLED | waivers.mjs: V6 a call that takes too long stops and hands back the people it did not do ( |
+| wv-record-no-cap-per-person | KILLED | pentest-waivers.mjs: WI the tenth is "full": nothing is written   [got {"recorded":0,"alre |
+| wv-record-not-noted | KILLED | security.mjs: S5 a paper recorded by a lead with "by: boss" in the call is written, and no |
+| wv-save-text-stale-allowed | KILLED | waivers.mjs: V3 a text saved on top of a version that does not exist is out of date   [wan |
+| wv-save-text-same-allowed | KILLED | waivers.mjs: V3 the same text again is not a new version   [wanted wv_same, got no error] |
+| wv-save-text-no-cap | KILLED | waivers.mjs: V3 there is room for 60 versions   [wanted wv_too_many, got no error] |
+| wv-save-text-overwrites | KILLED | pentest-waivers.mjs: WH ten directors save a text at the same moment: one wins, nine are t |
+| wv-save-text-base-unchecked | KILLED | pentest-waivers.mjs: WE wvSaveText.base: 13 wrong values are all refused as wv_bad_version |
+| wv-save-text-not-noted | KILLED | security.mjs: S5 a text saved with "by: boss" and an old date in the call is written, and  |
+| wv-settings-partial-allowed | KILLED | waivers.mjs: V4 all four parts must be sent (question is missing)   [wanted wv_bad_setting |
+| wv-settings-not-noted | KILLED | security.mjs: S6 control: the Waivers changes made above (a text, the setup, papers record |
+| wv-void-twice-allowed | KILLED | waivers.mjs: V7 a record can be marked once   [wanted wv_voided, got no error] |
+| wv-void-any-kind-of-row | KILLED | waivers.mjs: V7 only a paper that was recorded can be marked: ver~i13~000001   [wanted wv_ |
+| wv-void-other-race | KILLED | pentest-waivers.mjs: WC a record of race B cannot be marked as a mistake from race A   [wa |
+| wv-void-without-reason | KILLED | waivers.mjs: V7 a reason is needed: ""   [wanted wv_bad_reason, got no error] |
+| wv-void-reason-unbounded | KILLED | pentest-waivers.mjs: WE wvVoid.reason: 10 wrong values are all refused as wv_bad_reason (s |
+| wv-void-not-noted | KILLED | waivers.mjs: V7 each mark is noted without the reason or any name |
+| wv-list-filter-unchecked | KILLED | pentest-waivers.mjs: WE wvList.filter: 22 wrong values are all refused as wv_bad_filter (" |
+| wv-list-page-too-big | KILLED | pentest-waivers.mjs: WI the list pages through 1,200 people in 12 pages of at most 100, ea |
+| wv-records-other-race | KILLED | pentest-waivers.mjs: WC the records of a runner of race B, asked in race A: no such person |
+| wv-records-unpaid-person | KILLED | waivers.mjs: V8 a runner who has not paid   [wanted wv_no_item, got no error] |
+| wv-sheet-copies-unbounded | KILLED | pentest-waivers.mjs: WE wvSheet.copies: 12 wrong values are all refused as wv_bad_copies ( |
+| wv-sheet-forms-chunk-too-big | KILLED | pentest-waivers.mjs: WI 30 pages of the longest text, one for each person, are the most on |
+| wv-sheet-copies-on-a-list | KILLED | pentest-waivers.mjs: WD copies without blank pages is refused   [wanted wv_bad_copies, got |
+| wv-sheet-not-noted | KILLED | waivers.mjs: V8 printing is noted once for a whole job, not for each piece   [got [], want |
+| wv-title-not-text-allowed | KILLED | pentest-waivers.mjs: WE wvSaveText.title: 13 wrong values are all refused as wv_bad_text ( |
+| wv-unknown-placeholder-allowed | KILLED | unit-waiver.mjs: W1 a word in curly brackets that is not listed is refused (a typing slip  |
+| wv-text-too-long-cut-silently | KILLED | unit-waiver.mjs: W1 one character too many is refused, never silently cut   [got ["","wv_t |
+| wv-title-too-long-cut-silently | KILLED | unit-waiver.mjs: W1 one character too many is refused, never silently cut   [got ["wv_too_ |
+| wv-settings-unknown-keys-allowed | KILLED | unit-waiver.mjs: W3 any key that is not one of the four is refused, the prototype ones too |
+| wv-settings-version-out-of-range | KILLED | unit-waiver.mjs: W3 a version must be a whole number from 1 to the latest saved (1 when no |
+| wv-settings-accept-unbounded | KILLED | unit-waiver.mjs: W3 a setup that is not an object, a question that is not text, answers th |
+| wv-any-answer-counts-as-signed | KILLED | unit-waiver.mjs: W4 anything else, an empty answer and something that is not text is not s |
+| wv-empty-answer-counts-as-signed | KILLED | unit-waiver.mjs: W4 anything else, an empty answer and something that is not text is not s |
+| wv-older-counts-as-signed | KILLED | unit-waiver.mjs: W8 a signature of a version below the lowest that counts is "older"   [go |
+| wv-lowest-version-wins | KILLED | unit-waiver.mjs: W8 the best way wins: the highest version   [got {"state":"signed","ver": |
+| wv-voided-record-counts-for-runner | KILLED | unit-waiver.mjs: W8 a voided record does not count   [got "signed", wanted "none"] |
+| wv-voided-record-counts-for-volunteer | KILLED | unit-waiver.mjs: W9 a voided paper does not   [got "signed", wanted "none"] |
+| wv-record-with-unreadable-version-counts | KILLED | unit-waiver.mjs: W7 records are in the order they were made (by time, then by id)   [got [ |
+| wv-damaged-row-ids-reused | KILLED | unit-waiver.mjs: W16 the next number is the first whose row id is not used: a damaged row, |
+| wv-next-record-number-reused | KILLED | unit-waiver.mjs: W16 the next number is the first whose row id is not used: a damaged row, |
+| wv-next-record-number-no-cap | KILLED | unit-waiver.mjs: W16 nine records use all the numbers; a gap is filled first   [got [10,1] |
+| wv-next-version-number-reused | KILLED | unit-waiver.mjs: W16 the next text takes the first number after the latest that can be rea |
+| wv-unreadable-volunteer-version-is-zero | KILLED | unit-waiver.mjs: W6 "v2" and 2 are the number 2; anything that is not a version of up to f |
+| wv-declined-volunteers-asked | KILLED | unit-waiver.mjs: W10 and of volunteers who have not been declined   [got ["a","b","c","d"] |
+| wv-unpaid-runners-asked | KILLED | unit-waiver.mjs: W10 a waiver is asked of runners who have paid   [got ["r1","r2","r3",nul |
+| wv-list-bib-search-off | KILLED | unit-waiver.mjs: W11 by category (however it is written), by part of a name, by bib   [got |
+| wv-list-category-filter-off | KILLED | unit-waiver.mjs: W11 by category (however it is written), by part of a name, by bib   [got |
+| wv-todo-leaves-out-older | KILLED | unit-waiver.mjs: W11 signed; only an older version; not signed at all; and "still to sign" |
+| wv-blank-copies-unbounded | KILLED | unit-waiver.mjs: W12 copies of a blank paper: at least 1, at most 50   [got [3,1,99,1,1],  |
+| wv-person-line-holds-phone | KILLED | security.mjs: S4 a director's seven answers (overview, text, two lists, the records of a p |
+| wv-form-answers-listed | KILLED | security.mjs: S4 a director's seven answers (overview, text, two lists, the records of a p |
+| wv-paper-runner-name-unescaped | KILLED | pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, p |
+| wv-paper-volunteer-name-unescaped | KILLED | pentest-waivers.mjs: WF two hostile volunteers: two clean papers   [got [["<img>","img@src |
+| wv-paper-category-unescaped | KILLED | pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, p |
+| wv-paper-text-unescaped | KILLED | pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, p |
+| wv-paper-title-unescaped | KILLED | pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, p |
+| wv-paper-race-line-unescaped | KILLED | pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, p |
+| wv-list-name-unescaped | KILLED | pentest-waivers.mjs: WF the sign-in list holds nothing that could run either   [got ["<scr |
+| wv-volunteer-waiver-filled-in | KILLED | unit-waiver.mjs: W16 a volunteer paper says the race name and the volunteer name as typed |
+| cm-waiver-audience-filter-off | KILLED | unit-comms.mjs: M10 by waiver: signed, or not signed; a person whose waiver is not known ( |
+| cm-waiver-choice-unchecked | KILLED | unit-comms.mjs: M10 a waiver choice that is not exactly "any", "signed" or "unsigned" is r |
+| cm-waiver-label-missing | KILLED | unit-comms.mjs: M10 the waiver choice in words; a choice that is not one of the two says n |
+| cm-waiver-older-counts-as-signed | KILLED | comms.mjs: K16 when the newest text is the one that counts, those who signed the first are |
+| cm-waiver-runners-not-read | KILLED | comms.mjs: K16 before the race has a waiver nobody has signed: "signed" reaches nobody, "n |
+| cm-waiver-volunteers-not-read | KILLED | comms.mjs: K16 volunteers: one has signed (a paper); of the three who have not, one is app |
+| wv-page-relay-list-open | KILLED | pagecode.mjs: Waivers branch: "login" is refused (only the nine Waivers methods go through |
+| cm-ui-waiver-sent-when-not-asked | KILLED | comms-ui.mjs: U2 the first question to the server is the whole race, paid runners   [got { |
+| wv-ui-void-without-second-click | KILLED | waivers-ui.mjs: U7 the first press on "Mark as a mistake" asks "Sure?" |
+| wv-ui-name-unescaped-in-list | KILLED | waivers-ui.mjs: U2 "Still to sign" is all ten, in bib order, the one with no bib last; the |
+| wv-ui-tick-label-unescaped | KILLED | waivers-ui.mjs: U11 the status screen made no picture, no script and no handler from it    |
+| wv-ui-note-unescaped-in-records | KILLED | waivers-ui.mjs: U11 nor did the records panel   [got [null,2,4], wanted [null,0,0]] |
+| wv-ui-void-reason-unescaped | KILLED | waivers-ui.mjs: U11 nor did the records panel   [got [null,1,2], wanted [null,0,0]] |
+| wv-ui-text-unescaped-in-the-box | KILLED | waivers-ui.mjs: U11 a text typed into the box, with the end of the box and a picture insid |
+| wv-ui-version-title-unescaped | KILLED | waivers-ui.mjs: U11 nor the text screen (title, text, versions, volunteer waiver)   [got [ |
+| wv-ui-record-sends-no-version | KILLED | waivers-ui.mjs: U6 for the runner, with the note and version 1   [got ["runners",["REG~i10 |
+| wv-ui-record-never-stops-resending | KILLED | waivers-ui.mjs: U6 a server that records nobody and gives everybody back is asked once, no |
 
 ## How to run
 

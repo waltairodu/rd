@@ -10,6 +10,7 @@ import fs from 'fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import * as R from './racedir.test.mjs';
 import * as CM from './comms.test.mjs';
+import * as WV from './waivers.test.mjs';
 import wd from 'wix-data';
 import { suite } from './lib.mjs';
 const { ok, eq, done } = suite('Messages: screens');
@@ -294,7 +295,7 @@ const A = await login('owner');
   const { d } = A;
   const t = tabBtn(d, 'comms');
   ok(!!t && txt(t) === 'Messages', 'U1 a director has a "Messages" tab');
-  ok(/Volunteers\s+Messages\s+Pacers/.test(txt(q(d, '.side'))), 'U1 it sits in the People group of the side menu, after Volunteers');
+  ok(/Volunteers\s+Messages\s+Waivers\s+Pacers/.test(txt(q(d, '.side'))), 'U1 it sits in the People group of the side menu, after Volunteers (and before Waivers)');
   await openTab(A);
   eq(qa(d, '[data-act="cm-sub"]').map(txt), ['Send', 'History', 'Templates', 'Settings'], 'U1 the director gets four sections');
   ok(q(d, '[role="tablist"][aria-label="Messages sections"]') !== null, 'U1 the sections are a labelled tab list');
@@ -404,6 +405,58 @@ ok(V1.calls.every((c) => c.mod !== 'comms'), 'U1 and the viewer\'s page never ca
   await pick(A, 'who', 'runners');
   ok(!!selOf(d, 'pay') && !selOf(d, 'vstatus') && selOf(d, 'cat').value === '' && /12 people/.test(auText(d)), 'U4 back to runners, the runner choices are back at their standard and the status is gone');
   eq(cmc('cmAudience').pop().arg.aud, { who: 'runners', pay: 'paid', cat: '', bib: 'any', result: 'any', wave: 'any', notSent: '', uncertain: false }, 'U4 and the server is asked about runners only');
+}
+
+/* ---------- U4b. who has signed the waiver ---------- */
+{
+  const { d, w } = A;
+  const base = { who: 'runners', pay: 'paid', cat: '', bib: 'any', result: 'any', wave: 'any', notSent: '', uncertain: false };
+  const withW = (x) => ({ who: 'runners', pay: 'paid', cat: '', bib: 'any', result: 'any', wave: 'any', waiver: x, notSent: '', uncertain: false });
+  ok(!!selOf(d, 'waiver') && selOf(d, 'waiver').value === 'any', 'U4b the form has a Waiver choice, at "Signed or not"');
+  eq(optsOf(selOf(d, 'waiver')), ['Signed or not', 'Has signed the waiver', 'Has not signed the current waiver'], 'U4b with three choices');
+  eq(cmc('cmAudience').pop().arg.aud, base, 'U4b control: with "Signed or not" the server is not asked about the waiver at all');
+  // before the race has a waiver: nobody has signed
+  await pick(A, 'waiver', 'unsigned');
+  eq(cmc('cmAudience').pop().arg.aud, withW('unsigned'), 'U4b "Has not signed" asks the server for exactly that');
+  ok(/Runners · paid · waiver not signed/.test(auText(d)) && /12 people/.test(auText(d)), 'U4b before there is a waiver everybody has not signed: 12 people, said in words: ' + auText(d).slice(0, 120));
+  await pick(A, 'waiver', 'signed');
+  eq(cmc('cmAudience').pop().arg.aud, withW('signed'), 'U4b "Has signed" asks for that');
+  ok(/Nobody matches these choices\./.test(auText(d)) && /0 people/.test(auText(d)) && label(d, 'cm-prep') === 'Nobody here can be reached this way' && act(d, 'cm-prep').disabled, 'U4b nobody has signed yet, and nothing can be prepared');
+  // the director records two papers (on the Waivers tab; here through the same server) and asks again
+  await WV.wvSaveText({ token: OT, ev: EV, title: 'Waiver for {race}', text: 'I, {name}, run {race} at my own risk and have read this waiver in full.', base: 0 });
+  await WV.wvRecord({ token: OT, ev: EV, who: 'runners', ids: ['REG~' + EV.slice(-6) + '~101', 'REG~' + EV.slice(-6) + '~102'], ver: 1 });
+  await pick(A, 'waiver', 'unsigned');
+  ok(/waiver not signed/.test(auText(d)) && /10 people/.test(auText(d)) && /8 with an e-mail address/.test(auText(d)), 'U4b with two papers recorded, ten have not signed (eight with an address): ' + auText(d).slice(0, 140));
+  await pick(A, 'waiver', 'signed');
+  ok(/Runners · paid · waiver signed/.test(auText(d)) && /2 people/.test(auText(d)) && /2 with an e-mail address/.test(auText(d)) && /Asha Rao/.test(auText(d)) && /BINA RAO/.test(auText(d)) && !/Chitra/.test(auText(d)), 'U4b two have signed, Asha and Bina, and they are the two listed: ' + auText(d).slice(0, 160));
+  ok(/Showing bib 101, Asha Rao/.test(pvText(d)) && label(d, 'cm-prep') === 'Prepare to send to 2 people', 'U4b the preview is the message to the first of them, and the button prepares for the two');
+  noPii(d, 'U4b the screen holds no address or phone number');
+  // it goes with the other choices
+  await pick(A, 'cat', '21 K');
+  ok(/Nobody matches these choices\./.test(auText(d)), 'U4b "signed" in 21 K is nobody (the two papers are 10 K)');
+  await pick(A, 'waiver', 'unsigned');
+  ok(/Runners · paid · 21 K · waiver not signed/.test(auText(d)) && /3 people/.test(auText(d)), 'U4b and "not signed" in 21 K is the three of them: ' + auText(d).slice(0, 100));
+  await pick(A, 'cat', '');
+  // a value that is not one of the three is the standard one
+  const nn = cmc('cmAudience').length;
+  change(w, selOf(d, 'waiver'), 'SIGNED');
+  await until(() => cmc('cmAudience').length > nn);
+  await settled();
+  eq(cmc('cmAudience').pop().arg.aud, base, 'U4b a tampered value (not one of the three choices) goes back to "Signed or not": the server is not asked about the waiver');
+  // volunteers have it too, and a change of who starts again
+  await pick(A, 'waiver', 'unsigned');
+  await pick(A, 'who', 'volunteers');
+  ok(!!selOf(d, 'waiver') && selOf(d, 'waiver').value === 'any', 'U4b volunteers have the Waiver choice too, back at "Signed or not" after the change of who');
+  eq(cmc('cmAudience').pop().arg.aud, { who: 'volunteers', vstatus: 'any', notSent: '', uncertain: false }, 'U4b and the question about volunteers holds no waiver choice');
+  await pick(A, 'waiver', 'unsigned');
+  eq(cmc('cmAudience').pop().arg.aud, { who: 'volunteers', vstatus: 'any', waiver: 'unsigned', notSent: '', uncertain: false }, 'U4b "Has not signed" for volunteers asks for that, with no runner choice');
+  ok(/Volunteers · waiver not signed/.test(auText(d)) && /4 people/.test(auText(d)), 'U4b nobody has signed the volunteer waiver: four people: ' + auText(d).slice(0, 100));
+  await pick(A, 'waiver', 'signed');
+  ok(/Nobody matches these choices\./.test(auText(d)), 'U4b and nobody has signed it');
+  noPii(d, 'U4b the screen holds no address or phone number for volunteers either');
+  await pick(A, 'who', 'runners');
+  ok(selOf(d, 'waiver').value === 'any' && /12 people/.test(auText(d)), 'U4b back to runners the waiver choice is at "Signed or not" and everyone paid is there again');
+  eq(cmc('cmAudience').pop().arg.aud, base, 'U4b and the server is asked about runners only, as before');
 }
 
 /* ---------- U5. setting up the Wix e-mail ---------- */

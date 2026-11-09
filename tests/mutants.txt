@@ -212,4 +212,107 @@ cm-ui-lead-offered-sending	KILLED	comms-ui.mjs: U1 a lead gets three sections, n
 cm-ui-sending-goes-on-after-race-switch	KILLED	comms-ui.mjs: U10 changing the race while on another tab stops the sending too: at most the call already out,
 cm-ui-double-press-prepares-twice	KILLED	comms-ui.mjs: U9 and pressing it anyway asks the server for nothing   [got 6, wanted 5]
 cm-page-relay-list-open	KILLED	pagecode.mjs: Messages branch: "login" is refused (only the twelve Messages methods go through)
-# 214 mutants, 214 killed, 0 survived
+wv-role-check-removed	KILLED	security.mjs: S3 Waivers: view1 on all 9 methods [wvOverview -> no_event (wanted not_allowed); wvText -> no_e
+wv-director-only-removed	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveText -> no_event (wanted director_only); wvSaveSettin
+wv-expiry-fails-open	KILLED	pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not logged in" ("b07503a41d2e
+wv-token-coerced-to-text	KILLED	pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not logged in" (["dad4a35558e
+wv-lead-can-save-text	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveText -> no_event (wanted director_only)]
+wv-lead-can-save-settings	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveSettings -> no_event (wanted director_only)]
+wv-lead-can-void	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvVoid -> no_event (wanted director_only)]
+wv-collection-made-for-outsiders	KILLED	security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two meth
+wv-collection-made-for-wrong-kinds	KILLED	security.mjs: S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two meth
+wv-update-without-suppressauth	KILLED	security.mjs: S8 every Waivers read and write of its locked collection passes suppressAuth (the collection is
+wv-record-insert-without-suppressauth	KILLED	security.mjs: S8 every Waivers read and write of its locked collection passes suppressAuth (the collection is
+wv-backend-deletes-a-row	KILLED	security.mjs: S8 nothing in Waivers removes a row: a text is a new version, a mistake is marked with a reason
+wv-writer-taken-from-call	KILLED	security.mjs: S5 a text saved with "by: boss" and an old date in the call is written, and noted, under the lo
+wv-note-in-the-change-notes	KILLED	security.mjs: S6 and no name of a person is kept: a record holds a registration id, the kind of person and a 
+wv-reason-in-the-change-notes	KILLED	pentest-waivers.mjs: WF the audit trail never holds what a note or a reason said (28 rows)
+wv-name-in-the-change-notes	KILLED	security.mjs: S6 and no name of a person is kept: a record holds a registration id, the kind of person and a 
+wv-record-already-check-removed	KILLED	waivers.mjs: V6 recording the same paper again changes nothing   [got {"recorded":1,"already":0,"unknown":0,
+wv-record-any-version	KILLED	waivers.mjs: V6 a runner's paper is for a saved version: undefined   [wanted wv_bad_version, got no error]
+wv-record-other-race-allowed	KILLED	pentest-waivers.mjs: WC the runners of race B, recorded in race A, are "unknown" and nothing is written   [got {"rec
+wv-record-unpaid-allowed	KILLED	waivers.mjs: V6 a runner of another race, a made-up id, an unpaid runner and a volunteer are counted and lef
+wv-record-declined-volunteer-allowed	KILLED	waivers.mjs: V6 a paper for a volunteer (the version is the volunteer waiver's); a declined volunteer and a 
+wv-record-no-id-limit	KILLED	pentest-waivers.mjs: WE wvRecord.ids: 18 wrong values are all refused as wv_bad_ids (["a","a","a","a","a","a"->accep
+wv-record-id-type-unchecked	KILLED	pentest-waivers.mjs: WE wvRecord.ids: 18 wrong values are all refused as wv_bad_ids ([1]->accepted, [[]]->accepted, 
+wv-record-row-not-unique	KILLED	pentest-waivers.mjs: WD the record says who really made it, when, for whom and which version: nothing came from the 
+wv-record-failed-write-counted-as-done	KILLED	pentest-waivers.mjs: WK two writes fail: three papers are recorded, none is called "already", and two people are han
+wv-record-failed-write-lost	KILLED	pentest-waivers.mjs: WK two writes fail: three papers are recorded, none is called "already", and two people are han
+wv-record-budget-ignored	KILLED	waivers.mjs: V6 a call that takes too long stops and hands back the people it did not do (20 recorded, 0 lef
+wv-record-no-cap-per-person	KILLED	pentest-waivers.mjs: WI the tenth is "full": nothing is written   [got {"recorded":0,"already":1,"unknown":0,"full":
+wv-record-not-noted	KILLED	security.mjs: S5 a paper recorded by a lead with "by: boss" in the call is written, and noted, under the lead
+wv-save-text-stale-allowed	KILLED	waivers.mjs: V3 a text saved on top of a version that does not exist is out of date   [wanted wv_stale, got 
+wv-save-text-same-allowed	KILLED	waivers.mjs: V3 the same text again is not a new version   [wanted wv_same, got no error]
+wv-save-text-no-cap	KILLED	waivers.mjs: V3 there is room for 60 versions   [wanted wv_too_many, got no error]
+wv-save-text-overwrites	KILLED	pentest-waivers.mjs: WH ten directors save a text at the same moment: one wins, nine are told to refresh (ok,ok,ok,o
+wv-save-text-base-unchecked	KILLED	pentest-waivers.mjs: WE wvSaveText.base: 13 wrong values are all refused as wv_bad_version (undefined->wv_stale, nul
+wv-save-text-not-noted	KILLED	security.mjs: S5 a text saved with "by: boss" and an old date in the call is written, and noted, under the lo
+wv-settings-partial-allowed	KILLED	waivers.mjs: V4 all four parts must be sent (question is missing)   [wanted wv_bad_settings, got no error]
+wv-settings-not-noted	KILLED	security.mjs: S6 control: the Waivers changes made above (a text, the setup, papers recorded) are in the chan
+wv-void-twice-allowed	KILLED	waivers.mjs: V7 a record can be marked once   [wanted wv_voided, got no error]
+wv-void-any-kind-of-row	KILLED	waivers.mjs: V7 only a paper that was recorded can be marked: ver~i13~000001   [wanted wv_no_item, got no er
+wv-void-other-race	KILLED	pentest-waivers.mjs: WC a record of race B cannot be marked as a mistake from race A   [wanted wv_no_item, got no er
+wv-void-without-reason	KILLED	waivers.mjs: V7 a reason is needed: ""   [wanted wv_bad_reason, got no error]
+wv-void-reason-unbounded	KILLED	pentest-waivers.mjs: WE wvVoid.reason: 10 wrong values are all refused as wv_bad_reason (string(301)->accepted)
+wv-void-not-noted	KILLED	waivers.mjs: V7 each mark is noted without the reason or any name
+wv-list-filter-unchecked	KILLED	pentest-waivers.mjs: WE wvList.filter: 22 wrong values are all refused as wv_bad_filter (""->accepted, "ALL"->accept
+wv-list-page-too-big	KILLED	pentest-waivers.mjs: WI the list pages through 1,200 people in 12 pages of at most 100, each once, in bib order
+wv-records-other-race	KILLED	pentest-waivers.mjs: WC the records of a runner of race B, asked in race A: no such person   [wanted wv_no_item, got
+wv-records-unpaid-person	KILLED	waivers.mjs: V8 a runner who has not paid   [wanted wv_no_item, got no error]
+wv-sheet-copies-unbounded	KILLED	pentest-waivers.mjs: WE wvSheet.copies: 12 wrong values are all refused as wv_bad_copies (51->accepted, 900719925474
+wv-sheet-forms-chunk-too-big	KILLED	pentest-waivers.mjs: WI 30 pages of the longest text, one for each person, are the most one call gives: 338 kB
+wv-sheet-copies-on-a-list	KILLED	pentest-waivers.mjs: WD copies without blank pages is refused   [wanted wv_bad_copies, got no error]
+wv-sheet-not-noted	KILLED	waivers.mjs: V8 printing is noted once for a whole job, not for each piece   [got [], wanted ["runners forms
+wv-title-not-text-allowed	KILLED	pentest-waivers.mjs: WE wvSaveText.title: 13 wrong values are all refused as wv_bad_text (0->wv_stale, 1->wv_stale, 
+wv-unknown-placeholder-allowed	KILLED	unit-waiver.mjs: W1 a word in curly brackets that is not listed is refused (a typing slip never reaches a runner
+wv-text-too-long-cut-silently	KILLED	unit-waiver.mjs: W1 one character too many is refused, never silently cut   [got ["","wv_too_long"], wanted ["wv
+wv-title-too-long-cut-silently	KILLED	unit-waiver.mjs: W1 one character too many is refused, never silently cut   [got ["wv_too_long",""], wanted ["wv
+wv-settings-unknown-keys-allowed	KILLED	unit-waiver.mjs: W3 any key that is not one of the four is refused, the prototype ones too   [got ["","","",""],
+wv-settings-version-out-of-range	KILLED	unit-waiver.mjs: W3 a version must be a whole number from 1 to the latest saved (1 when none is saved)   [got ["
+wv-settings-accept-unbounded	KILLED	unit-waiver.mjs: W3 a setup that is not an object, a question that is not text, answers that are not a list of 1
+wv-any-answer-counts-as-signed	KILLED	unit-waiver.mjs: W4 anything else, an empty answer and something that is not text is not signed   [got [false,fa
+wv-empty-answer-counts-as-signed	KILLED	unit-waiver.mjs: W4 anything else, an empty answer and something that is not text is not signed   [got [true,tru
+wv-older-counts-as-signed	KILLED	unit-waiver.mjs: W8 a signature of a version below the lowest that counts is "older"   [got {"state":"signed","v
+wv-lowest-version-wins	KILLED	unit-waiver.mjs: W8 the best way wins: the highest version   [got {"state":"signed","ver":1,"how":"form","at":"2
+wv-voided-record-counts-for-runner	KILLED	unit-waiver.mjs: W8 a voided record does not count   [got "signed", wanted "none"]
+wv-voided-record-counts-for-volunteer	KILLED	unit-waiver.mjs: W9 a voided paper does not   [got "signed", wanted "none"]
+wv-record-with-unreadable-version-counts	KILLED	unit-waiver.mjs: W7 records are in the order they were made (by time, then by id)   [got [["runner","r1",2,false
+wv-damaged-row-ids-reused	KILLED	unit-waiver.mjs: W16 the next number is the first whose row id is not used: a damaged row, a voided one and a re
+wv-next-record-number-reused	KILLED	unit-waiver.mjs: W16 the next number is the first whose row id is not used: a damaged row, a voided one and a re
+wv-next-record-number-no-cap	KILLED	unit-waiver.mjs: W16 nine records use all the numbers; a gap is filled first   [got [10,1], wanted [0,1]]
+wv-next-version-number-reused	KILLED	unit-waiver.mjs: W16 the next text takes the first number after the latest that can be read whose id is free: a 
+wv-unreadable-volunteer-version-is-zero	KILLED	unit-waiver.mjs: W6 "v2" and 2 are the number 2; anything that is not a version of up to four digits counts as 1
+wv-declined-volunteers-asked	KILLED	unit-waiver.mjs: W10 and of volunteers who have not been declined   [got ["a","b","c","d"], wanted ["a","b","d"]
+wv-unpaid-runners-asked	KILLED	unit-waiver.mjs: W10 a waiver is asked of runners who have paid   [got ["r1","r2","r3",null], wanted ["r1"]]
+wv-list-bib-search-off	KILLED	unit-waiver.mjs: W11 by category (however it is written), by part of a name, by bib   [got [["Dev Raman"],["Asha
+wv-list-category-filter-off	KILLED	unit-waiver.mjs: W11 by category (however it is written), by part of a name, by bib   [got [["Asha Rao","Bina Ra
+wv-todo-leaves-out-older	KILLED	unit-waiver.mjs: W11 signed; only an older version; not signed at all; and "still to sign" is both of the last t
+wv-blank-copies-unbounded	KILLED	unit-waiver.mjs: W12 copies of a blank paper: at least 1, at most 50   [got [3,1,99,1,1], wanted [3,1,50,1,1]]
+wv-person-line-holds-phone	KILLED	security.mjs: S4 a director's seven answers (overview, text, two lists, the records of a person, two sets of 
+wv-form-answers-listed	KILLED	security.mjs: S4 a director's seven answers (overview, text, two lists, the records of a person, two sets of 
+wv-paper-runner-name-unescaped	KILLED	pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, picture, frame, handler, li
+wv-paper-volunteer-name-unescaped	KILLED	pentest-waivers.mjs: WF two hostile volunteers: two clean papers   [got [["<img>","img@src","img@onerror"],2], wante
+wv-paper-category-unescaped	KILLED	pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, picture, frame, handler, li
+wv-paper-text-unescaped	KILLED	pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, picture, frame, handler, li
+wv-paper-title-unescaped	KILLED	pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, picture, frame, handler, li
+wv-paper-race-line-unescaped	KILLED	pentest-waivers.mjs: WF the printout holds only plain page parts and classes: no script, picture, frame, handler, li
+wv-list-name-unescaped	KILLED	pentest-waivers.mjs: WF the sign-in list holds nothing that could run either   [got ["<script>","<img>","img@src","i
+wv-volunteer-waiver-filled-in	KILLED	unit-waiver.mjs: W16 a volunteer paper says the race name and the volunteer name as typed
+cm-waiver-audience-filter-off	KILLED	unit-comms.mjs: M10 by waiver: signed, or not signed; a person whose waiver is not known (none, or not written 
+cm-waiver-choice-unchecked	KILLED	unit-comms.mjs: M10 a waiver choice that is not exactly "any", "signed" or "unsigned" is refused, for runners a
+cm-waiver-label-missing	KILLED	unit-comms.mjs: M10 the waiver choice in words; a choice that is not one of the two says nothing   [got ["Runne
+cm-waiver-older-counts-as-signed	KILLED	comms.mjs: K16 when the newest text is the one that counts, those who signed the first are "not signed" ag
+cm-waiver-runners-not-read	KILLED	comms.mjs: K16 before the race has a waiver nobody has signed: "signed" reaches nobody, "not signed" every
+cm-waiver-volunteers-not-read	KILLED	comms.mjs: K16 volunteers: one has signed (a paper); of the three who have not, one is approved; the audie
+wv-page-relay-list-open	KILLED	pagecode.mjs: Waivers branch: "login" is refused (only the nine Waivers methods go through)
+cm-ui-waiver-sent-when-not-asked	KILLED	comms-ui.mjs: U2 the first question to the server is the whole race, paid runners   [got {"who":"runners","pa
+wv-ui-void-without-second-click	KILLED	waivers-ui.mjs: U7 the first press on "Mark as a mistake" asks "Sure?"
+wv-ui-name-unescaped-in-list	KILLED	waivers-ui.mjs: U2 "Still to sign" is all ten, in bib order, the one with no bib last; the markup in names is t
+wv-ui-tick-label-unescaped	KILLED	waivers-ui.mjs: U11 the status screen made no picture, no script and no handler from it   [got [null,0,10], wan
+wv-ui-note-unescaped-in-records	KILLED	waivers-ui.mjs: U11 nor did the records panel   [got [null,2,4], wanted [null,0,0]]
+wv-ui-void-reason-unescaped	KILLED	waivers-ui.mjs: U11 nor did the records panel   [got [null,1,2], wanted [null,0,0]]
+wv-ui-text-unescaped-in-the-box	KILLED	waivers-ui.mjs: U11 a text typed into the box, with the end of the box and a picture inside it, is the same tex
+wv-ui-version-title-unescaped	KILLED	waivers-ui.mjs: U11 nor the text screen (title, text, versions, volunteer waiver)   [got [null,3,6], wanted [nu
+wv-ui-record-sends-no-version	KILLED	waivers-ui.mjs: U6 for the runner, with the note and version 1   [got ["runners",["REG~i10~103"],"at the desk",
+wv-ui-record-never-stops-resending	KILLED	waivers-ui.mjs: U6 a server that records nobody and gives everybody back is asked once, not again and again   [
+# 317 mutants, 317 killed, 0 survived

@@ -12,9 +12,10 @@ Software for running a VTRA race end to end, built on Wix (Velo). Started with t
 | Waves & results: waves and corrals, start list, results file, board, awards | Built, tested in a simulator | `wix/director/results.web.js` |
 | Bibs, certificates and the public /runner page | Built, tested in a simulator | `wix/director/print.web.js`, `wix/director/runner.web.js` |
 | Messages: templates, audiences, e-mails through one Wix triggered e-mail, WhatsApp chat links, history | Built, tested in a simulator | `wix/director/comms.web.js` |
+| Waivers: the waiver text in versions, who has signed, papers recorded on the day, papers to print, "waiver not signed" as a Messages audience | Built, tested in a simulator | `wix/director/waivers.web.js` |
 | Registration admin, budget, clubs, ambassadors, academy, coach platform, Android | Designed as mockups, not built | `docs/mockups`, `docs/PLAN.md` |
 
-Neither package has run on a live Wix site yet. Rehearse on the published site before race day.
+None of these packages has run on a live Wix site yet. Rehearse on the published site before race day.
 
 ## Layout
 

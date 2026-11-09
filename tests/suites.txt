@@ -21,3 +21,8 @@ unit unit-comms.mjs
 integration comms.mjs
 integration comms-ui.mjs
 pentest pentest-comms.mjs
+# Package 5b: Waivers (the text in versions, who has signed, papers on the day, papers to print)
+unit unit-waiver.mjs
+integration waivers.mjs
+integration waivers-ui.mjs
+pentest pentest-waivers.mjs

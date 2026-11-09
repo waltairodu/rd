@@ -273,7 +273,8 @@ const PAY = ['paid', 'unpaid', 'all'];
 const HAS = ['any', 'has', 'none'];
 const RES = ['any', 'fin', 'dnf', 'dns', 'dsq', 'none'];
 const VSTAT = ['any', 'applied', 'approved', 'reserve', 'declined'];
-const AUD_KEYS = ['who', 'pay', 'cat', 'bib', 'result', 'wave', 'vstatus', 'notSent', 'uncertain'];
+const WAIVER = ['any', 'signed', 'unsigned'];
+const AUD_KEYS = ['who', 'pay', 'cat', 'bib', 'result', 'wave', 'vstatus', 'waiver', 'notSent', 'uncertain'];
 const RUNNER_KEYS = ['pay', 'cat', 'bib', 'result', 'wave'];
 const abad = () => new Error('bad_audience');
 // An audience as typed. ctx: { cats: the categories of the race, tpls: the ids of the templates that exist }. Throws 'bad_audience'.
@@ -305,6 +306,9 @@ export function cleanAud(raw, ctx) {
     if (RUNNER_KEYS.some((k) => raw[k] !== undefined)) throw abad();
     out.vstatus = pickOf(raw.vstatus, VSTAT, 'any');
   }
+  // Whether the person has signed the waiver (only a choice other than 'any' is kept, so an audience without one reads as before).
+  const wv = pickOf(raw.waiver, WAIVER, 'any');
+  if (wv !== 'any') out.waiver = wv;
   let ns = '';
   if (raw.notSent !== undefined && raw.notSent !== '') {
     if (!okTplId(raw.notSent) || !(Array.isArray(c.tpls) ? c.tpls : []).includes(raw.notSent)) throw abad();
@@ -333,6 +337,8 @@ export function audLabel(aud, tplName) {
     if (a.wave === 'has') parts.push('in a wave');
     if (a.wave === 'none') parts.push('not in a wave');
   }
+  if (a.waiver === 'signed') parts.push('waiver signed');
+  if (a.waiver === 'unsigned') parts.push('waiver not signed');
   if (a.notSent) parts.push('not yet sent "' + oneLine(tplName || a.notSent, 60) + '"');
   return parts.join(' \u00b7 ');
 }
@@ -348,6 +354,8 @@ export function pickAudience(people, aud, sent) {
   const s = sent instanceof Set ? sent : new Set();
   return (Array.isArray(people) ? people : [])
     .filter((p) => {
+      // a person whose waiver is not known is in neither list (the caller reads the waivers whenever an audience asks)
+      if ((aud.waiver === 'signed' || aud.waiver === 'unsigned') && p.waiver !== aud.waiver) return false;
       if (aud.who === 'runners') {
         if (aud.pay === 'paid' && !p.paid) return false;
         if (aud.pay === 'unpaid' && p.paid) return false;

@@ -182,7 +182,7 @@ function api(method,arg,ms,mod){
   });
 }
 // Back to the login page: the session is over (logged out, expired, or ended by a director).
-function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.cm=null;S.loginErr=why?msg(why):'';render()}
+function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.cm=null;S.wv=null;S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -229,6 +229,7 @@ async function loadTab(){
     else if(t==='res'&&(man()||isLead()))await resLoad();
     else if(t==='prn'&&(man()||isLead()))await prnLoad();
     else if(t==='comms'&&(man()||isLead()))await cmLoad();
+    else if(t==='wv'&&(man()||isLead()))await wvLoad();
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -251,10 +252,10 @@ function loginView(){
 }
 var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4',print:'M7 8V3h10v5M7 17H4v-8h16v8h-3M7 14h10v7H7z',mail:'M3 6h18v12H3zM3 7l9 7 9-7'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['comms','Messages','mail'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['comms','Messages','mail'],['wv','Waivers','shield'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
-  if(id==='fin'||id==='res'||id==='prn'||id==='comms')return man()||isLead();
+  if(id==='fin'||id==='res'||id==='prn'||id==='comms'||id==='wv')return man()||isLead();
   if(id==='coaching'||id==='setup'||id==='team')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
@@ -551,7 +552,7 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='comms'&&(man()||isLead())?cmView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='comms'&&(man()||isLead())?cmView():S.tab==='wv'&&(man()||isLead())?wvView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
   app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
 }
@@ -826,6 +827,7 @@ document.addEventListener('click',function(e){
   else if(act.indexOf('res-')===0)resAct(b,act,id);
   else if(act.indexOf('prn-')===0)prnAct(b,act,id);
   else if(act.indexOf('cm-')===0)cmAct(b,act,id);
+  else if(act.indexOf('wv-')===0)wvAct(b,act,id);
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
@@ -946,6 +948,7 @@ document.addEventListener('submit',function(e){
   else if(id==='resForm'||id==='resSetForm'||id==='resPlaceForm')resSubmit(f,id,d);
   else if(id==='prnForm'||id==='prnPubForm')prnSubmit(f,id,d);
   else if(id==='cmTplForm'||id==='cmSetForm')cmSubmit(f,id,d);
+  else if(id==='wvFindForm'||id==='wvTextForm'||id==='wvSetForm')wvSubmit(f,id,d);
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
 /* ---------- finance: invoices, orders, claims, cash, the ledger (FINANCE-BEGIN) ---------- */
@@ -1802,6 +1805,7 @@ var CM_BIB=[['any','With or without a bib'],['has','Has a bib'],['none','No bib 
 var CM_RES=[['any','Any result'],['fin','Finished'],['dnf','Did not finish'],['dns','Did not start'],['dsq','Disqualified'],['none','No result yet']];
 var CM_WAVE=[['any','In a wave or not'],['has','In a wave'],['none','Not in a wave yet']];
 var CM_VST=[['any','Any status'],['applied','Applied'],['approved','Approved'],['reserve','Reserve'],['declined','Declined']];
+var CM_WAIVER=[['any','Signed or not'],['signed','Has signed the waiver'],['unsigned','Has not signed the current waiver']];
 var CM_STATE={sent:'Sent',failed:'Not sent',skipped:'Left out',sending:'Not sure'};
 var CM_WHY={unsubscribed:'asked not to get e-mails',no_email:'no e-mail address',person_removed:'no longer in the race',whatsapp:'by WhatsApp'};
 (function(){var add={
@@ -1839,7 +1843,7 @@ function cmSub(){var c=S.cm,l=cmSubs(),s=(c&&c.sub)||'send';for(var i=0;i<l.leng
 function cmN(n,one,many){return n+' '+(n===1?one:many)}
 function cmIn(list,v,d){for(var i=0;i<list.length;i++)if(list[i][0]===v)return v;return d}
 function cmWhen(iso){var s=String(iso||'');return s?fdate(s.slice(0,10))+' '+ftime(s):''}
-function cmDef(){return {pay:'paid',cat:'',bib:'any',result:'any',wave:'any',vstatus:'any',notSent:'',uncertain:false}}
+function cmDef(){return {pay:'paid',cat:'',bib:'any',result:'any',wave:'any',vstatus:'any',waiver:'any',notSent:'',uncertain:false}}
 function cmNew(){return {ev:S.ev,sub:'send',err:'',ov:null,who:'runners',aud:cmDef(),tplId:'',seq:0,au:null,auErr:'',pv:null,pvErr:'',via:'email',key:'',
   batch:null,rep:null,repErr:'',prog:null,sending:false,stopReq:false,wa:null,marking:false,edit:null,epv:null,epvErr:'',
   testTo:'',testTpl:'',testMsg:'',testing:false,cols:['name','bib','cat','email'],fileMsg:'',filing:false}}
@@ -1858,10 +1862,11 @@ function cmFix(c){
 // The choices as the server wants them: a volunteer audience has no runner filters and a runner audience has no status.
 function cmAudOut(c){var a=c.aud,o={who:c.who};
   if(c.who==='runners'){o.pay=a.pay;o.cat=a.cat;o.bib=a.bib;o.result=a.result;o.wave=a.wave}else o.vstatus=a.vstatus;
+  if(a.waiver==='signed'||a.waiver==='unsigned')o.waiver=a.waiver;
   o.notSent=a.notSent;o.uncertain=!!a.uncertain;return o}
 // A stored audience (from a batch of the list) as the screen's choices; anything that is not a known choice becomes the standard one.
 function cmAudIn(c,x){var d=cmDef(),o=x&&typeof x==='object'?x:{};
-  d.pay=cmIn(CM_PAY,o.pay,d.pay);d.bib=cmIn(CM_BIB,o.bib,d.bib);d.result=cmIn(CM_RES,o.result,d.result);d.wave=cmIn(CM_WAVE,o.wave,d.wave);d.vstatus=cmIn(CM_VST,o.vstatus,d.vstatus);
+  d.pay=cmIn(CM_PAY,o.pay,d.pay);d.bib=cmIn(CM_BIB,o.bib,d.bib);d.result=cmIn(CM_RES,o.result,d.result);d.wave=cmIn(CM_WAVE,o.wave,d.wave);d.vstatus=cmIn(CM_VST,o.vstatus,d.vstatus);d.waiver=cmIn(CM_WAIVER,o.waiver,d.waiver);
   d.cat=typeof o.cat==='string'&&c.ov.cats.indexOf(o.cat)>=0?o.cat:'';d.notSent=typeof o.notSent==='string'&&cmTplById(c,o.notSent)?o.notSent:'';d.uncertain=o.uncertain===true;return d}
 function cmChk(name,label,on){return '<label class="f" style="flex-direction:row;align-items:center;gap:8px;grid-column:1/-1"><input type="checkbox" name="'+name+'"'+(on?' checked':'')+'> '+esc(label)+'</label>'}
 function cmWaOk(u){return /^https:\/\/wa\.me\/[1-9]\d{10,14}\?text=[A-Za-z0-9%._~!*'()-]*$/.test(String(u||''))}
@@ -1907,7 +1912,7 @@ function cmSendView(){
   var left=fsel('Leave out people who already got','notSent',a.notSent,[['','Nobody is left out']].concat(prior.map(function(t){return [t.id,t.name+(t.archived?' (archived)':'')]})));
   var unsure=a.notSent?cmChk('uncertain','Also include people whose earlier message may not have arrived (the connection broke while it was being sent)',a.uncertain):'';
   var pick=ts.length?fsel('Message','tplId',c.tplId,ts.map(function(t){return [t.id,t.name]})):'<p class="muted" style="grid-column:1/-1">There is no message for '+(isR?'runners':'volunteers')+'. Write one in Templates.</p>';
-  var form='<form id="cmAudForm" class="card"><h3>Who gets it, and what</h3><div class="form" style="margin-top:8px">'+fsel('Who','who',c.who,[['runners','Runners'],['volunteers','Volunteers']])+filters+left+unsure+pick+'</div></form>';
+  var form='<form id="cmAudForm" class="card"><h3>Who gets it, and what</h3><div class="form" style="margin-top:8px">'+fsel('Who','who',c.who,[['runners','Runners'],['volunteers','Volunteers']])+filters+fsel('Waiver','waiver',a.waiver||'any',CM_WAIVER)+left+unsure+pick+'</div></form>';
   return form+'<div id="cmAu">'+cmAuHtml()+'</div><div id="cmPv">'+cmPvHtml()+'</div>'+(man()?'<div id="cmGo">'+cmGoHtml()+'</div>'+cmFileCard():'');
 }
 function cmAuHtml(){
@@ -2238,6 +2243,7 @@ document.addEventListener('change',function(e){
     else if(n==='result')c.aud.result=cmIn(CM_RES,t.value,'any');
     else if(n==='wave')c.aud.wave=cmIn(CM_WAVE,t.value,'any');
     else if(n==='vstatus')c.aud.vstatus=cmIn(CM_VST,t.value,'any');
+    else if(n==='waiver')c.aud.waiver=cmIn(CM_WAIVER,t.value,'any');
     else return;
     c.key='';cmRefresh();
   }
@@ -2251,6 +2257,344 @@ document.addEventListener('input',function(e){
   else if(t.form&&t.form.id==='cmTplForm'){cmEditRead();cmEditHint()}
 });
 /* ---------- messages: end (COMMS-END) ---------- */
+
+/* ---------- Waivers: the text, who has signed, papers signed on the day, printing (WAIVERS-START) ----------
+   Everything for the Waivers tab lives in this block. It talks to waivers.web.js through the page (calls tagged mod:'wv').
+   A director saves the text of the waiver (every save is a new version), says which question of the registration form is the waiver,
+   records papers that were signed and can void a record that was a mistake; a lead can look, print and record a paper. The server
+   decides who may do what; this only hides what would be refused. A list shows a name, a bib and a category with where the person
+   stands: no phone number, e-mail address or date of birth ever arrives here. Everything that comes back is shown as text, never as
+   markup, and the papers to print are made on the server. Recording a person who has already signed changes nothing, so pressing the
+   button again after a lost connection is safe. */
+S.wv=null;
+var WSUBS=[['status','Who has signed'],['text','Waiver text'],['print','Print papers'],['set','Setup']];
+var WSUBS_LEAD=[['status','Who has signed'],['text','Waiver text'],['print','Print papers']];
+var WV_FILTER=[['todo','Still to sign'],['none','Not signed at all'],['older','Signed an older version only'],['signed','Signed'],['all','Everyone']];
+var WV_HOW={form:'on the registration form',paper:'on paper',online:'on the sign-up page'};
+(function(){var add={
+  wv_none:'Save the waiver text first (Waiver text).',
+  wv_bad_who:'Pick runners or volunteers.',
+  wv_bad_filter:'That choice is not valid. Reload the page and try again.',
+  wv_bad_mode:'That choice is not valid. Reload the page and try again.',
+  wv_bad_scope:'That choice is not valid. Reload the page and try again.',
+  wv_bad_query:'That search is too long.',
+  wv_bad_id:'That person could not be read. Reload the page and try again.',
+  wv_bad_ids:'Pick between 1 and 100 people.',
+  wv_bad_cat:'That category is not in this race.',
+  wv_bad_from:'The list got out of step. Press the button again.',
+  wv_bad_version:'That version cannot be used. Reload the page and pick again.',
+  wv_bad_note:'The note is too long: 100 characters at most.',
+  wv_bad_reason:'Say why it is a mistake, in a few words.',
+  wv_bad_copies:'Copies must be between 1 and 50.',
+  wv_bad_text:'The waiver needs a title and some text (at least 20 characters).',
+  wv_too_long:'The waiver is too long: 80 characters for the title and 8,000 for the text.',
+  wv_placeholder:'The waiver uses a word in curly brackets that does not exist. Use only {race} {date} {venue} {name} {bib} {cat}.',
+  wv_bad_settings:'Check the setup: a question of the form, up to 12 answers, and versions that exist.',
+  wv_stale:'Somebody saved a newer version while you were typing. Your text is kept: look at the new version, then save again.',
+  wv_same:'That is the same as the latest version. Change something first.',
+  wv_too_many:'There are 60 versions already, so no more can be saved.',
+  wv_voided:'That record was already voided.',
+  wv_no_item:'That person or record was not found.'};
+  Object.keys(add).forEach(function(k){if(!ERR[k])ERR[k]=add[k]})})();
+function wa(m,a,ms){return api(m,a,ms,'wv')}
+function wvSubs(){return man()?WSUBS:WSUBS_LEAD}
+function wvSub(){var w=S.wv,l=wvSubs(),s=(w&&w.sub)||'status';for(var i=0;i<l.length;i++)if(l[i][0]===s)return s;return 'status'}
+function wvIn(list,v,d){for(var i=0;i<list.length;i++)if(list[i][0]===v)return v;return d}
+function wvN(n,one,many){return n+' '+(n===1?one:many)}
+function wnum(x){var n=Number(x);return String(isFinite(n)?n:0)}
+function wvWhen(iso){var s=String(iso||'');return s?fdate(s.slice(0,10))+' '+ftime(s):''}
+function wvNew(){return {ev:S.ev,sub:'status',err:'',ov:null,who:'runners',filter:'todo',cat:'',q:'',from:0,pg:{loading:false,err:'',items:[],total:0,next:null,from:0},pseq:0,sel:{},ver:0,note:'',busy:false,
+  open:'',recs:null,recsErr:'',vreason:'',draft:null,view:null,viewErr:'',pwho:'runners',pmode:'forms',pscope:'todo',pcat:'',pcopies:'1',prog:''}}
+// Keeps the choices on the screen valid after the text, the setup or the categories changed.
+function wvFix(w){
+  var ov=w.ov;if(!ov)return;
+  ov.latest=Number(ov.latest)||0;
+  if(w.cat&&ov.cats.indexOf(w.cat)<0)w.cat='';
+  if(w.pcat&&ov.cats.indexOf(w.pcat)<0)w.pcat='';
+  var min=ov.settings.minVersion;if(!(w.ver>=min&&w.ver<=ov.latest))w.ver=ov.latest;
+  if(!w.draft){var t=ov.text;w.draft={title:t?t.title:ov.starter.title,text:t?t.text:ov.starter.text}}
+}
+function wvSelIds(){var w=S.wv;return w?Object.keys(w.sel):[]}
+
+/* ---------- loading ---------- */
+async function wvLoad(){
+  if(!S.wv||S.wv.ev!==S.ev)S.wv=wvNew();
+  var w=S.wv;w.err='';
+  try{var ov=await wa('wvOverview');if(S.wv!==w)return;w.ov=ov;wvFix(w)}catch(e){if(S.wv!==w)return;w.err=msg(e.message);toast(w.err,true)}
+  if(!w.err&&wvSub()==='status')wvPageLoad();
+}
+async function wvReload(){var w=S.wv;if(!w)return;var ov=await wa('wvOverview');if(S.wv!==w)return;w.ov=ov;wvFix(w);render();if(wvSub()==='status')wvPageLoad()}
+// A page of people, asked again each time a choice changes. An answer to an earlier question is dropped.
+async function wvPageLoad(){
+  var w=S.wv;if(!w||!w.ov||wvSub()!=='status')return;
+  var seq=++w.pseq;w.pg.loading=true;w.pg.err='';wvPaint();
+  var a={who:w.who,filter:w.filter,from:w.from};if(w.who==='runners'&&w.cat)a.cat=w.cat;if(w.q)a.q=w.q;
+  try{var r=await wa('wvList',a);if(S.wv!==w||seq!==w.pseq)return;w.pg={loading:false,err:'',items:r.items,total:r.total,next:r.next,from:r.from}}
+  catch(e){if(S.wv!==w||seq!==w.pseq)return;w.pg.loading=false;w.pg.err=msg(e.message)}
+  wvPaint();
+}
+// The parts of the screen that change while a person is working are painted on their own, so a field they are in is not rebuilt.
+function wvPaint(){
+  var w=S.wv;if(!w||S.tab!=='wv'||!w.ov)return;
+  var a=$('#wvSum'),l=$('#wvList'),b=$('#wvBar');
+  if(a)a.innerHTML=wvSumHtml();if(l)l.innerHTML=wvListHtml();if(b)b.innerHTML=wvBarHtml();
+}
+function wvBarPaint(){var w=S.wv;if(!w||S.tab!=='wv'||!w.ov)return;var b=$('#wvBar');if(b)b.innerHTML=wvBarHtml()}
+function wvProgPaint(){var w=S.wv,p=$('#wvProg');if(p)p.textContent=w?w.prog:'';var b=document.querySelector('[data-act="wv-print"]');if(b)b.disabled=!!(w&&w.prog)}
+
+/* ---------- the screen ---------- */
+function wvView(){
+  var w=S.wv;if(!w||w.ev!==S.ev)return planLoading();
+  var sub=wvSub(),list=wvSubs();
+  var nav='<div class="row" role="tablist" aria-label="Waiver sections">'+list.map(function(t){return '<button class="btn sm'+(sub===t[0]?' pri':'')+'" role="tab" aria-selected="'+(sub===t[0])+'" data-act="wv-sub" data-sub="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
+  var body=w.err?'<div class="card"><p class="muted" role="alert">'+esc(w.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="retry">Try again</button></div></div>'
+    :!w.ov?planLoading():sub==='status'?wvStatusView():sub==='text'?wvTextView():sub==='print'?wvPrintView():wvSetView();
+  return '<div class="stack">'+nav+(man()?'':'<p class="muted">You can see who has signed, print papers and record a paper that was signed. Directors change the text and the setup, and mark a record as a mistake.</p>')+body+'</div>';
+}
+
+/* ---------- who has signed ---------- */
+function wvSumRow(title,c,note){
+  var by=Object.keys(c.by||{}).map(function(k){return pill(c.by[k]+' '+(WV_HOW[k]||k))}).join('');
+  var cats=(c.cats||[]).length?'<div class="scroll" style="margin-top:8px"><table><tr><th>Category</th><th>Runners</th><th>Signed</th><th>Older version</th><th>Not signed</th></tr>'+c.cats.map(function(x){return '<tr><td>'+esc(x.cat)+'</td><td>'+wnum(x.total)+'</td><td>'+wnum(x.signed)+'</td><td>'+wnum(x.older)+'</td><td>'+wnum(x.none)+'</td></tr>'}).join('')+'</table></div>':'';
+  return '<div class="card"><h3>'+esc(title)+'</h3><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">'+pill(wvN(c.total,'person','people'))+pill(c.signed+' signed',c.signed?'good':'')+(c.older?pill(c.older+' signed an older version only','warn'):'')+pill(c.none+' not signed',c.none?'bad':'good')+by+'</div>'+(note?'<p class="muted" style="margin-top:6px">'+esc(note)+'</p>':'')+cats+'</div>';
+}
+function wvSumHtml(){
+  var w=S.wv,ov=w.ov,r=ov.counts.runners,v=ov.counts.volunteers;
+  var setNote=ov.settings.question?'':'No question of the registration form is set as the waiver yet, so only papers recorded here count. Directors can set it in Setup.';
+  return '<div class="grid g2" style="align-items:start">'+wvSumRow('Runners (paid)',r,setNote)+wvSumRow('Volunteers (not declined)',v,'')+'</div>';
+}
+function wvStateHtml(l){
+  var how=WV_HOW[l.how]||'';
+  if(l.state==='signed')return pill('Signed'+(l.ver?', version '+l.ver:'')+(how?' '+how:''),'good');
+  if(l.state==='older')return pill('Only version '+l.ver+(how?' '+how:''),'warn');
+  return pill('Not signed','bad');
+}
+function wvStatusView(){
+  var w=S.wv,ov=w.ov,isR=w.who==='runners';
+  var f='<form id="wvFindForm" class="card"><h3>People</h3><div class="form" style="margin-top:8px">'
+    +fsel('Who','who',w.who,[['runners','Runners (paid)'],['volunteers','Volunteers']])
+    +fsel('Show','filter',w.filter,WV_FILTER)
+    +(isR?fsel('Category','cat',w.cat,[['','All categories']].concat(ov.cats.map(function(x){return [x,x]}))):'')
+    +fi('Name or bib','q',w.q,{attr:'maxlength="40" autocomplete="off"'})
+    +'</div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Search</button></div></form>';
+  return '<div id="wvSum">'+wvSumHtml()+'</div>'+f+'<div id="wvBar">'+wvBarHtml()+'</div><div id="wvList">'+wvListHtml()+'</div>';
+}
+// What recording a paper needs: the version (runners), an optional note and a button that says how many are ticked.
+function wvBarHtml(){
+  var w=S.wv,ov=w.ov,isR=w.who==='runners',n=wvSelIds().length;
+  var vers=ov.versions.filter(function(v){return v.ver>=ov.settings.minVersion}).slice().reverse();
+  var ver=isR?(ov.latest?fsel('Version they signed','ver',String(w.ver),vers.map(function(v){return [String(v.ver),'Version '+v.ver+' ('+v.title+')']})):'<p class="muted" style="grid-column:1/-1">Save the waiver text first (Waiver text). Papers are recorded against a saved version.</p>')
+    :'<p class="muted">They sign the volunteer waiver.</p>';
+  var ok=!w.busy&&n>0&&(!isR||ov.latest>0);
+  return '<form id="wvRecForm" class="card"><h3>Record a paper that was signed</h3><p class="muted" style="margin-top:6px">Tick the people in the list below, then record. A person who has already signed this version is left as they are. Do not write phone numbers or other private details in the note.</p>'
+    +'<div class="form" style="margin-top:8px">'+ver+fi('Note (optional)','note',w.note,{attr:'maxlength="100" autocomplete="off"'})+'</div>'
+    +'<div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn pri" type="button" data-act="wv-rec" data-arm="wv-rec"'+(ok?'':' disabled')+'>'+(S.armed==='wv-rec'?'Sure? Record '+wvN(n,'paper','papers'):'Record '+wvN(n,'paper','papers')+' as signed')+'</button>'
+    +'<button class="btn" type="button" data-act="wv-selpage">Tick everyone on this page who has not signed</button><button class="btn" type="button" data-act="wv-selclear"'+(n?'':' disabled')+'>Clear ticks</button></div></form>';
+}
+function wvListHtml(){
+  var w=S.wv,pg=w.pg,isR=w.who==='runners';
+  if(pg.err)return '<div class="card"><p class="muted" role="alert">'+esc(pg.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="wv-page" data-from="'+w.from+'">Try again</button></div></div>';
+  if(pg.loading&&!pg.items.length)return '<div class="card muted" role="status">Loading...</div>';
+  var rows=pg.items.map(function(l){
+    var pick=l.state!=='signed'?'<input type="checkbox" class="wv-pick" data-id="'+esc(l.id)+'" aria-label="Tick '+esc(l.name)+'"'+(w.sel[l.id]?' checked':'')+'>':'';
+    return '<tr><td>'+pick+'</td>'+(isR?'<td>'+esc(l.bib||'-')+'</td>':'')+'<td>'+esc(l.name)+'</td>'+(isR?'<td>'+esc(l.cat||'-')+'</td>':'<td>'+esc(l.vstatus||'-')+'</td>')+'<td>'+wvStateHtml(l)+'</td>'
+      +'<td><div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="wv-recs" data-id="'+esc(l.id)+'">Records</button><button class="btn sm" data-act="wv-print-one" data-id="'+esc(l.id)+'">Print paper</button></div></td></tr>'}).join('');
+  var from=Number(pg.from)||0,last=from+pg.items.length,tot=Number(pg.total)||0,nx=(typeof pg.next==='number'&&isFinite(pg.next))?pg.next:null;
+  var pager='<div class="row between" style="margin-top:8px;flex-wrap:wrap;gap:8px"><span class="muted" role="status">'+(tot?'Showing '+(from+1)+' to '+last+' of '+tot:'Nobody matches these choices.')+(pg.loading?' Loading...':'')+'</span><div class="row">'
+    +'<button class="btn sm" data-act="wv-page" data-from="'+Math.max(0,from-100)+'"'+(from>0?'':' disabled')+'>Previous</button><button class="btn sm" data-act="wv-page" data-from="'+(nx===null?0:nx)+'"'+(nx===null?' disabled':'')+'>Next</button></div></div>';
+  var table=pg.items.length?'<div class="scroll" style="margin-top:8px"><table><tr><th></th>'+(isR?'<th>Bib</th>':'')+'<th>Name</th><th>'+(isR?'Category':'Status')+'</th><th>Waiver</th><th></th></tr>'+rows+'</table></div>':'';
+  return wvRecsHtml()+'<div class="card"><h3>'+(isR?'Runners':'Volunteers')+'</h3>'+table+pager+'</div>';
+}
+// The records of one person (opened from the list); a director can void a record that was a mistake.
+function wvRecsHtml(){
+  var w=S.wv;if(!w.open)return '';
+  var close='<button class="btn sm" data-act="wv-recs-close">Close</button>';
+  if(w.recsErr)return '<div class="card"><p class="muted" role="alert">'+esc(w.recsErr)+'</p><div class="row" style="margin-top:8px">'+close+'</div></div>';
+  if(!w.recs)return '<div class="card muted" role="status">Loading...</div>';
+  var p=w.recs.person,rs=w.recs.records,mine=man();
+  var rows=rs.map(function(r){
+    var st=r.void?pill('Voided','warn')+' <small class="muted">by '+esc(r.void.by)+', '+esc(wvWhen(r.void.at))+': '+esc(r.void.reason)+'</small>':(mine?arm('wv-void-'+r.id,'Mark as a mistake','wv-void','data-id="'+esc(r.id)+'"'):pill('Counts','good'));
+    return '<tr><td>Version '+wnum(r.ver)+'</td><td>'+esc(WV_HOW[r.how]||r.how)+'</td><td>'+esc(r.note||'')+'</td><td>'+esc(r.by)+'</td><td>'+esc(wvWhen(r.at))+'</td><td>'+st+'</td></tr>'}).join('');
+  var reason=mine&&rs.some(function(r){return !r.void})?'<form id="wvVoidForm" class="form" style="margin-top:8px"><label class="f" style="grid-column:1/-1">Why is a record a mistake? (needed before you mark one)<input name="reason" value="'+esc(w.vreason)+'" maxlength="100" autocomplete="off"></label></form>':'';
+  return '<div class="card"><div class="row between" style="gap:8px;flex-wrap:wrap"><h3>Papers of '+esc(p.name)+(p.bib?' (bib '+esc(p.bib)+')':'')+'</h3>'+close+'</div><p style="margin-top:6px">'+wvStateHtml(p)+'</p>'
+    +(rs.length?'<div class="scroll" style="margin-top:8px"><table><tr><th>Waiver</th><th>How</th><th>Note</th><th>Recorded by</th><th>When</th><th></th></tr>'+rows+'</table></div>'+reason:'<p class="muted" style="margin-top:6px">No paper has been recorded for this person. A signature on the registration form or the sign-up page is not listed here.</p>')+'</div>';
+}
+
+/* ---------- the text ---------- */
+function wvDraftRead(){var f=$('#wvTextForm'),w=S.wv;if(!f||!w||!w.draft)return;var t=f.elements.namedItem('title'),x=f.elements.namedItem('text');if(t&&'value' in t)w.draft.title=t.value;if(x&&'value' in x)w.draft.text=x.value}
+function wvTextView(){
+  var w=S.wv,ov=w.ov,mine=man(),last=ov.text,dr=w.draft||{title:'',text:''};
+  var head=last?'<p style="margin-top:6px">The latest is <b>version '+wnum(last.ver)+'</b>. Runners agree to the latest version when you print papers; the registration form shows the version named in Setup.</p>'
+    :'<p class="muted" style="margin-top:6px">No text has been saved yet. Edit the standard wording below and save it as version 1.</p>';
+  var form=mine?'<form id="wvTextForm" class="card"><h3>'+(last?'Save a new version':'Write the waiver')+'</h3>'+head
+    +'<p class="muted" style="margin-top:6px">Words in curly brackets are filled in on each paper: '+esc(ov.words.map(function(x){return '{'+x+'}'}).join(' '))+'. A blank line starts a new paragraph. Angle brackets are removed. A save never changes an older version: it makes the next one, so what a runner agreed to can always be shown.</p>'
+    +'<div class="form" style="margin-top:8px">'+fi('Title','title',dr.title,{attr:'maxlength="'+ov.limits.title+'"',req:1,span:1})
+    +'<label class="f" style="grid-column:1/-1">Text<textarea name="text" rows="16" maxlength="'+ov.limits.text+'" required>'+esc(dr.text)+'</textarea></label></div>'
+    +'<div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn pri" type="submit">'+(last?'Save as version '+(ov.latest+1):'Save as version 1')+'</button><button class="btn" type="button" data-act="wv-starter">Use the standard wording</button>'+(last?'<button class="btn" type="button" data-act="wv-latest">Back to the latest saved</button>':'')+'</div></form>'
+    :'<div class="card"><h3>The waiver</h3>'+head+'</div>';
+  var cur=!mine&&last?'<div class="card"><h3>Version '+wnum(last.ver)+': '+esc(last.title)+'</h3><pre style="white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0;font:inherit">'+esc(last.text)+'</pre></div>':'';
+  var vers=ov.versions.length?'<div class="card"><h3>Saved versions</h3><div class="scroll" style="margin-top:8px"><table><tr><th>Version</th><th>Title</th><th>Characters</th><th>Saved by</th><th>When</th><th></th></tr>'+ov.versions.slice().reverse().map(function(v){
+    return '<tr><td>'+wnum(v.ver)+'</td><td>'+esc(v.title)+'</td><td>'+wnum(v.chars)+'</td><td>'+esc(v.by)+'</td><td>'+esc(wvWhen(v.at))+'</td><td><button class="btn sm" data-act="wv-view" data-id="'+wnum(v.ver)+'">Show</button></td></tr>'}).join('')+'</table></div>'
+    +(w.viewErr?'<p class="muted" role="alert" style="margin-top:8px">'+esc(w.viewErr)+'</p>':'')
+    +(w.view?'<div style="margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:8px"><div class="row between" style="gap:8px"><b>Version '+w.view.ver+': '+esc(w.view.title)+'</b><button class="btn sm" data-act="wv-view-close">Close</button></div><pre style="white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0;font:inherit">'+esc(w.view.text)+'</pre></div>':'')+'</div>':'';
+  var vol='<div class="card"><h3>Volunteer waiver</h3><p class="muted" style="margin-top:6px">Volunteers agree to this on the volunteer sign-up page. It is fixed in the software and has no versions here.</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0;font:inherit">'+esc(ov.volunteer.text)+'</pre></div>';
+  return form+cur+vers+vol;
+}
+async function wvOpenView(ver){
+  var w=S.wv;if(!w)return;w.viewErr='';
+  try{var r=await wa('wvText',{ver:ver});if(S.wv!==w)return;w.view=r}catch(e){if(S.wv!==w)return;w.view=null;w.viewErr=msg(e.message)}
+  render();
+}
+
+/* ---------- printing ---------- */
+function wvPrintView(){
+  var w=S.wv,ov=w.ov,isR=w.pwho==='runners',forms=w.pmode==='forms';
+  var scopes=[['todo','People who still need to sign'],['all','Everyone']].concat(forms?[['blank','Blank pages (for people who join on the day)']]:[]);
+  var sc=wvIn(scopes,w.pscope,'todo');
+  var need=isR&&!ov.latest;
+  var f='<form id="wvPrintForm" class="card"><h3>Print papers</h3><p class="muted" style="margin-top:6px">A paper carries a name, a bib and a category and nothing else. '+(isR?'Runners get the latest saved version of the waiver.':'Volunteers get the volunteer waiver.')+'</p>'
+    +'<div class="form" style="margin-top:8px">'+fsel('Who','pwho',w.pwho,[['runners','Runners (paid)'],['volunteers','Volunteers']])
+    +fsel('Paper','pmode',w.pmode,[['forms','A page for each person, to sign'],['list','One sign-in list, the waiver on top']])
+    +fsel('For','pscope',sc,scopes)
+    +(isR&&sc!=='blank'?fsel('Category','pcat',w.pcat,[['','All categories']].concat(ov.cats.map(function(x){return [x,x]}))):'')
+    +(sc==='blank'?fi('Copies','pcopies',w.pcopies,{attr:'inputmode="numeric" maxlength="2"'}):'')+'</div>'
+    +(need?'<p role="alert" style="margin-top:8px;color:var(--bad)">Save the waiver text first (Waiver text), then print.</p>':'')
+    +'<div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn pri" type="button" data-act="wv-print"'+(need||w.prog?' disabled':'')+'>Print</button><span id="wvProg" class="muted" role="status">'+esc(w.prog)+'</span></div></form>';
+  return f;
+}
+// Asks for the papers page by page, joins the pages into one document and prints it.
+async function wvPrint(opts){
+  var w=S.wv;if(!w)return;
+  var head='',body='',from=0,total=0,pages=0,got=0;
+  try{
+    for(;;){
+      var o=Object.assign({},opts);if(from)o.from=from;
+      var r=await wa('wvSheet',o,60000);if(S.wv!==w)return;
+      if(!pages){head=r.head;total=r.total}
+      body+=r.body;got+=r.count;pages++;
+      w.prog='Preparing the papers: '+got+' of '+total;wvProgPaint();
+      if(r.next===null||r.next===undefined)break;
+      if(typeof r.next!=='number'||r.next<=from||pages>600)throw new Error('wv_bad_from');
+      from=r.next;
+    }
+  }finally{w.prog='';wvProgPaint()}
+  if(!got){toast('There is nothing to print.',true);return}
+  printHtml(head+body+'</body></html>');
+  toast(got+' paper'+(got===1?'':'s')+' sent to the printer');
+}
+function wvPrintArgs(){
+  var w=S.wv,isR=w.pwho==='runners',forms=w.pmode==='forms',sc=w.pscope;
+  if(!forms&&sc==='blank')sc='todo';
+  var a={who:w.pwho,mode:w.pmode,scope:sc};
+  if(isR&&sc!=='blank'&&w.pcat)a.cat=w.pcat;
+  if(sc==='blank'){var n=parseInt(w.pcopies,10);a.copies=n>=1&&n<=50?n:1}
+  return a;
+}
+
+/* ---------- setup (directors) ---------- */
+function wvSetView(){
+  var w=S.wv,ov=w.ov,s=ov.settings,r=ov.counts.runners;
+  var qs=ov.questions.map(function(q){return [q.name,q.name+' ('+q.count+' answered)']});
+  if(s.question&&!ov.questions.some(function(q){return q.name===s.question}))qs.unshift([s.question,s.question+' (not on any registration)']);
+  var vs=[];for(var i=1;i<=Math.max(1,ov.latest);i++)vs.push([String(i),'Version '+i]);
+  var live=s.question?pill((r.by.form||0)+' of '+r.total+' paid runners count as signed on the form',(r.by.form||0)?'good':'warn'):pill('No question set','warn');
+  var form='<form id="wvSetForm" class="card"><h3>Which question of the registration form is the waiver?</h3><p class="muted" style="margin-top:6px">Runners usually agree to the waiver with a tick box on the Wix registration form. Pick that question. A runner counts as signed when the answer is one of the answers below. The answers themselves are never shown here.</p>'
+    +'<div class="form" style="margin-top:8px">'+fsel('Question','question',s.question,[['','None: the waiver is not on the form']].concat(qs))
+    +fsel('The form shows this version','formVersion',String(s.formVersion),vs)+fsel('Lowest version that counts as signed','minVersion',String(s.minVersion),vs)
+    +'<label class="f" style="grid-column:1/-1">Answers that mean signed (one on each line)<textarea name="accept" rows="6" maxlength="800">'+esc(s.accept.join('\n'))+'</textarea></label></div>'
+    +'<div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn pri" type="submit">Save</button>'+live+'</div></form>';
+  var help='<div class="card"><h3>How this works</h3><ul class="muted" style="margin:6px 0 0 18px"><li>The waiver text you save in <b>Waiver text</b> is what papers carry. Each save is a new version; older ones stay.</li><li>If the form shows an older text, say which version in <b>The form shows this version</b>, so what runners agreed to can be shown.</li><li>Raise <b>Lowest version that counts</b> when a new text means everybody must sign again. Those who signed only an older version are listed as such, and you can message them from Messages.</li><li>Papers signed on the day are recorded in <b>Who has signed</b>. Nothing is ever deleted: a mistake is marked with a reason and stays on record.</li></ul></div>';
+  return form+help;
+}
+
+/* ---------- what the buttons do ---------- */
+async function wvRecordRun(){
+  var w=S.wv;if(!w||w.busy)return;
+  var ids=wvSelIds(),isR=w.who==='runners';if(!ids.length)return;
+  if(isR&&!w.ver){toast(msg('wv_none'),true);return}
+  w.busy=true;wvBarPaint();
+  var tot={recorded:0,already:0,unknown:0,full:0},todo=ids.slice(),guard=0,failed=false;
+  try{
+    while(todo.length&&guard++<400){
+      var part=todo.splice(0,100),a={who:w.who,ids:part};if(w.note)a.note=w.note;if(isR)a.ver=w.ver;
+      var r=await wa('wvRecord',a,60000);if(S.wv!==w)return;
+      tot.recorded+=r.recorded;tot.already+=r.already;tot.unknown+=r.unknown;tot.full+=r.full;
+      if(r.left&&r.left.length){if(r.left.length>=part.length&&!r.recorded&&!r.already)throw new Error('timeout');todo=r.left.concat(todo)}
+    }
+  }catch(e){failed=true;if(S.wv===w)toast(msg(e.message),true)}
+  if(S.wv!==w)return;
+  w.busy=false;S.armed=null;w.sel={};if(!failed)w.note='';
+  if(tot.recorded||tot.already||tot.unknown||tot.full)toast(wvN(tot.recorded,'paper','papers')+' recorded'+(tot.already?', '+tot.already+' had already signed':'')+(tot.unknown?', '+tot.unknown+' not found':'')+(tot.full?', '+tot.full+' have too many records':''),failed);
+  try{await wvReload()}catch(x){if(S.wv===w){render()}}
+}
+async function wvOpenRecs(id){
+  var w=S.wv;if(!w)return;w.open=id;w.recs=null;w.recsErr='';w.vreason='';wvPaint();
+  try{var r=await wa('wvRecords',{who:w.who,id:id});if(S.wv!==w||w.open!==id)return;w.recs=r}catch(e){if(S.wv!==w||w.open!==id)return;w.recsErr=msg(e.message)}
+  wvPaint();
+}
+function wvAct(b,act,id){
+  var w=S.wv;if(!w)return;
+  if(act==='wv-sub'){wvDraftRead();w.sub=b.getAttribute('data-sub')||'status';S.armed=null;render();if(w.sub==='status')wvPageLoad();else if(w.sub==='text'&&w.ov)wvReload()}
+  else if(act==='wv-page'){var f=parseInt(b.getAttribute('data-from'),10);w.from=f>=0?f:0;w.sel={};w.open='';S.armed=null;wvPaint();wvBarPaint();wvPageLoad()}
+  else if(act==='wv-selpage'){S.armed=null;w.pg.items.forEach(function(l){if(l.state!=='signed')w.sel[l.id]=true});wvPaint();wvBarPaint()}
+  else if(act==='wv-selclear'){S.armed=null;w.sel={};wvPaint();wvBarPaint()}
+  else if(act==='wv-rec')wvRecordRun();
+  else if(act==='wv-recs'){if(w.open===id){w.open='';w.recs=null;wvPaint()}else wvOpenRecs(id)}
+  else if(act==='wv-recs-close'){w.open='';w.recs=null;wvPaint()}
+  else if(act==='wv-void'){
+    if(!man()||w.busy)return;var reason=String(w.vreason||'').trim();
+    if(!reason){S.armed=null;toast(msg('wv_bad_reason'),true);wvPaint();return}
+    run(async function(){await wa('wvVoid',{id:id,reason:reason});if(S.wv!==w)return;w.vreason='';toast('Marked as a mistake');var open=w.open;await wvReload();if(S.wv===w&&open)wvOpenRecs(open)})}
+  else if(act==='wv-starter'){if(!man()||!w.ov)return;w.draft={title:w.ov.starter.title,text:w.ov.starter.text};render()}
+  else if(act==='wv-latest'){if(!man()||!w.ov)return;var t=w.ov.text;w.draft={title:t?t.title:w.ov.starter.title,text:t?t.text:w.ov.starter.text};render()}
+  else if(act==='wv-view'){var n=parseInt(id,10);if(n>=1)wvOpenView(n)}
+  else if(act==='wv-view-close'){w.view=null;w.viewErr='';render()}
+  else if(act==='wv-print'){if(w.prog)return;var a=wvPrintArgs();run(async function(){await wvPrint(a)})}
+  else if(act==='wv-print-one'){if(!id)return;run(async function(){await wvPrint({who:w.who,mode:'forms',scope:'one',id:id})})}
+}
+function wvSubmit(f,id,d){
+  var w=S.wv;if(!w||!w.ov)return;
+  if(id==='wvFindForm'){w.q=String(d.q||'').trim().slice(0,40);w.from=0;w.sel={};w.open='';wvPaint();wvBarPaint();wvPageLoad();return}
+  if(!man())return;
+  if(id==='wvTextForm'){
+    wvDraftRead();var dr=w.draft;if(!dr)return;
+    run(async function(){var r=await wa('wvSaveText',{title:dr.title,text:dr.text,base:w.ov.latest});if(S.wv!==w)return;w.draft=null;toast('Saved as version '+r.ver);await wvReload()});return}
+  if(id==='wvSetForm'){
+    var acc=String(d.accept||'').split('\n').map(function(x){return x.trim()}).filter(function(x){return x});
+    run(async function(){var r=await wa('wvSaveSettings',{question:String(d.question||''),accept:acc,formVersion:parseInt(d.formVersion,10),minVersion:parseInt(d.minVersion,10)});if(S.wv!==w)return;w.ov.settings=r.settings;toast('Setup saved');await wvReload()})}
+}
+
+/* ---------- listeners for the Waivers screens ---------- */
+document.addEventListener('change',function(e){
+  var t=e.target,w=S.wv;if(!t||!w||S.tab!=='wv'||w.ev!==S.ev||!w.ov)return;
+  var fid=t.form&&t.form.id,n=t.name;
+  if(fid==='wvFindForm'){
+    if(n==='who'){w.who=t.value==='volunteers'?'volunteers':'runners';w.cat='';w.from=0;w.sel={};w.open='';render();wvPageLoad();return}
+    if(n==='filter')w.filter=wvIn(WV_FILTER,t.value,'todo');
+    else if(n==='cat')w.cat=w.ov.cats.indexOf(t.value)>=0?t.value:'';
+    else return;
+    w.from=0;w.sel={};w.open='';wvPaint();wvBarPaint();wvPageLoad();
+  }
+  else if(fid==='wvRecForm'&&n==='ver'){var v=parseInt(t.value,10);if(v>=1)w.ver=v;if(S.armed==='wv-rec'){S.armed=null;wvBarPaint()}}
+  else if(t.classList&&t.classList.contains('wv-pick')){var id=t.getAttribute('data-id');if(id){if(t.checked)w.sel[id]=true;else delete w.sel[id];S.armed=null;wvBarPaint()}}
+  else if(fid==='wvPrintForm'){
+    if(n==='pwho'){w.pwho=t.value==='volunteers'?'volunteers':'runners';w.pcat=''}
+    else if(n==='pmode'){w.pmode=t.value==='list'?'list':'forms';if(w.pmode==='list'&&w.pscope==='blank')w.pscope='todo'}
+    else if(n==='pscope')w.pscope=wvIn([['todo'],['all'],['blank']],t.value,'todo');
+    else if(n==='pcat')w.pcat=w.ov.cats.indexOf(t.value)>=0?t.value:'';
+    else return;
+    render();
+  }
+});
+document.addEventListener('input',function(e){
+  var t=e.target,w=S.wv;if(!t||!w||S.tab!=='wv'||w.ev!==S.ev)return;
+  var fid=t.form&&t.form.id;
+  if(fid==='wvRecForm'&&t.name==='note')w.note=t.value;
+  else if(fid==='wvVoidForm'&&t.name==='reason')w.vreason=t.value;
+  else if(fid==='wvTextForm')wvDraftRead();
+  else if(fid==='wvPrintForm'&&t.name==='pcopies')w.pcopies=t.value;
+});
+/* ---------- waivers: end (WAIVERS-END) ---------- */
 
 function navLabel(t){return t[0]==='fin'&&!man()?'My claims':t[1]}
 

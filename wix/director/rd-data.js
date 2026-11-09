@@ -15,6 +15,7 @@ export const C = {
   ASSIGN: 'RDWaveAssign',
   RSET: 'RDResSet',
   PRINT: 'RDPrint',
+  WAIV: 'RDWaivers',
 };
 const MAXROWS = 1000;
 

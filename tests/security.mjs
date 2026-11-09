@@ -1,4 +1,4 @@
-// SECURITY TESTS: an audit of how the seven backends (RaceOS, Expo desk, Coaching, Finance, Results, Print, Messages) and the public runner page are
+// SECURITY TESTS: an audit of how the eight backends (RaceOS, Expo desk, Coaching, Finance, Results, Print, Messages, Waivers) and the public runner page are
 // built and what they store and say. This is not an attack (pentest.mjs, pentest-finance.mjs, pentest-results.mjs and pentest-print.mjs
 // do that); every method is checked here against a written-down policy.
 //   S1  who may call what      the source is read: nothing is decided before the login is checked, and the only methods
@@ -6,12 +6,12 @@
 //   S2  no login, a fake login every method that needs a login refuses 11 kinds of fake, and writes nothing
 //   S3  the role table         every method x every kind of login (director, lead, viewer, desk, coach, other, athlete)
 //   S4  what is shown to whom  money and phone numbers are hidden from viewers; a lead sees only their own claims; public methods show nothing private
-//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all seven backends
+//   S5  sessions and tokens    random, 12 hours, role changes at once, logout ends the session in all eight backends
 //   S6  secrets                passwords and PINs are never stored or sent back as typed; answers carry no secret; errors say nothing
 //   S7  database set-up        every collection is locked to the site admin; the shipped setup key refuses to run; nobody but a signed-in
-//                              director or lead can make the collections of Print and Messages
+//                              director or lead can make the collections of Print, Messages and Waivers
 //   S8  the shipped files      no key-like text, no dangerous calls, page-code lists match the backends, Finance never deletes money records,
-//                              Results never deletes a result, Print never deletes a design, Messages deletes nothing and keeps no address,
+//                              Results never deletes a result, Print never deletes a design, Waivers deletes nothing and keeps no name in its change notes, Messages deletes nothing and keeps no address,
 //                              phone number or message text in its log, the public runner page never writes anything
 import fs from 'fs';
 import * as R from './racedir.test.mjs';
@@ -23,6 +23,8 @@ import * as RS from './results.test.mjs';
 import * as P from './print.test.mjs';
 import * as U from './runner.test.mjs';
 import * as CM from './comms.test.mjs';
+import * as WV from './waivers.test.mjs';
+import * as W from './rd-waiver.test.mjs';
 import { C as DATA_C } from './rd-data.test.mjs';
 import wd from 'wix-data';
 import { collections } from 'wix-data.v2';
@@ -177,6 +179,36 @@ let commsMadeForOutsiders = -1;
     collections.createDataCollection = realCreate;
   }
 }
+// Waivers makes its one collection the same way: only for a signed-in director or lead, never for an outsider.
+const WAIV_COLS = ['RDWaivers'];
+const waivDefs = [];
+let waivMadeForOutsiders = -1;
+{
+  const made = new Set();
+  const realQuery = wd.query;
+  const realCreate = collections.createDataCollection;
+  wd.query = (c) => {
+    const q = realQuery.call(wd, c);
+    if (WAIV_COLS.includes(c) && !made.has(c)) q.find = async () => { throw new Error('WDE0025: collection does not exist'); };
+    return q;
+  };
+  collections.createDataCollection = async (d) => {
+    waivDefs.push(d);
+    made.add(d._id);
+    return d;
+  };
+  try {
+    for (const f of [undefined, null, {}, { token: '' }, { token: 'short' }, { token: 'f'.repeat(64) }, { token: TOK.expired }, { token: TOK.orphan }, { token: TOK.view1 }, { token: TOK.desk1 }, { token: TOK.coach1 }, { token: TOK.sponsor1 }, { token: TOK.ath }]) {
+      await err(WV.wvOverview(Object.assign({ ev: 'nope' }, f)));
+      await err(WV.wvSaveSettings(Object.assign({ ev: 'nope', question: '', accept: [], formVersion: 1, minVersion: 1 }, f)));
+    }
+    waivMadeForOutsiders = waivDefs.length;
+    await err(WV.wvOverview({ token: TOK.boss, ev: 'nope' }));
+  } finally {
+    wd.query = realQuery;
+    collections.createDataCollection = realCreate;
+  }
+}
 
 /* =====================================================================================================
    S1. Who may call what: read from the source
@@ -192,6 +224,8 @@ const BACKENDS = [
   { id: 'Runner', mod: U, file: 'wix/director/runner.web.js', auth: /(?!)/, count: 3, pub: ['pubRaces', 'pubFind', 'pubCert'] },
   // Messages: templates, who gets what, e-mails through one Wix triggered e-mail with a log of each, WhatsApp links, a file of an audience
   { id: 'Messages', mod: CM, file: 'wix/director/comms.web.js', auth: /await cauth\(arg/, count: 12, pub: [] },
+  // Waivers: the waiver text in versions, which question of the form is the waiver, who has signed, papers signed on the day, papers to print
+  { id: 'Waivers', mod: WV, file: 'wix/director/waivers.web.js', auth: /await cauth\(arg/, count: 9, pub: [] },
 ];
 const BEFORE_LOGIN_CHECK = /wixData|wixEventsV2|guests\.|askClaude|elevate|collections\.|\bthrow\b|\bawait\b|\bif\b|\bfor\b/;
 for (const B of BACKENDS) {
@@ -285,6 +319,11 @@ for (const n of ['prnSaveTemplate', 'prnSavePublish']) PRN_LEVEL[n] = 'director'
 const CM_LEVEL = {};
 for (const n of ['cmOverview', 'cmPreview', 'cmAudience', 'cmBatch']) CM_LEVEL[n] = 'view';
 for (const n of ['cmSaveSettings', 'cmSaveTemplate', 'cmPrepare', 'cmSend', 'cmLinks', 'cmMark', 'cmExport', 'cmTest']) CM_LEVEL[n] = 'director';
+// Waivers: a director or a lead may look at the text, who has signed, the records of a person, print papers and record a paper signed on the
+// day ('view'); saving the text, saving the setup and marking a record as a mistake are the directors' ('director').
+const WV_LEVEL = {};
+for (const n of ['wvOverview', 'wvText', 'wvList', 'wvRecords', 'wvSheet', 'wvRecord']) WV_LEVEL[n] = 'view';
+for (const n of ['wvSaveText', 'wvSaveSettings', 'wvVoid']) WV_LEVEL[n] = 'director';
 for (const n of ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finDecideClaim', 'finPayClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid']) FIN_LEVEL[n] = 'manage';
 
 const TABLES = [
@@ -296,6 +335,7 @@ const TABLES = [
   { B: BACKENDS[5], level: PRN_LEVEL, publics: BACKENDS[5].pub },
   { B: BACKENDS[6], level: {}, publics: BACKENDS[6].pub }, // the runner page: all three methods are public on purpose
   { B: BACKENDS[7], level: CM_LEVEL, publics: BACKENDS[7].pub },
+  { B: BACKENDS[8], level: WV_LEVEL, publics: BACKENDS[8].pub },
 ];
 for (const { B, level, publics } of TABLES) {
   const unplaced = B.names.filter((n) => !level[n] && !publics.includes(n));
@@ -374,6 +414,7 @@ const CM_WANT = {
   sponsor1: () => 'not_allowed',
   ath: () => 'not_logged_in',
 };
+const WV_WANT = CM_WANT; // the same door: directors everything, leads the 'view' calls, nobody else
 // a call that gets past the door must fail quickly and harmlessly on a race that does not exist
 const probe =(token) => ({ token, ev: 'nope', event: 'nope', id: 'probe-item', kind: 'task', status: 'zzz', username: 'nope-user', athlete: 'nope', coach: 'nope' });
 const runMatrix = async (label, B, level, want) => {
@@ -397,6 +438,7 @@ await runMatrix('Finance', BACKENDS[3], FIN_LEVEL, FIN_WANT);
 await runMatrix('Results', BACKENDS[4], RES_LEVEL, RES_WANT);
 await runMatrix('Print', BACKENDS[5], PRN_LEVEL, PRN_WANT);
 await runMatrix('Messages', BACKENDS[7], CM_LEVEL, CM_WANT);
+await runMatrix('Waivers', BACKENDS[8], WV_LEVEL, WV_WANT);
 // "waived" needs the director: a lead may approve or reject a claim but not waive the rule
 await refused(R.decideQual(Object.assign(probe(TOK.lead1), { status: 'waived' })), 'director_only', 'S3 a lead cannot waive a qualification rule');
 await refused(R.decideQual(Object.assign(probe(TOK.view1), { status: 'waived' })), 'director_only', 'S3 a viewer cannot waive one either');
@@ -612,6 +654,53 @@ const MSG_HIDDEN = Object.values(RV).concat(['9848011111', '9848022222', 'one@le
   }
 }
 
+// Waivers. A director or a lead can LOOK (the text, who has signed, the records of a person, the papers to print): those answers carry names, bibs,
+// categories and where each person stands, and never an e-mail address, a phone number, a date of birth or an answer to a question of the form.
+// Saving the text, saving the setup and marking a record as a mistake are the directors' only.
+const EVW = (await R.saveEvent({ token: TOK.boss, name: 'Waiver Run', date: day(12), venue: 'Beach Road' })).event.id;
+const WVP = { phone: '9812300077', email: 'waiver.runner@leak.test', dob: '21/04/1990', answer: '61:30', vphone: '9848033333', vmail: 'three@leak.test', tphone: '9812300078', tmail: 'lead.target@leak.test' };
+const WV_HIDDEN = Object.values(WVP);
+const WVX = { runner: 'REG~wvs~7', target: 'REG~wvs~8', vol: 'VOL~wvs~1' };
+await wd.insert('RDRegs', { _id: WVX.runner, event: EVW, name: 'Waiver Runner', cat: '10 K', bib: '7', status: 'ok', phone: WVP.phone, email: WVP.email, form: JSON.stringify([{ name: 'Date of birth', value: WVP.dob }, { name: 'Expected finish', value: WVP.answer }, { name: 'I agree to the waiver', value: 'No' }]), at: new Date().toISOString() }, SA);
+await wd.insert('RDRegs', { _id: WVX.target, event: EVW, name: 'Lead Target', cat: '10 K', bib: '8', status: 'ok', phone: WVP.tphone, email: WVP.tmail, form: '[]', at: new Date().toISOString() }, SA);
+await wd.insert('RDVolunteers', { _id: WVX.vol, event: EVW, name: 'Waiver Vol', phone: WVP.vphone, email: WVP.vmail, club: '', status: 'approved', code: 'WVC1', waiverAt: '', waiverVersion: '', createdAt: new Date().toISOString(), notes: '' }, SA);
+{
+  const asV = (fn, tok, o) => WV[fn](Object.assign({ token: tok, ev: EVW }, o));
+  // the director sets everything up and records two papers, so that there is something to look at
+  const sv = await asV('wvSaveText', TOK.boss, { title: 'Security waiver for {race}', text: 'I, {name} (bib {bib}), run {race} at my own risk and have read this waiver.', base: 0 });
+  await asV('wvSaveSettings', TOK.boss, { question: 'I agree to the waiver', accept: ['yes'], formVersion: 1, minVersion: 1 });
+  const rr = await asV('wvRecord', TOK.boss, { who: 'runners', ids: [WVX.runner], ver: 1, note: 'at the security desk' });
+  const vr = await asV('wvRecord', TOK.boss, { who: 'volunteers', ids: [WVX.vol] });
+  ok(sv.ver === 1 && rr.recorded === 1 && vr.recorded === 1, 'S4 control: the director saves the text, sets the question and records a paper for a runner and a volunteer');
+  const looks = (tok) => Promise.all([asV('wvOverview', tok), asV('wvText', tok), asV('wvList', tok, { who: 'runners', filter: 'all', from: 0 }), asV('wvList', tok, { who: 'volunteers', filter: 'all', from: 0 }), asV('wvRecords', tok, { who: 'runners', id: WVX.runner }), asV('wvSheet', tok, { who: 'runners', mode: 'forms', scope: 'all', from: 0 }), asV('wvSheet', tok, { who: 'volunteers', mode: 'list', scope: 'all', from: 0 })]);
+  for (const [who, tok] of [['a director', TOK.boss], ['a lead', TOK.lead1]]) {
+    const answers = await looks(tok);
+    const text = JSON.stringify(answers);
+    ok(text.includes('Waiver Runner') && text.includes('Waiver Vol') && answers[2].total === 2 && answers[3].total === 1 && answers[4].records.length === 1 && answers[5].count === 2, 'S4 control: ' + who + ' sees the runner and the volunteer by name, who has signed, the record of a paper, and the papers (so the check below is a real one)');
+    const seen = WV_HIDDEN.filter((v) => text.includes(v)).concat(/wa\.me|mailto:|@leak\.test/i.test(text) ? ['a contact link or address'] : []).concat(/"(email|phone|dob|form|password|token|secret)"\s*:/i.test(text) ? ['a field named like a secret'] : []);
+    ok(!seen.length, 'S4 ' + who + '\'s seven answers (overview, text, two lists, the records of a person, two sets of papers) carry no e-mail address, phone number, date of birth, answer of the form or contact link' + (seen.length ? ' [saw ' + seen + ']' : ''));
+  }
+  {
+    const [ov, tx, rl, vl, rc, fp, vp] = await looks(TOK.boss);
+    eq(Object.keys(ov).sort(), ['cats', 'counts', 'latest', 'limits', 'me', 'questions', 'race', 'settings', 'starter', 'text', 'versions', 'volunteer', 'words'], 'S4 the overview has exactly thirteen things (who is asking, the race, its categories, the setup, the latest version, the versions, the text, the standard wording, the volunteer waiver, the names of the form\'s questions, the counts, the words and the limits)');
+    eq([Object.keys(ov.me).sort(), Object.keys(ov.race).sort(), Object.keys(ov.settings).sort(), Object.keys(ov.versions[0]).sort(), Object.keys(ov.questions[0]).sort()], [['name', 'role'], ['date', 'id', 'name', 'venue'], ['accept', 'formVersion', 'minVersion', 'question'], ['at', 'by', 'chars', 'title', 'ver'], ['count', 'name']], 'S4 and who is asking, the race, the setup, a version and a question of the form have only their expected fields: a question is its name and how many answered, never an answer');
+    eq([ov.questions.map((x) => x.name).sort(), ov.questions.every((x) => Number.isInteger(x.count))], [['Date of birth', 'Expected finish', 'I agree to the waiver'], true], 'S4 the form\'s three questions are listed by name and a count');
+    eq(Object.keys(ov.counts.runners).sort(), ['by', 'cats', 'none', 'older', 'signed', 'total'], 'S4 the counts of runners are totals and a count for each category');
+    eq(Object.keys(tx).sort(), ['at', 'by', 'text', 'title', 'ver'], 'S4 a text has exactly five things');
+    eq([Object.keys(rl).sort(), Object.keys(rl.items[0]).sort(), Object.keys(vl.items[0]).sort()], [['from', 'items', 'next', 'total', 'who'], ['at', 'bib', 'cat', 'how', 'id', 'name', 'state', 'ver'], ['at', 'bib', 'cat', 'how', 'id', 'name', 'state', 'ver', 'vstatus']], 'S4 a list has five things; a runner in it eight (a name, a bib, a category, where they stand, how and when) and a volunteer nine');
+    eq([Object.keys(rc).sort(), Object.keys(rc.person).sort(), Object.keys(rc.records[0]).sort()], [['person', 'records'], ['at', 'bib', 'cat', 'how', 'id', 'name', 'state', 'ver'], ['at', 'by', 'how', 'id', 'note', 'ver', 'void']], 'S4 the records of a person: the person as in a list, and each record says how, by whom, when, and the note');
+    eq([Object.keys(fp).sort(), Object.keys(vp).sort()], [['body', 'count', 'from', 'head', 'next', 'total', 'ver'], ['body', 'count', 'from', 'head', 'next', 'total', 'ver']], 'S4 a set of papers has exactly seven things');
+  }
+  {
+    // a lead can look and record a paper, but not change the text, the setup or a record
+    const w1 = WRITES.length;
+    const tries = [['wvSaveText', { title: 'x', text: 'A text that is long enough to be a waiver.', base: 1 }], ['wvSaveSettings', { question: '', accept: [], formVersion: 1, minVersion: 1 }], ['wvVoid', { id: 'sig~nothing', reason: 'x' }]];
+    const got = [];
+    for (const [fn, o] of tries) got.push(await err(asV(fn, TOK.lead1, o)));
+    ok(got.every((g) => g === 'director_only') && WRITES.length === w1, 'S4 a lead is refused all three changing calls (the text, the setup, marking a record as a mistake) with director_only, and they write nothing' + (got.every((g) => g === 'director_only') ? '' : ' [' + got + ']'));
+  }
+}
+
 /* =====================================================================================================
    S5. Sessions and tokens
    ===================================================================================================== */
@@ -649,8 +738,11 @@ const MSG_HIDDEN = Object.values(RV).concat(['9848011111', '9848022222', 'one@le
   const pdir = (t) => err(P.prnSavePublish({ token: t, ev: 'nope', pub: {} })); // past the door, a race that is not there answers no_event
   const mcall = (t) => err(CM.cmOverview({ token: t, ev: EV }));
   const mdir = (t) => err(CM.cmSaveSettings({ token: t, ev: 'nope', emailId: '', nvars: 6, cc: '91', link: '' })); // past the door, a race that is not there answers no_event
+  const wcall = (t) => err(WV.wvOverview({ token: t, ev: EV }));
+  const wdir = (t) => err(WV.wvSaveSettings({ token: t, ev: 'nope', question: '', accept: [], formVersion: 1, minVersion: 1 })); // past the door, a race that is not there answers no_event
   ok(!GATE.includes(await pcall(tok)) && (await pdir(tok)) === 'director_only', 'S5 a lead can look at the bibs and certificates but not change a design or the public page (control)');
   ok(!GATE.includes(await mcall(tok)) && (await mdir(tok)) === 'director_only', 'S5 a lead can look at the messages but not send or change any (control)');
+  ok(!GATE.includes(await wcall(tok)) && (await wdir(tok)) === 'director_only', 'S5 a lead can look at the waivers but not change the text or the setup (control)');
   ok(!GATE.includes(await call(tok)), 'S5 a lead can write (control)');
   ok(!GATE.includes(await fcall(tok)), 'S5 a lead can use their reimbursement claims in Finance (control)');
   ok(!GATE.includes(await rcall(tok)) && (await rdir(tok)) === 'director_only', 'S5 a lead can look at the results but not change the setup (control)');
@@ -662,12 +754,14 @@ const MSG_HIDDEN = Object.values(RV).concat(['9848011111', '9848022222', 'one@le
   eq(await rcall(tok), 'not_allowed', 'S5  and Results closes at once too');
   eq(await pcall(tok), 'not_allowed', 'S5  and Print closes at once too');
   eq(await mcall(tok), 'not_allowed', 'S5  and Messages closes at once too');
+  eq(await wcall(tok), 'not_allowed', 'S5  and Waivers closes at once too');
   await set('desk');
   eq(await call(tok), 'not_allowed', 'S5 made desk staff: the same token is refused by RaceOS');
   eq(await fcall(tok), 'not_allowed', 'S5  and by Finance');
   eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
   eq(await pcall(tok), 'not_allowed', 'S5  and by Print');
   eq(await mcall(tok), 'not_allowed', 'S5  and by Messages');
+  eq(await wcall(tok), 'not_allowed', 'S5  and by Waivers');
   eq((await R.whoami({ token: tok })).role, 'desk', 'S5  (and whoami still answers, as it does for desk staff)');
   await set('coach');
   eq(await call(tok), 'not_allowed', 'S5 made a coach: refused');
@@ -675,24 +769,28 @@ const MSG_HIDDEN = Object.values(RV).concat(['9848011111', '9848022222', 'one@le
   eq(await rcall(tok), 'not_allowed', 'S5  and by Results');
   eq(await pcall(tok), 'not_allowed', 'S5  and by Print');
   eq(await mcall(tok), 'not_allowed', 'S5  and by Messages');
+  eq(await wcall(tok), 'not_allowed', 'S5  and by Waivers');
   await refused(R.whoami({ token: tok }), 'not_allowed', 'S5  and whoami refuses too');
   await set('director');
   ok(!GATE.includes(await err(F.finLedger({ token: tok, ev: EV }))), 'S5 promoted to director: the same token opens the whole of Finance at once');
   ok(!GATE.includes(await rdir(tok)), 'S5  and the setup of Results at once');
   ok(!GATE.includes(await pdir(tok)), 'S5  and the designs and public page of Print at once');
   ok(!GATE.includes(await mdir(tok)), 'S5  and sending and changing messages at once');
+  ok(!GATE.includes(await wdir(tok)), 'S5  and the text and setup of the waivers at once');
   await set('lead');
   ok(!GATE.includes(await call(tok)), 'S5 made a lead again: writes again');
   eq(await err(F.finLedger({ token: tok, ev: EV })), 'director_only', 'S5  and the director-only part of Finance closes again at once');
   eq(await rdir(tok), 'director_only', 'S5  and the setup of Results closes again at once');
   eq(await pdir(tok), 'director_only', 'S5  and the designs and public page of Print close again at once');
   eq(await mdir(tok), 'director_only', 'S5  and sending and changing messages close again at once');
+  eq(await wdir(tok), 'director_only', 'S5  and the text and setup of the waivers close again at once');
   await wd.bulkRemove('ExpoStaff', [row._id], SA);
   await refused(R.whoami({ token: tok }), 'not_logged_in', 'S5 login removed: the token stops working at once');
   await refused(F.finListClaims({ token: tok, ev: EV }), 'not_logged_in', 'S5  in Finance too');
   await refused(RS.resBoard({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Results');
   await refused(P.prnOverview({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Print');
   await refused(CM.cmOverview({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Messages');
+  await refused(WV.wvOverview({ token: tok, ev: EV }), 'not_logged_in', 'S5  and in Waivers');
   await wd.insert('ExpoStaff', Object.assign({}, row, { _id: undefined }), SA);
 }
 {
@@ -733,6 +831,17 @@ const MSG_HIDDEN = Object.values(RV).concat(['9848011111', '9848022222', 'one@le
   const batRow = [...DB.RDComms.values()].find((x) => x._id === 'bat~' + EV + '~sec-batch-by-1');
   const batNote = [...DB.RDAudit.values()].filter((x) => x.action === 'WhatsApp batch prepared').pop();
   ok(batRow && batRow.by === 'dir2' && batRow.at !== '1999-01-01' && Date.now() - Date.parse(batRow.at) < 60000 && batNote && batNote.by === 'dir2', 'S5 a batch prepared with "by: boss" and an old date in the call is written, and noted, under the logged-in director\'s own name and the real time');
+  // Waivers: a lead's or a viewer's token with "boss" and "director" in the call is still what it is; a text and a record are written, and noted, under the logged-in person's own name
+  await refused(WV.wvSaveText({ token: TOK.lead1, ev: EVW, title: 'Evil', text: 'A text that is long enough to be a waiver.', base: 1, username: 'boss', role: 'director', by: 'boss' }), 'director_only', 'S5 a lead\'s token with "username: boss" and "role: director" in a Waivers call is still a lead');
+  await refused(WV.wvVoid({ token: TOK.view1, ev: EVW, id: 'sig~nothing', reason: 'x', username: 'boss', role: 'admin' }), 'not_allowed', 'S5  and a viewer\'s token cannot mark a record as a mistake either');
+  const sv2 = await WV.wvSaveText({ token: TOK.dir2, ev: EVW, title: 'Second wording for {race}', text: 'I run {race} at my own risk, and I have read this second waiver.', base: 1, by: 'boss', username: 'boss', byName: 'The Director', at: '1999-01-01' });
+  const verRow = [...DB.RDWaivers.values()].find((x) => x._id === W.ids.ver(EVW, sv2.ver));
+  const verNote = [...DB.RDAudit.values()].filter((x) => x.action === 'waiver text saved').pop();
+  ok(sv2.ver === 2 && verRow && verRow.by === 'dir2' && verRow.at !== '1999-01-01' && Date.now() - Date.parse(verRow.at) < 60000 && verNote && verNote.by === 'dir2', 'S5 a text saved with "by: boss" and an old date in the call is written, and noted, under the logged-in director\'s own name and the real time');
+  const lr = await WV.wvRecord({ token: TOK.lead1, ev: EVW, who: 'runners', ids: [WVX.target], ver: 1, by: 'boss', username: 'boss', role: 'director', at: '1999-01-01' });
+  const sigRow = [...DB.RDWaivers.values()].find((x) => x.kind === 'sig' && x.ref === WVX.target);
+  const sigNote = [...DB.RDAudit.values()].filter((x) => x.action === 'waiver papers recorded').pop();
+  ok(lr.recorded === 1 && sigRow && sigRow.by === 'lead1' && sigRow.at !== '1999-01-01' && Date.now() - Date.parse(sigRow.at) < 60000 && sigNote && sigNote.by === 'lead1', 'S5 a paper recorded by a lead with "by: boss" in the call is written, and noted, under the lead\'s own name and the real time');
 }
 {
   const t = (await R.login({ username: 'view1', password: 'Sec-pass-1' })).token;
@@ -750,17 +859,20 @@ const MSG_HIDDEN = Object.values(RV).concat(['9848011111', '9848022222', 'one@le
   ok(!GATE.includes(await err(F.finOverview({ token: t, ev: EV }))), 'S5 a director\'s new session opens Finance');
   ok(!GATE.includes(await err(P.prnOverview({ token: t, ev: EV }))), 'S5  and Print');
   ok(!GATE.includes(await err(CM.cmOverview({ token: t, ev: EV }))), 'S5  and Messages');
+  ok(!GATE.includes(await err(WV.wvOverview({ token: t, ev: EV }))), 'S5  and Waivers');
   await R.logout({ token: t });
   await refused(F.finOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 after logout Finance refuses the token too');
   await refused(RS.resBoard({ token: t, ev: EV }), 'not_logged_in', 'S5 and so does Results');
   await refused(P.prnOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Print');
-  await refused(CM.cmOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Messages (one session for all seven backends)');
+  await refused(CM.cmOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Messages');
+  await refused(WV.wvOverview({ token: t, ev: EV }), 'not_logged_in', 'S5 and Waivers (one session for all eight backends)');
   const expired = await session('dir2', 1000);
   await wd.update('ExpoSessions', Object.assign({}, [...DB.ExpoSessions.values()].find((s) => s.token === expired), { expires: new Date(Date.now() - 1000).toISOString() }), SA);
   await refused(F.finOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5 a session that has run out is refused by Finance');
   await refused(RS.resBoard({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Results');
   await refused(P.prnOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Print');
   await refused(CM.cmOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Messages');
+  await refused(WV.wvOverview({ token: expired, ev: EV }), 'not_logged_in', 'S5  and by Waivers');
 }
 
 /* =====================================================================================================
@@ -807,6 +919,13 @@ ok(!JSON.stringify([...DB.RDAudit.values()]).match(new RegExp([made.secret, made
   ok(DB.RDComms.size >= 10 && !MSG_HIDDEN.some((v) => notes.includes(v) || stored.includes(v)) && !Object.values(TOK).some((v) => notes.includes(v) || stored.includes(v)) && !/token|password|passwd/i.test(stored), 'S6 the Messages change notes and everything kept in its collection (templates, frozen lists of people, the log of each message) hold no e-mail address, phone number, date of birth, token or password');
   ok(!/Secret|Vol One|Vol Two/.test(notes + stored) && !/REG~sec|wa\.me/.test(notes), 'S6 and no name of a person and no WhatsApp link: the log holds registration ids and states only, and the change notes hold counts and words');
 }
+{
+  const notes = JSON.stringify([...DB.RDAudit.values()].filter((x) => /^waiver /.test(x.action)));
+  ok(['waiver text saved', 'waiver settings saved', 'waiver papers recorded'].every((a) => notes.includes(a)), 'S6 control: the Waivers changes made above (a text, the setup, papers recorded) are in the change notes');
+  const stored = JSON.stringify([...DB.RDWaivers.values()]);
+  ok(DB.RDWaivers.size >= 5 && !WV_HIDDEN.some((v) => notes.includes(v) || stored.includes(v)) && !Object.values(TOK).some((v) => notes.includes(v) || stored.includes(v)) && !/token|password|passwd/i.test(stored), 'S6 the Waivers change notes and everything kept in its collection (the versions of the text, the setup, the records of papers) hold no e-mail address, phone number, date of birth, answer of the form, token or password');
+  ok(!/Waiver Runner|Waiver Vol|Lead Target|at the security desk/.test(notes) && !/Waiver Runner|Waiver Vol|Lead Target/.test(stored) && stored.includes('at the security desk'), 'S6 and no name of a person is kept: a record holds a registration id, the kind of person and a version (and the note the director typed, which the change notes never repeat)');
+}
 // the PIN of an athlete
 ok(!all.includes('"' + ATH_PIN + '"'), 'S6 an athlete\'s PIN is not in the database as typed');
 const athRow = [...DB.TrainAthletes.values()][0];
@@ -833,6 +952,7 @@ const READS = [
   () => RS.resOverview(asBoss), () => RS.resFormFields(asBoss), () => RS.resStartList(asBoss), () => RS.resBoard(asBoss), () => RS.resAwards(asBoss), () => RS.resBoard({ token: TOK.lead1, ev: EV }),
   () => P.prnOverview(asBoss), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'bib' }), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'cert' }), () => P.prnBibs(asBoss), () => P.prnCerts(asBoss), () => P.prnOverview({ token: TOK.lead1, ev: EV }),
   () => CM.cmOverview(asBoss), () => CM.cmPreview({ token: TOK.boss, ev: EV, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmAudience({ token: TOK.boss, ev: EV, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmBatch({ token: TOK.boss, ev: EV, batch: MSG.email }), () => CM.cmLinks({ token: TOK.boss, ev: EV, batch: MSG.wa }), () => CM.cmExport({ token: TOK.boss, ev: EV, aud: { who: 'runners' } }), () => CM.cmOverview({ token: TOK.lead1, ev: EV }),
+  () => WV.wvOverview({ token: TOK.boss, ev: EVW }), () => WV.wvText({ token: TOK.boss, ev: EVW }), () => WV.wvList({ token: TOK.boss, ev: EVW, who: 'runners', filter: 'all', from: 0 }), () => WV.wvRecords({ token: TOK.boss, ev: EVW, who: 'runners', id: WVX.runner }), () => WV.wvSheet({ token: TOK.boss, ev: EVW, who: 'runners', mode: 'forms', scope: 'all', from: 0 }), () => WV.wvOverview({ token: TOK.lead1, ev: EVW }),
   () => U.pubRaces(), () => U.pubFind({ ev: EV, q: 'secret' }), () => U.pubCert({ ev: EV, bib: '42' }),
 ];
 {
@@ -943,11 +1063,27 @@ ok(!/SETUP_KEY|ensureSetup/.test(commsText), 'S7 Messages has no set-up call or 
   const names = [...new Set([...commsText.matchAll(/\bC\.([A-Z]+)\b/g)].map((m) => m[1]))];
   ok(!own.length && names.length >= 4 && names.every((k) => k in DATA_C), 'S7 Messages names no collection by a loose text: the ' + names.length + ' it reads (' + names.join(', ') + ') come from the shared list, and its own is one constant' + (own.length ? ' [own: ' + own + ']' : ''));
 }
+// Waivers (the one collection of the versions of the waiver text, the setup and the records of papers)
+const waivText = src('wix/director/waivers.web.js');
+eq(waivMadeForOutsiders, 0, 'S7 not one visitor, fake login, athlete or staff login of the wrong kind (13 kinds, on two methods) makes the Waivers collection: it is made only for a signed-in director or lead');
+ok(waivDefs.length === 1 && locked(waivDefs[0]), 'S7 Waivers makes its one collection on first use by a director or lead, readable, changeable and emptied only by the site admin (the waiver texts, the setup and the records of who signed are never open to a visitor)');
+eq(waivDefs.map((d) => d._id), WAIV_COLS, 'S7 and it is exactly RDWaivers');
+ok(waivDefs.every((d) => d.fields.length === 10 && d.fields.every((f) => f.type === 'TEXT')), 'S7 with its ten fields (event, kind, ref, sub, who, status, why, json, by, at), stored as text');
+ok((waivText.match(/await ensureCollections\(\)/g) || []).length === 1 && /throw new Error\('director_only'\);\s*await ensureCollections\(\);/.test(waivText), 'S7 Waivers makes its collection in one place only: the last step of the login check, after the person has been let in');
+ok(!/SETUP_KEY|ensureSetup/.test(waivText), 'S7 Waivers has no set-up call or key: there is nothing for an outsider to guess');
 {
-  const have = new Set([...rdIds, ...resDefs.map((d) => d._id), ...printDefs.map((d) => d._id)]);
+  const have = new Set([...waivDefs.map((d) => d._id), ...rdIds]);
+  const lack = missing(consts(waivText), have);
+  ok(consts(waivText).length === 1 && !lack.length, 'S7 every collection Waivers names (the volunteers of RaceOS) is created by its own set-up or the RaceOS one' + (lack.length ? ' [' + lack + ']' : ''));
+  const own = [...waivText.matchAll(/wixData\.(?:query|get|insert|update|save|bulk\w+)\(\s*'([^']+)'/g)].map((m) => m[1]);
+  const names = [...new Set([...waivText.matchAll(/\bC\.([A-Z]+)\b/g)].map((m) => m[1]))];
+  ok(!own.length && names.length >= 4 && names.every((k) => k in DATA_C) && names.includes('WAIV'), 'S7 Waivers names no collection by a loose text: the ' + names.length + ' it reads (' + names.join(', ') + ') come from the shared list, and the volunteers are one constant' + (own.length ? ' [own: ' + own + ']' : ''));
+}
+{
+  const have = new Set([...rdIds, ...resDefs.map((d) => d._id), ...printDefs.map((d) => d._id), ...waivDefs.map((d) => d._id)]);
   const used = Object.values(DATA_C);
   const lack = used.filter((c) => !have.has(c));
-  ok(used.length === 9 && !lack.length, 'S7 all ' + used.length + ' collections the shared readers name (staff, sessions, races, registrations, change notes, results, wave placements, results settings, print) are made by the RaceOS, Results or Print set-up' + (lack.length ? ' [missing: ' + lack + ']' : ''));
+  ok(used.length === 10 && !lack.length, 'S7 all ' + used.length + ' collections the shared readers name (staff, sessions, races, registrations, change notes, results, wave placements, results settings, print, waivers) are made by the RaceOS, Results, Print or Waivers set-up' + (lack.length ? ' [missing: ' + lack + ']' : ''));
   const own = [printText, runnerText].flatMap((t) => [...t.matchAll(/wixData\.(?:query|get|insert|update|save|bulk\w+)\(\s*'([^']+)'/g)].map((m) => m[1]));
   const names = [...new Set([printText, runnerText].flatMap((t) => [...t.matchAll(/\bC\.([A-Z]+)\b/g)].map((m) => m[1])))];
   ok(!own.length && names.length >= 5 && names.every((k) => k in DATA_C), 'S7 Print and the runner page name no collection of their own: all of the ' + names.length + ' they use (' + names.join(', ') + ') come from the shared list' + (own.length ? ' [own: ' + own + ']' : ''));
@@ -1135,7 +1271,7 @@ ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^cm[A-Z]/.te
   ok(cq.length >= 8 && !noSAq.length, 'S8 and so does every query (' + cq.length + ' of them end in find(SA), or are handed to the helper that does)' + (noSAq.length ? ' [' + noSAq + ']' : ''));
   ok(!/\.remove\(|bulkRemove\(|\.truncate\(/.test(commsText), 'S8 nothing in Messages removes a row: a template is archived, a batch is a new batch, the log of a message is never deleted');
   ok(!/arg\.(username|user|role|by|byName|me|as)\b/.test(commsText), 'S8 no Messages method reads who is asking from the call (the session token is the only identity)');
-  eq([...commsText.matchAll(/^import[\s\S]*?from '([^']+)';/gm)].map((m) => m[1]).sort(), ['./rd-auth.js', './rd-comms.js', './rd-data.js', './rd-results.js', 'wix-auth', 'wix-crm-backend', 'wix-data', 'wix-data.v2', 'wix-web-module'], 'S8 Messages talks only to the database, the Wix contacts and triggered e-mails and the shared readers: no outside request, no secret store, no members, no events, no payments');
+  eq([...commsText.matchAll(/^import[\s\S]*?from '([^']+)';/gm)].map((m) => m[1]).sort(), ['./rd-auth.js', './rd-comms.js', './rd-data.js', './rd-results.js', './rd-waiver.js', 'wix-auth', 'wix-crm-backend', 'wix-data', 'wix-data.v2', 'wix-web-module'], 'S8 Messages talks only to the database, the Wix contacts and triggered e-mails and the shared readers (and the waiver rules, to know who has signed): no outside request, no secret store, no members, no events, no payments');
   ok(!/wix-fetch|wix-secrets|wix-members|wix-events|wix-pay|wix-stores|\bfetch\(/.test(commsText), 'S8 and nothing in it makes a request to another site or reads a stored secret');
   ok((commsText.match(/triggeredEmails\.emailContact\(/g) || []).length === 2 && /async function deliver[\s\S]*?triggeredEmails\.emailContact\(cfg\.emailId, c\.id, \{ variables: msg\.variables \}\)/.test(commsText), 'S8 an e-mail is handed to Wix in exactly two places: to a person of a batch (inside the one step that sends) and as a test e-mail');
   const rcpRows = commsText.match(/kind: 'rcp'[^}]*\}/g) || [];
@@ -1145,6 +1281,33 @@ ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^cm[A-Z]/.te
   const screen = src('wix/director/director-embed.html').split('COMMS-START')[1].split('COMMS-END')[0];
   ok(screen.length > 8000 && !/\.dob\b/.test(screen) && !/mailto:/.test(screen) && !/esc\(\s*\w+\.(email|phone)\b/.test(screen), 'S8 the Messages screen never reads a date of birth out of an answer, makes no mailto link, and shows an e-mail address or a phone number nowhere: only yes or "-" for whether a person can be reached');
   ok(/function cmWaOk\(/.test(screen) && /var ok=cmWaOk\(it\.link\)/.test(screen) && (screen.match(/href="'\+esc\(it\.link\)/g) || []).length === 1, 'S8 and the one place that turns a chat link into a link on the screen checks it first: a wa.me address with digits and a short text, nothing else');
+}
+// Waivers: offered by the director page only, every method reachable, written so that nothing is deleted and no change note holds a name or a note.
+const WV_ALLOWED = listOf(DP, 'WV_ALLOWED');
+ok(WV_ALLOWED, 'S8 the director page has its eighth list (Waivers)');
+eq(WV_ALLOWED.slice().sort(), BACKENDS[8].names.slice().sort(), 'S8 the director page offers exactly the 9 Waivers methods (none forgotten, none extra)');
+ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^wv[A-Z]/.test(n)) && ![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED, ...RES_ALLOWED, ...PRN_ALLOWED, ...COMMS_ALLOWED].some((n) => BACKENDS[8].names.includes(n)), 'S8 no other page (volunteer, athlete, coach, public runner) and no other list offers a Waivers method');
+{
+  const pc = src(DP);
+  ok(/import \* as wv from 'backend\/waivers\.web';/.test(pc) && /msg\.mod === 'wv'/.test(pc) && /WV_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Waivers and refuses a Waivers call that is not on its list');
+  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*throw tidyError\(e, 'waivers'\);/.test(waivText), 'S8 every Waivers method answers through the wrapper that turns an unexpected error into "server_error"');
+  const wl = waivText.split('\n');
+  const noSA = wl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
+  ok(!noSA.length, 'S8 every Waivers read and write of its locked collection passes suppressAuth (the collection is admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
+  const wq = waivText.split(/;\s*\n/).filter((x) => /wixData\.query\(/.test(x));
+  const noSAq = wq.filter((x) => !/\.find\(SA\)/.test(x) && !/all\(\(\) => wixData\.query\(/.test(x)).map((x) => x.trim().slice(0, 60));
+  ok(wq.length >= 3 && !noSAq.length, 'S8 and so does every query (' + wq.length + ' of them end in find(SA), or are handed to the helper that does)' + (noSAq.length ? ' [' + noSAq + ']' : ''));
+  ok(!/\.remove\(|bulkRemove\(|\.truncate\(/.test(waivText), 'S8 nothing in Waivers removes a row: a text is a new version, a mistake is marked with a reason and stays, nothing is deleted');
+  ok(!/arg\.(username|user|role|by|byName|me|as)\b/.test(waivText), 'S8 no Waivers method reads who is asking from the call (the session token is the only identity)');
+  eq([...waivText.matchAll(/^import[\s\S]*?from '([^']+)';/gm)].map((m) => m[1]).sort(), ['./rd-auth.js', './rd-comms.js', './rd-data.js', './rd-results.js', './rd-waiver.js', 'wix-auth', 'wix-data', 'wix-data.v2', 'wix-web-module'], 'S8 Waivers talks only to the database and the shared readers: no outside request, no secret store, no members, no events, no payments, no e-mails or contacts');
+  ok(!/wix-fetch|wix-secrets|wix-members|wix-events|wix-pay|wix-stores|wix-crm|\bfetch\(/.test(waivText), 'S8 and nothing in it makes a request to another site, sends a message or reads a stored secret');
+  const lib = src('wix/director/rd-waiver.js');
+  ok(!/wix-data|wixData|\bfetch\(|wix-/.test(lib), 'S8 the waiver rules (rd-waiver.js) have no database, no request and no Wix module in them: every rule is a plain function');
+  ok(!/\.(phone|email|dob)\b/.test(lib.replace(/\/\/[^\n]*/g, '')) && !/\.(phone|email|dob)\b/.test(waivText.replace(/\/\/[^\n]*/g, '')), 'S8 neither the waiver rules nor the Waivers backend reads a phone number, e-mail address or date of birth field');
+  const rowWrites = [...waivText.matchAll(/row\(e, '(\w+)'/g)].map((m) => m[1]);
+  ok(rowWrites.length >= 3 && rowWrites.every((k) => ['ver', 'set', 'sig', 'vd'].includes(k)), 'S8 the four kinds of row Waivers writes are the version of a text, the setup, a record of a paper and a mark on a record: ' + [...new Set(rowWrites)].join(', '));
+  const screen = src('wix/director/director-embed.html').split('WAIVERS-START')[1].split('WAIVERS-END')[0];
+  ok(screen.length > 8000 && !/\.(dob|phone|email)\b/.test(screen) && !/mailto:/.test(screen) && !/wa\.me/.test(screen), 'S8 the Waivers screen never reads a date of birth, a phone number or an e-mail address out of an answer, and makes no mailto or chat link');
 }
 // source collections of the race lists are only ever read
 {

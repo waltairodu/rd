@@ -25,6 +25,7 @@ import {
   cleanTemplate, templateOf, okTplId, cleanSettings, settingsOf, cleanRaceLink, cleanLink, cleanEmail, waNumber, waLink, waText, varsFor, buildMessage,
   needsOf, cleanAud, audLabel, pickAudience, reachedBy, pieces, whyOf, resultVars, toCsv, csvLines, cleanCols, oneLine, firstName,
 } from './rd-comms.js';
+import { bookOf, runnerState, volunteerState } from './rd-waiver.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
 const webMethod = (permission, fn) =>
@@ -188,11 +189,14 @@ async function resultLookup(e) {
 // (null for everybody). regs: registrations that are already read. need: { waves, results } says what else to read (it costs queries).
 // Contact details stay in here: the ones a person has are 'email' (a plain address or '') and 'phone' (digits).
 async function peopleOf(e, who, need, only, regs) {
+  // who has signed the waiver: read only when an audience asks for it (it costs a query); a person is 'signed' or 'unsigned'
+  const book = need.waiver ? bookOf(await safeRows(C.WAIV, e._id)) : null;
+  const waiverOf = (st) => (book ? (st.state === 'signed' ? 'signed' : 'unsigned') : '');
   if (who === 'volunteers') {
     const list = only ? await byIds(VOLS, only) : await safeRows(VOLS, e._id);
     return list
       .filter((v) => v.event === e._id)
-      .map((v) => ({ id: String(v._id), name: oneLine(v.name, 80), email: cleanEmail(v.email), emailRaw: cleanText(v.email, 120).toLowerCase(), phone: digitsOf(v.phone), vstatus: cleanText(v.status, 20) }));
+      .map((v) => ({ id: String(v._id), name: oneLine(v.name, 80), email: cleanEmail(v.email), emailRaw: cleanText(v.email, 120).toLowerCase(), phone: digitsOf(v.phone), vstatus: cleanText(v.status, 20), waiver: book ? waiverOf(volunteerState(v, book)) : '' }));
   }
   const list = only ? (await byIds(C.REGS, only)).filter((r) => r.event === e._id) : regs || (await rows(C.REGS, e._id));
   const wv = need.waves ? await waveLookup(e, only) : null;
@@ -215,6 +219,7 @@ async function peopleOf(e, who, need, only, regs) {
       cat: cleanText(r.cat, 60),
       size: cleanText(r.size, 12),
       paid: r.status === 'ok',
+      waiver: book ? waiverOf(runnerState(r, book)) : '',
       status: res ? cleanText(res.status, 8) : '',
       wave: w ? w.name : '',
       start: w ? w.start : '',
@@ -243,6 +248,7 @@ async function pickPeople(e, aud, regs, tpl, extra) {
   const need = {
     waves: n.waves || (aud.who === 'runners' && aud.wave !== 'any') || !!(extra && extra.waves),
     results: n.results || (aud.who === 'runners' && aud.result !== 'any'),
+    waiver: aud.waiver === 'signed' || aud.waiver === 'unsigned',
   };
   const people = await peopleOf(e, aud.who, need, null, regs);
   const sent = aud.notSent ? await sentSet(e._id, aud.notSent, aud.uncertain) : new Set();

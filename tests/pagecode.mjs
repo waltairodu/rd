@@ -6,6 +6,7 @@ import * as TR from './training.test.mjs';
 import * as FN from './finance.test.mjs';
 import * as PR from './print.test.mjs';
 import * as CM from './comms.test.mjs';
+import * as WV from './waivers.test.mjs';
 import * as PUB from './runner.test.mjs';
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log('  FAIL', m); } };
@@ -183,6 +184,40 @@ for (const [f, id] of files) {
   ok(r23.ok === false && r23.error === 'page_code_old', 'a Print method sent with the Messages tag is refused');
 }
 
+// The Waivers branch of the director page code: relays only the nine Waivers methods, with the token it is given.
+{
+  const src = fs.readFileSync('../wix/director/director-page-code.js', 'utf8').replace(/^import .*$/gm, '');
+  let ready, handler = null; const posts = []; const seen = [];
+  const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
+  const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
+  const waiv = { wvOverview: async (a) => { seen.push(a); return { fine: 1 }; }, wvSaveText: async () => { throw new Error('wv_stale'); }, login: async () => ({ token: 'leak' }) };
+  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'wv', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, {}, waiv, console);
+  ready();
+  const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
+  const r1 = await call(1, 'wvOverview', 'wv', { token: 'T'.repeat(30), ev: 'e1' });
+  ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Waivers branch: wvOverview is relayed with the token and race it was given');
+  const r2 = await call(2, 'wvVoid', 'wv');
+  ok(r2.ok === false && r2.error === 'backend_old', 'Waivers branch: a listed method missing in the backend says backend_old, not a crash');
+  const r3 = await call(3, 'wvSaveText', 'wv');
+  ok(r3.ok === false && r3.error === 'wv_stale', 'Waivers branch: an error from the backend is passed on as its plain code');
+  for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'wv'], [12, 'wvSaveText '], [13, 'WVSAVETEXT'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'wvSaveAll'], [18, 'cmOverview'], [19, 'cmSend'], [20, 'wvDelete'], [21, 'wvRemove']]) {
+    const r = await call(id, m, 'wv');
+    ok(r.ok === false && r.error === 'page_code_old', 'Waivers branch: "' + m + '" is refused (only the nine Waivers methods go through)');
+  }
+  const r22 = await call(22, ['wvOverview'], 'wv');
+  ok(r22.ok === false, 'Waivers branch: a method that is not a string is refused');
+  for (const [id, mod] of [[23, 'rd'], [24, 'comms'], [25, 'prn'], [26, 'fin'], [27, 'res'], [28, 'expo'], [29, 'train'], [30, 'WV'], [31, ' wv'], [32, 'waivers']]) {
+    const r = await call(id, 'wvOverview', mod);
+    ok(r.ok === false && r.error === 'page_code_old', 'a Waivers method sent with the "' + mod + '" tag is not relayed through that branch');
+  }
+  const r33 = await call(33, 'wvOverview', 'wv', null);
+  ok(r33.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Waivers branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
+  const r34 = await call(34, 'cmOverview', 'wv');
+  ok(r34.ok === false && r34.error === 'page_code_old', 'a Messages method sent with the Waivers tag is refused');
+  const r35 = await call(35, 'wvOverview', 'wv', { token: 'T'.repeat(30), ev: 'e1', method: 'wvVoid', mod: 'comms' });
+  ok(r35.ok === true && seen[2] && seen[2].method === 'wvVoid' && seen.length === 3, 'Waivers branch: a method or tag hidden inside the argument changes nothing (the call still goes to the method it names)');
+}
+
 // The public runner page code: three read-only public methods and nothing else; the race comes from the link.
 {
   const src = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8').replace(/^import .*$/gm, '');
@@ -261,6 +296,9 @@ for (const [f, id] of files) {
   const CMA = list('COMMS_ALLOWED');
   ok(CMA.length === 12 && CMA.every((m) => typeof CM[m] === 'function') && Object.keys(CM).filter((m) => typeof CM[m] === 'function').every((m) => CMA.includes(m)) && new Set(CMA).size === CMA.length, 'the Messages list and the Messages backend are the same ' + CMA.length + ' methods (none missing, none extra, none twice)');
   ok(CMA.every((m) => /^cm[A-Z]/.test(m)) && !CMA.some((m) => PN.includes(m) || A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no Messages method is also listed under another module');
+  const WVA = list('WV_ALLOWED');
+  ok(WVA.length === 9 && WVA.every((m) => typeof WV[m] === 'function') && Object.keys(WV).filter((m) => typeof WV[m] === 'function').every((m) => WVA.includes(m)) && new Set(WVA).size === WVA.length, 'the Waivers list and the Waivers backend are the same ' + WVA.length + ' methods (none missing, none extra, none twice)');
+  ok(WVA.every((m) => /^wv[A-Z]/.test(m)) && !WVA.some((m) => CMA.includes(m) || PN.includes(m) || A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no Waivers method is also listed under another module');
   const rsrc = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8');
   const RA = rsrc.match(/const ALLOWED = \[([^\]]*)\]/)[1].split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean);
   ok(RA.length === 3 && RA.every((m) => typeof PUB[m] === 'function') && Object.keys(PUB).filter((m) => typeof PUB[m] === 'function').every((m) => RA.includes(m)), 'the runner page lists the three public methods, and the public backend has no others');
