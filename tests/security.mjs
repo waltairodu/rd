@@ -24,6 +24,7 @@ import * as P from './print.test.mjs';
 import * as U from './runner.test.mjs';
 import * as CM from './comms.test.mjs';
 import * as WV from './waivers.test.mjs';
+import * as RP from './reports.test.mjs';
 import * as W from './rd-waiver.test.mjs';
 import { C as DATA_C } from './rd-data.test.mjs';
 import wd from 'wix-data';
@@ -226,6 +227,8 @@ const BACKENDS = [
   { id: 'Messages', mod: CM, file: 'wix/director/comms.web.js', auth: /await cauth\(arg/, count: 12, pub: [] },
   // Waivers: the waiver text in versions, which question of the form is the waiver, who has signed, papers signed on the day, papers to print
   { id: 'Waivers', mod: WV, file: 'wix/director/waivers.web.js', auth: /await cauth\(arg/, count: 9, pub: [] },
+  // Reports: counts and totals as tables, and a CSV file of one table; a director or a lead (the Money report is the directors' only)
+  { id: 'Reports', mod: RP, file: 'wix/director/reports.web.js', auth: /await cauth\(arg/, count: 3, pub: [] },
 ];
 const BEFORE_LOGIN_CHECK = /wixData|wixEventsV2|guests\.|askClaude|elevate|collections\.|\bthrow\b|\bawait\b|\bif\b|\bfor\b/;
 for (const B of BACKENDS) {
@@ -324,6 +327,10 @@ for (const n of ['cmSaveSettings', 'cmSaveTemplate', 'cmPrepare', 'cmSend', 'cmL
 const WV_LEVEL = {};
 for (const n of ['wvOverview', 'wvText', 'wvList', 'wvRecords', 'wvSheet', 'wvRecord']) WV_LEVEL[n] = 'view';
 for (const n of ['wvSaveText', 'wvSaveSettings', 'wvVoid']) WV_LEVEL[n] = 'director';
+// Reports: a director or a lead may run a report and save a table of it ('view'); the Money report is the directors' only, which the
+// calls check by the report asked for (S4 below).
+const RP_LEVEL = {};
+for (const n of ['rpList', 'rpRun', 'rpCsv']) RP_LEVEL[n] = 'view';
 for (const n of ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finDecideClaim', 'finPayClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid']) FIN_LEVEL[n] = 'manage';
 
 const TABLES = [
@@ -336,6 +343,7 @@ const TABLES = [
   { B: BACKENDS[6], level: {}, publics: BACKENDS[6].pub }, // the runner page: all three methods are public on purpose
   { B: BACKENDS[7], level: CM_LEVEL, publics: BACKENDS[7].pub },
   { B: BACKENDS[8], level: WV_LEVEL, publics: BACKENDS[8].pub },
+  { B: BACKENDS[9], level: RP_LEVEL, publics: BACKENDS[9].pub },
 ];
 for (const { B, level, publics } of TABLES) {
   const unplaced = B.names.filter((n) => !level[n] && !publics.includes(n));
@@ -415,6 +423,7 @@ const CM_WANT = {
   ath: () => 'not_logged_in',
 };
 const WV_WANT = CM_WANT; // the same door: directors everything, leads the 'view' calls, nobody else
+const RP_WANT = CM_WANT; // the same door again: a director or a lead; nobody else
 // a call that gets past the door must fail quickly and harmlessly on a race that does not exist
 const probe =(token) => ({ token, ev: 'nope', event: 'nope', id: 'probe-item', kind: 'task', status: 'zzz', username: 'nope-user', athlete: 'nope', coach: 'nope' });
 const runMatrix = async (label, B, level, want) => {
@@ -439,6 +448,7 @@ await runMatrix('Results', BACKENDS[4], RES_LEVEL, RES_WANT);
 await runMatrix('Print', BACKENDS[5], PRN_LEVEL, PRN_WANT);
 await runMatrix('Messages', BACKENDS[7], CM_LEVEL, CM_WANT);
 await runMatrix('Waivers', BACKENDS[8], WV_LEVEL, WV_WANT);
+await runMatrix('Reports', BACKENDS[9], RP_LEVEL, RP_WANT);
 // "waived" needs the director: a lead may approve or reject a claim but not waive the rule
 await refused(R.decideQual(Object.assign(probe(TOK.lead1), { status: 'waived' })), 'director_only', 'S3 a lead cannot waive a qualification rule');
 await refused(R.decideQual(Object.assign(probe(TOK.view1), { status: 'waived' })), 'director_only', 'S3 a viewer cannot waive one either');
@@ -701,6 +711,43 @@ await wd.insert('RDVolunteers', { _id: WVX.vol, event: EVW, name: 'Waiver Vol', 
   }
 }
 
+// Reports. A director or a lead can run a report: counts and totals, and never a name, a bib, a phone number, an e-mail address or a date of
+// birth. The Money report is the directors' only. Saving a table as a CSV file writes one audit line and nothing else; running a report writes
+// nothing at all.
+{
+  const IDS = ['reg', 'race', 'vol', 'waiver', 'msg', 'money'];
+  for (const [who, tok] of [['a director', TOK.boss], ['a lead', TOK.lead1]]) {
+    const ids = who === 'a director' ? IDS : IDS.filter((i) => i !== 'money');
+    const w0 = WRITES.length;
+    const outs = [];
+    for (const ev of [EVW, EV]) {
+      outs.push(await RP.rpList({ token: tok, ev }));
+      for (const id of ids) outs.push(await RP.rpRun({ token: tok, ev, report: id }));
+    }
+    ok(WRITES.length === w0, 'S4 ' + who + ' ran ' + ids.length + ' reports on two races and the list of reports: nothing was written');
+    const text = JSON.stringify(outs);
+    const seen = WV_HIDDEN.filter((v) => text.includes(v)).concat(/Waiver Runner|Waiver Vol|Lead Target/.test(text) ? ['a name'] : []).concat(/wa\.me|mailto:|@leak\.test/i.test(text) ? ['a contact link or address'] : []).concat(/"(email|phone|dob|form|password|token|secret|bib)"\s*:/i.test(text) ? ['a field named like a secret'] : []);
+    ok(!seen.length && text.length > 3000, 'S4 ' + who + '\'s ' + outs.length + ' answers carry no name, e-mail address, phone number, date of birth, answer of the form or contact link' + (seen.length ? ' [saw ' + seen + ']' : ''));
+    const [list, run] = [outs[0], outs[1]];
+    eq([Object.keys(list).sort(), Object.keys(list.me).sort(), Object.keys(list.race).sort(), list.reports.every((r) => Object.keys(r).sort().join() === 'id,title,what')], [['me', 'race', 'reports'], ['name', 'role'], ['date', 'id', 'name', 'venue'], true], 'S4 ' + who + ': the list has exactly three things (who is asking, the race, the reports)');
+    eq([Object.keys(run).sort(), Object.keys(run.report).sort(), run.tables.every((t) => Object.keys(t).sort().join() === 'cols,id,note,rows,title' && t.cols.every((c) => Object.keys(c).sort().join() === 'kind,label'))], [['made', 'race', 'report', 'tables', 'unread'], ['id', 'title', 'what'], true], 'S4 ' + who + ': a report has exactly five things, and a table five');
+  }
+  // Money: the directors'
+  const w1 = WRITES.length;
+  const money = [];
+  for (const fn of ['rpRun', 'rpCsv']) money.push(await err(RP[fn]({ token: TOK.lead1, ev: EVW, report: 'money', table: 'result' })));
+  eq([money, WRITES.length - w1], [['director_only', 'director_only'], 0], 'S4 a lead is refused the Money report, to run and to save, with director_only, and nothing is written');
+  const moneyOk = await RP.rpRun({ token: TOK.dir2, ev: EVW, report: 'money' });
+  ok(moneyOk.tables.length === 6, 'S4 a second director can run it (control)');
+  // a file: one audit line and nothing else
+  const w2 = WRITES.length;
+  const f = await RP.rpCsv({ token: TOK.lead1, ev: EVW, report: 'reg', table: 'cats' });
+  const line = [...DB.RDAudit.values()].slice(-1)[0];
+  ok(WRITES.length - w2 === 1 && Object.keys(line).sort().join() === '_id,_updatedDate,action,at,by,detail,target' && line.action === 'report saved as CSV' && line.by === 'lead1' && line.target === EVW && /^reg \/ cats · \d+ rows$/.test(line.detail), 'S4 saving a table writes one audit line (who, race, report, table, rows) and nothing else');
+  ok(!WV_HIDDEN.some((v) => f.csv.includes(v) || JSON.stringify(line).includes(v)) && !/Waiver Runner|Waiver Vol|Lead Target/.test(f.csv + JSON.stringify(line)), 'S4 and neither the file nor the audit line holds a name, address or phone number');
+  eq(Object.keys(f).sort(), ['csv', 'name', 'rows', 'unread'], 'S4 a file has exactly four things (its name, its text, how many rows, what could not be read)');
+}
+
 /* =====================================================================================================
    S5. Sessions and tokens
    ===================================================================================================== */
@@ -953,6 +1000,7 @@ const READS = [
   () => P.prnOverview(asBoss), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'bib' }), () => P.prnPreview({ token: TOK.boss, ev: EV, kind: 'cert' }), () => P.prnBibs(asBoss), () => P.prnCerts(asBoss), () => P.prnOverview({ token: TOK.lead1, ev: EV }),
   () => CM.cmOverview(asBoss), () => CM.cmPreview({ token: TOK.boss, ev: EV, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmAudience({ token: TOK.boss, ev: EV, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmBatch({ token: TOK.boss, ev: EV, batch: MSG.email }), () => CM.cmLinks({ token: TOK.boss, ev: EV, batch: MSG.wa }), () => CM.cmExport({ token: TOK.boss, ev: EV, aud: { who: 'runners' } }), () => CM.cmOverview({ token: TOK.lead1, ev: EV }),
   () => WV.wvOverview({ token: TOK.boss, ev: EVW }), () => WV.wvText({ token: TOK.boss, ev: EVW }), () => WV.wvList({ token: TOK.boss, ev: EVW, who: 'runners', filter: 'all', from: 0 }), () => WV.wvRecords({ token: TOK.boss, ev: EVW, who: 'runners', id: WVX.runner }), () => WV.wvSheet({ token: TOK.boss, ev: EVW, who: 'runners', mode: 'forms', scope: 'all', from: 0 }), () => WV.wvOverview({ token: TOK.lead1, ev: EVW }),
+  () => RP.rpList(asBoss), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'reg' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'race' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'vol' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'waiver' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'msg' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'money' }), () => RP.rpCsv({ token: TOK.boss, ev: EV, report: 'reg', table: 'cats' }), () => RP.rpRun({ token: TOK.lead1, ev: EV, report: 'reg' }),
   () => U.pubRaces(), () => U.pubFind({ ev: EV, q: 'secret' }), () => U.pubCert({ ev: EV, bib: '42' }),
 ];
 {

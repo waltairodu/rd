@@ -4,7 +4,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## A. The files and where each one goes
 
-**Backend files** (code sidebar > Backend). The first nine are web modules (`.web.js`); the other nine are plain files: create them with **+ > Add a .js file** and give them exactly these names.
+**Backend files** (code sidebar > Backend). The first ten are web modules (`.web.js`); the other ten are plain files: create them with **+ > Add a .js file** and give them exactly these names.
 
 | File in this pack | Name in Wix | Notes |
 |---|---|---|
@@ -17,6 +17,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 | 1-backend/runner.web.js | runner.web.js | **New.** The public /runner page's server side: three read-only methods that anyone may call, and that show a race only after a director has turned a switch on for it. Add it **before** you paste the page code of /runner |
 | 1-backend/comms.web.js | comms.web.js | **New.** Messages to runners and volunteers: templates, who a message goes to, e-mails through one Wix triggered e-mail with a log, WhatsApp chat links, a file of people (staff only). Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/waivers.web.js | waivers.web.js | **New.** Waivers: the waiver text in versions, which question of the registration form is the waiver, who has signed, papers signed on the day, the papers to print (staff only). Add it **before** you paste the new /rd page code, because that code imports it |
+| 1-backend/reports.web.js | reports.web.js | **New.** Reports: six reports of counts and totals for a race and a CSV file of any table (staff only; Money is for directors). Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/rd-auth.js | **rd-auth.js** | Passwords, PINs, roles. Every `.web.js` file imports it |
 | 1-backend/ai-core.js | **ai-core.js** | Optional AI helper (works without a key) |
 | 1-backend/rd-approvals.js | **rd-approvals.js** | Approvals library and the letter writer |
@@ -26,6 +27,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 | 1-backend/rd-data.js | **rd-data.js** | **New.** Reads a race, its registrations, results and waves for the papers and the runner page (reading only). `print.web.js` and `runner.web.js` import it |
 | 1-backend/rd-comms.js | **rd-comms.js** | **New.** Messages rules: filling a template, cleaning names and links, who is in an audience, chat links, CSV safety. `comms.web.js` imports it |
 | 1-backend/rd-waiver.js | **rd-waiver.js** | **New.** Waiver rules: the text and its versions, who counts as signed, the papers to print. `waivers.web.js` imports it, and so does `comms.web.js` (for the Waiver choice of an audience) |
+| 1-backend/rd-report.js | **rd-report.js** | **New.** Report rules: the tables of each report, cleaning the words in them, rows cut at 400, a table as a safe CSV file. `reports.web.js` imports it |
 
 **Pages** (each page: add an HTML element, paste the embed, set the element ID, paste the page code in the page's code panel)
 
@@ -86,6 +88,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 - On the Team screen: make a new desk login, log in with it in a private window, then **Sign out** it and watch the private window return to the login.
 - Messages: on a test race whose only runner is you (your own e-mail and phone in the registration), send yourself a test from **Settings**, then prepare **Your bib** for "Payment: Paid, Bib: Has a bib" and send it: one e-mail arrives. Press **Send e-mails** again: nothing more is sent, because you were already handled. Open **History** and check the count. Prepare a **WhatsApp** batch, open the chat, send it from WhatsApp and press **Mark as sent**. Log in as a lead: the tab shows no addresses and no send button.
 - Waivers: on a test race, open **People > Waivers > Waiver text**, press **Use the standard wording** and save it (version 1). In **Setup**, pick the waiver question of your registration form and save. In **Who has signed**, tick yourself and press **Record 1 paper as signed** (then **Sure?**): you move to "Signed". Press it again after ticking nothing new: nothing changes. Open **Records**, mark the record as a mistake with a reason (directors only) and watch yourself go back to "Not signed at all". Open **Print papers**, print one page for yourself and a blank page, and check that the paper holds a name, a bib and a category and no phone number or e-mail address. Save a second wording, set **Lowest version that counts as signed** to 2, and see everybody listed as signed an older version. In **Messages** pick **Waiver: Has not signed the current waiver** and see the same people. Log in as a lead: the text and the setup are read-only, and printing and recording work.
+- Reports: open **Reports** and pick **Registrations** on a race you know: the counts by category, gender, age group, T-shirt size and day agree with the Registrations tab, and no name, bib, phone number, e-mail address or date of birth is on the screen. Press **Save as CSV** on a table, open the file in Excel or Numbers, and check `RDAudit` for the new "report saved as CSV" line. Pick **Money** and compare it with Finance, and **Race day** and compare it with the Waves & results board. Log in as a lead: five reports, no Money. Log in as a viewer: no tab.
 
 ## Planning tabs
 After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.
@@ -317,6 +320,32 @@ A **Waivers** tab sits in the **People** group of the menu, right after **Messag
 - RaceOS does not ask a runner to sign online: the registration form (Wix Events) collects the online agreement and the volunteer sign-up page collects its own.
 - Recording takes up to 100 people in one go; the page sends more groups by itself and finishes what the server could not do in time. Keep the page open until it says it is done.
 - The /rd page accepts replies to its calls from any frame on the same page (see the note under Finance). Keep it free of third-party embedded content.
+
+
+## Reports (/rd > Reports)
+A **Reports** tab sits in a group of its own, after the **Race day** group. It uses the same login. The set-up is two backend files, `reports.web.js` and `rd-report.js` (add them **before** you paste the new /rd page code: that code imports `reports.web.js`, so Wix will not save it until the file exists). No collection is made: Reports only reads what the other tabs keep.
+
+**What it does.** For the race picked at the top, a report is a few tables of counts and totals. Pick one of six reports; any table can be saved as a **CSV file** (**Save as CSV**) that opens in Excel, Numbers or Google Sheets. A report never shows a name, a bib, a phone number, an e-mail address or a date of birth: those are read to put a person in a group (an age is worked out for the age group and thrown away) and are never copied into a table. Looking at a report changes nothing. The one thing written is a line in the audit trail (`RDAudit`) each time a table is saved as a CSV file: who, which report and table, and how many rows.
+
+**Who can do what** (the server decides, the screen only mirrors it): a **director** runs all six reports. A **lead** runs five: not **Money**. Viewers, desk staff, coaches and sponsors do not see the tab and are refused if they ask.
+
+### The six reports
+| Report | Tables |
+|---|---|
+| Registrations | Summary (registered, paid, not paid or cancelled); By category; By gender; By age group; By T-shirt size; By day of registration. Each table shows how many registered, how many paid and how many have not paid. |
+| Race day | Results by category (finished, DNF, DNS, DSQ and the finish rate); Finishing times by category (fastest, median, slowest); Finishers by gender. |
+| Volunteers | Volunteers by status (applied, approved, declined, other, and how many accepted the waiver online); Shifts by role (places needed, taken, confirmed, still needed, checked in, hours recorded). |
+| Waivers | Runners by category (signed, signed an older version only, not signed); How people signed (registration form, paper on the day, volunteer sign-up page); Volunteers. |
+| Messages | Messages sent, failed and skipped (batches prepared, e-mails sent, WhatsApp chats marked sent, failed, skipped, still sending); By template. |
+| Money (directors) | Income and expenses; Invoices; Orders (estimate, advance and actual); Reimbursement claims; Budget, estimate and actual by category; Cash. Totals only: nobody is named. |
+
+**Good to know.**
+- **Where the numbers come from.** Registrations are counted from the registrations kept for the race (paid means the registration is marked paid). Gender and age groups come from the registration questions you chose in **Waves & results > Setup**: until you choose them, everybody is "Not recorded" and "Age not known". The Race day numbers are the ones on the Waves & results board, the Waivers numbers those on the Waivers tab, and the Money numbers those on Finance, in rupees.
+- **A part that cannot be read is named.** If a report needs something that has no data yet or could not be read, the screen says "Not read: ..." and counts it as zero, so a zero is never taken for a real count. If the registrations themselves cannot be read, no report is shown ("Something went wrong") rather than an empty one.
+- **Words in a table** are the ones that group people (a category, a T-shirt size, a role, a template). They are cleaned, shown as text and cut at 60 letters. A word that looks like a phone number or an e-mail address is shown as "Other", and so is a T-shirt size that is not a size (too long, no letter, or a long run of digits). Past 400 rows a table is cut; its "Total" row stays and still counts every row, and a note says so.
+- **A CSV file is safe to open in a spreadsheet.** Every word is in quotes, and one that starts with = + - or @ gets a ' in front, so a spreadsheet never takes it for a formula. Numbers are written as numbers (rupees with two decimals, a percentage with one). The file starts with a byte-order mark so Excel reads it as UTF-8, and its name is the race, the report and the table in letters, digits and dashes.
+- **Days** in "By day of registration" are Indian days.
+- **One race at a time.** A report counts the race picked at the top and nothing of any other race.
 
 ## Approvals template (/rd > Approvals)
 Open **Approvals**, then **Approvals template > Open** (directors only). It opens by itself on a race that has no template lines yet.

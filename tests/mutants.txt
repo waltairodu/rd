@@ -315,4 +315,92 @@ wv-ui-text-unescaped-in-the-box	KILLED	waivers-ui.mjs: U11 a text typed into the
 wv-ui-version-title-unescaped	KILLED	waivers-ui.mjs: U11 nor the text screen (title, text, versions, volunteer waiver)   [got [null,3,6], wanted [nu
 wv-ui-record-sends-no-version	KILLED	waivers-ui.mjs: U6 for the runner, with the note and version 1   [got ["runners",["REG~i10~103"],"at the desk",
 wv-ui-record-never-stops-resending	KILLED	waivers-ui.mjs: U6 a server that records nobody and gives everybody back is asked once, not again and again   [
-# 317 mutants, 317 killed, 0 survived
+rp-staff-gate-open	KILLED	reports.mjs: Q1 rpCsv is not for a view1   [wanted not_allowed, got no error]
+rp-money-open-to-leads	KILLED	reports.mjs: Q1 rpRun: a lead cannot run the Money report   [wanted director_only, got no error]
+rp-run-money-open-to-leads	KILLED	reports.mjs: Q1 rpRun: a lead cannot run the Money report   [wanted director_only, got no error]
+rp-csv-money-open-to-leads	KILLED	reports.mjs: Q1 rpCsv: a lead cannot run the Money report   [wanted director_only, got no error]
+rp-session-never-expires	KILLED	reports.mjs: Q1 rpCsv: a session that has run out, has no date or belongs to nobody is not a login   [wanted
+rp-session-garbage-expiry-passes	KILLED	pentest-reports.mjs: RA rpCsv: a session that has no end is not a login   [wanted not_logged_in, got no error]
+rp-token-printed-as-text	KILLED	pentest-reports.mjs: RE every value of the wrong kind in token, ev, report or table is refused with the right code (
+rp-short-token-looked-up	KILLED	pentest-reports.mjs: RA rpCsv: a session that is stored under a token of ten characters is not a login   [wanted not
+rp-staff-row-gone-still-in	KILLED	pentest-reports.mjs: RA rpCsv: a session that belongs to nobody is not a login   [wanted not_logged_in, got not_allo
+rp-user-name-case-sensitive	KILLED	reports.mjs
+rp-raw-error-leaves	KILLED	pentest-reports.mjs: RE a whole argument of the wrong kind is "not_logged_in", or "server_error" when it fights back
+rp-csv-save-not-audited	KILLED	reports.mjs: Q10 every file saved wrote one line to the audit trail   [got 0, wanted 22]
+rp-audit-counts-tables-not-rows	KILLED	reports.mjs: Q10 in order   [got ["reg / summary · 6 rows","reg / cats · 6 rows","reg / gender · 6 rows","re
+rp-run-writes-a-note	KILLED	reports.mjs: Q1 nothing was written by any refused call   [got "[[\"ExpoSessions\",[[\"i7\",{\"token\":\"14d
+rp-unread-not-named	KILLED	reports.mjs: Q11 volunteers: shifts that cannot be read are named; nothing is shown as a role   [got [[],["T
+rp-core-read-failure-hidden	KILLED	reports.mjs: Q11 reg without the registrations is "server_error" and nothing else [got ]
+rp-csv-any-table-will-do	KILLED	reports.mjs: Q10 a table that is not there is refused   [wanted rp_bad_table, got no error]
+rp-csv-table-name-unchecked	KILLED	reports.mjs: Q1 a table that is not a name comes before the race   [wanted rp_bad_table, got no_event]
+rp-race-out-carries-whole-row	KILLED	reports.mjs: Q2 the race carries its id, name, date and venue and nothing else   [got ["_id","_updatedDate",
+rp-list-carries-login-name	KILLED	pentest-reports.mjs: RM and no password, token, session or user name
+rp-lib-lead-list-has-money	KILLED	unit-report.mjs: R1 a lead may run five: not Money   [got ["reg","race","vol","waiver","msg","money"], wanted ["
+rp-lib-money-needs-staff-only	KILLED	unit-report.mjs: R1 only Money is for directors   [got [], wanted ["money"]]
+rp-lib-csv-formula-open	KILLED	unit-report.mjs: R8 a word starting with = gets a ", a loss stays a number   [got "\"=1+1\",-1500.00,3,66.7", wa
+rp-lib-csv-header-raw	KILLED	unit-report.mjs: R8 the header: every label quoted   [got "Name,Rupees,Count,Rate %", wanted "\"Name\",\"Rupees\
+rp-lib-csv-nan-as-text	KILLED	unit-report.mjs: R8 a number that is not a number is an empty cell, never NaN or Infinity; a word in a number co
+rp-lib-csv-rupees-no-decimals	KILLED	unit-report.mjs: R8 a word starting with = gets a ", a loss stays a number   [got "\"'=1+1\",-1500,3,66.7", want
+rp-lib-csv-percent-no-decimal	KILLED	unit-report.mjs: R8 a word starting with = gets a ", a loss stays a number   [got "\"'=1+1\",-1500.00,3,66.66", 
+rp-lib-csv-lines-end-lf	KILLED	unit-report.mjs: R8 the header: every label quoted   [got "\"Name\",\"Rupees\",\"Count\",\"Rate %\"\n\"'=1+1\",-
+rp-lib-word-keeps-email	KILLED	unit-report.mjs: R2 sizes in the order of a size chart, "m" and "M" together, a phone number and an e-mail addre
+rp-lib-word-keeps-phone	KILLED	unit-report.mjs: R4 a role that looks like a phone number is "Other"   [got [], wanted [1,0,0,1,0,0]]
+rp-lib-word-not-cut	KILLED	unit-report.mjs: R2 a word is cut at 60 characters; a long size is "Other"
+rp-lib-size-long-text-kept	KILLED	unit-report.mjs: R2 a word is cut at 60 characters; a long size is "Other"
+rp-lib-size-without-letter-kept	KILLED	unit-report.mjs: R2 a size that is not a size is never shown: 42   [got [["42",1,1,0],["Total",1,1,0]], wanted [
+rp-lib-size-digit-run-kept	KILLED	unit-report.mjs: R2 a size that is not a size is never shown: ab12345   [got [["ab12345",1,1,0],["Total",1,1,0]]
+rp-lib-other-size-not-last	KILLED	unit-report.mjs: R2 sizes with letters stay, digits only are "Other"   [got ["3XL","Other","W-M","Total"], wante
+rp-lib-rows-not-capped	KILLED	unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every row   [got [503,["Cat 39
+rp-lib-cap-loses-total	KILLED	unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every row   [got [400,["Cat 39
+rp-lib-cap-note-missing	KILLED	unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every row   [got [400,["Total"
+rp-lib-cap-size	KILLED	unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every row   [got [503,["Cat 39
+rp-lib-total-misses-last-column	KILLED	unit-report.mjs: R2 the totals row   [got ["Total",9,8], wanted ["Total",9,8,1]]
+rp-lib-unpaid-counted-paid	KILLED	unit-report.mjs: R2 how many registered, paid and not paid   [got [["Registered",9],["Paid",9],["Not paid or can
+rp-lib-exact-age-as-group	KILLED	unit-report.mjs: R2 age groups from a date of birth on race day or a declared age; the others are "Age not known
+rp-lib-category-not-cleaned	KILLED	unit-report.mjs: R2 a word is cut at 60 characters; a long size is "Other"
+rp-lib-day-in-utc	KILLED	unit-report.mjs: R2 days are Indian days (20:00 UTC is the next morning), with the total so far   [got [["2026-1
+rp-lib-median-takes-upper	KILLED	unit-report.mjs: R3 fastest, median and slowest of those with a time (an even count: the middle two averaged, to
+rp-lib-times-of-all-statuses	KILLED	unit-report.mjs: R3 fastest, median and slowest of those with a time (an even count: the middle two averaged, to
+rp-lib-finish-rate-counts-dns	KILLED	unit-report.mjs: R3 finishers, DNF, DNS, DSQ and the finish rate (DNS and DSQ left out of it)   [got [["10 K",5,
+rp-lib-hours-not-capped	KILLED	unit-report.mjs: R4 roles: "Marshal" and "marshal" together; declined places and places on unknown shifts not co
+rp-lib-declined-places-taken	KILLED	unit-report.mjs: R4 roles: "Marshal" and "marshal" together; declined places and places on unknown shifts not co
+rp-lib-still-needed-below-zero	KILLED	unit-report.mjs: R4 roles: "Marshal" and "marshal" together; declined places and places on unknown shifts not co
+rp-lib-waiver-how-swapped	KILLED	unit-report.mjs: R5 where people signed   [got [["On the registration form",0,4],["On paper on the day",0,2],["O
+rp-lib-whatsapp-counted-as-email	KILLED	unit-report.mjs: R6 the totals   [got [["Batches prepared",2],["Messages made (one for each person in a batch)",
+rp-lib-template-rows-counted-as-messages	KILLED	unit-report.mjs: R6 the totals   [got [["Batches prepared",2],["Messages made (one for each person in a batch)",
+rp-lib-money-net-is-projected	KILLED	unit-report.mjs: R7 a loss is a negative number   [got ["Net so far",20], wanted ["Net so far",-1500.5]]
+rp-lib-file-name-raw	KILLED	unit-report.mjs: R8 a file name from the race, the report and the table   [got "Vizag Half Marathon 2027-reg-cat
+rp-lib-file-name-long	KILLED	unit-report.mjs: R8 the file name is plain letters, digits and dashes whatever the race is called: "xxxxxxxxxxxx
+rp-ui-tab-for-everyone	KILLED	reports-ui.mjs: U1 a viewer has no Reports tab
+rp-ui-loads-for-viewers	KILLED	reports-ui.mjs: U1 a Reports tab button made up by hand does not make a viewer's page call the Reports server
+rp-ui-number-cell-unformatted	KILLED	reports-ui.mjs: U10b numbers are grouped the Indian way, rupees carry the rupee sign, a percentage has one deci
+rp-ui-percent-sign-missing	KILLED	reports-ui.mjs: U3 race: every table, heading, column and number on the screen is what the server sent   [got [
+rp-ui-word-cell-as-markup	KILLED	reports-ui.mjs: U3 reg: every table, heading, column and number on the screen is what the server sent   [got [{
+rp-ui-table-title-as-markup	KILLED	reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [null,6,12], wanted [null
+rp-ui-column-label-as-markup	KILLED	reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [null,21,42], wanted [nul
+rp-ui-note-as-markup	KILLED	reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [null,6,12], wanted [null
+rp-ui-unread-as-markup	KILLED	reports-ui.mjs: U10b the tables made nothing live   [got [null,2,4], wanted [null,0,0]]
+rp-ui-report-title-as-markup	KILLED	reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [null,1,2], wanted [null,
+rp-ui-report-button-as-markup	KILLED	reports-ui.mjs: U10 every report title is the hostile text, shown as text
+rp-ui-report-id-as-markup	KILLED	reports-ui.mjs: U10b a report id and title full of quotes and tags stay text and stay inside their attributes
+rp-ui-table-id-as-markup	KILLED	reports-ui.mjs: U10b a table id full of quotes and tags stays inside its attribute (6 tables, 6 buttons)
+rp-ui-what-as-markup	KILLED	reports-ui.mjs: U10b the list made nothing live   [got [null,6,12], wanted [null,0,0]]
+rp-ui-csv-without-bom	KILLED	reports-ui.mjs: U5 it is text/csv, UTF-8, and starts with a byte-order mark so that a spreadsheet reads it righ
+rp-ui-csv-not-csv-type	KILLED	reports-ui.mjs: U5 it is text/csv, UTF-8, and starts with a byte-order mark so that a spreadsheet reads it righ
+rp-ui-csv-saves-twice	KILLED	reports-ui.mjs: U5 two presses at once ask the server once   [got 2, wanted 1]
+rp-ui-csv-stays-busy	KILLED	reports-ui.mjs: U5 pressing again later saves again   [got 1, wanted 2]
+rp-ui-csv-error-silent	KILLED	reports-ui.mjs: U5 a save that failed says so and saves nothing:
+rp-ui-late-report-wins	KILLED	reports-ui.mjs: U7 two picks one after the other, the first answered late: the screen is the second report's   
+rp-ui-late-error-wins	KILLED	reports-ui.mjs: U7 a pick that fails late does not take the screen from the pick made after it   [got [], wante
+rp-ui-old-race-list-kept	KILLED	reports-ui.mjs: U7 switching race while a report is coming: the old answer is dropped and the new race starts a
+rp-ui-other-race-shown	KILLED	reports-ui.mjs: U7 the Reports tab opened after the race was changed on another screen draws nothing of the old
+rp-ui-unlisted-report-asked	KILLED	reports-ui.mjs: U4 a pick button made up for the Money report asks the server for nothing   [got 6, wanted 5]
+rp-ui-list-error-no-toast	KILLED	reports-ui.mjs: U9 a list that fails to load a second time keeps the one on the screen, and a message says so
+rp-ui-empty-table-silent	KILLED	reports-ui.mjs: U8 and the empty tables say "Nothing to count yet."
+rp-ui-unread-not-shown	KILLED	reports-ui.mjs: U9 a source that could not be read is named on the screen, so a zero is never taken for a count
+rp-ui-first-load-error-hidden	KILLED	reports-ui.mjs: U9 a backend file that does not have Reports yet says so, with "Try again", and no list
+rp-ui-refresh-does-nothing	KILLED	reports-ui.mjs: U7 "Refresh" asks again and shows the new registration: 9, not 8 (["Registered","8"] before)   
+rp-page-relay-unlisted-method	KILLED	pagecode.mjs: Reports branch: "login" is refused (only the three Reports methods go through)
+rp-page-allowlist-wider	KILLED	pagecode.mjs: the Reports list and the Reports backend are the same 4 methods (none missing, none extra, none
+rp-page-old-backend-text-leaks	KILLED	pagecode.mjs: Reports branch: a listed method missing in the backend says backend_old, not a crash
+# 405 mutants, 405 killed, 0 survived

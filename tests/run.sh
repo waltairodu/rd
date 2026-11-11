@@ -34,9 +34,12 @@ fi
 if [ -f ../wix/director/rd-waiver.js ]; then
   sed "s#'./rd-results.js'#'./rd-results.test.mjs'#; s#'./rd-print.js'#'./rd-print.test.mjs'#; s#'./rd-comms.js'#'./rd-comms.test.mjs'#" ../wix/director/rd-waiver.js > rd-waiver.test.mjs
 fi
-for f in print runner comms waivers; do
+if [ -f ../wix/director/rd-report.js ]; then
+  sed "s#'./rd-results.js'#'./rd-results.test.mjs'#; s#'./rd-comms.js'#'./rd-comms.test.mjs'#" ../wix/director/rd-report.js > rd-report.test.mjs
+fi
+for f in print runner comms waivers reports; do
   if [ -f ../wix/director/$f.web.js ]; then
-    sed "s#'./rd-auth.js'#'./rd-auth.test.mjs'#; s#'./rd-results.js'#'./rd-results.test.mjs'#; s#'./rd-print.js'#'./rd-print.test.mjs'#; s#'./rd-data.js'#'./rd-data.test.mjs'#; s#'./rd-comms.js'#'./rd-comms.test.mjs'#; s#'./rd-waiver.js'#'./rd-waiver.test.mjs'#" ../wix/director/$f.web.js > $f.test.mjs
+    sed "s#'./rd-auth.js'#'./rd-auth.test.mjs'#; s#'./rd-results.js'#'./rd-results.test.mjs'#; s#'./rd-print.js'#'./rd-print.test.mjs'#; s#'./rd-data.js'#'./rd-data.test.mjs'#; s#'./rd-comms.js'#'./rd-comms.test.mjs'#; s#'./rd-waiver.js'#'./rd-waiver.test.mjs'#; s#'./rd-finance.js'#'./rd-finance.test.mjs'#; s#'./rd-report.js'#'./rd-report.test.mjs'#" ../wix/director/$f.web.js > $f.test.mjs
   fi
 done
 mkdir -p node_modules

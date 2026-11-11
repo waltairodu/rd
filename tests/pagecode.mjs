@@ -7,6 +7,7 @@ import * as FN from './finance.test.mjs';
 import * as PR from './print.test.mjs';
 import * as CM from './comms.test.mjs';
 import * as WV from './waivers.test.mjs';
+import * as RP from './reports.test.mjs';
 import * as PUB from './runner.test.mjs';
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log('  FAIL', m); } };
@@ -218,6 +219,42 @@ for (const [f, id] of files) {
   ok(r35.ok === true && seen[2] && seen[2].method === 'wvVoid' && seen.length === 3, 'Waivers branch: a method or tag hidden inside the argument changes nothing (the call still goes to the method it names)');
 }
 
+// The Reports branch of the director page code: relays only the three Reports methods, with the token it is given.
+{
+  const src = fs.readFileSync('../wix/director/director-page-code.js', 'utf8').replace(/^import .*$/gm, '');
+  let ready, handler = null; const posts = []; const seen = [];
+  const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
+  const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
+  const repo = { rpList: async (a) => { seen.push(a); return { fine: 1 }; }, rpRun: async () => { throw new Error('rp_bad_report'); }, login: async () => ({ token: 'leak' }) };
+  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'wv', 'rp', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, {}, {}, repo, console);
+  ready();
+  const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
+  const r1 = await call(1, 'rpList', 'rp', { token: 'T'.repeat(30), ev: 'e1' });
+  ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Reports branch: rpList is relayed with the token and race it was given');
+  const r2 = await call(2, 'rpCsv', 'rp');
+  ok(r2.ok === false && r2.error === 'backend_old', 'Reports branch: a listed method missing in the backend says backend_old, not a crash');
+  const r3 = await call(3, 'rpRun', 'rp');
+  ok(r3.ok === false && r3.error === 'rp_bad_report', 'Reports branch: an error from the backend is passed on as its plain code');
+  for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'rp'], [12, 'rpRun '], [13, 'RPRUN'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'rpRunAll'], [18, 'wvOverview'], [19, 'cmSend'], [20, 'rpDelete'], [21, 'rpMoney'], [22, 'rpCsv2']]) {
+    const r = await call(id, m, 'rp');
+    ok(r.ok === false && r.error === 'page_code_old', 'Reports branch: "' + m + '" is refused (only the three Reports methods go through)');
+  }
+  const r23 = await call(23, ['rpList'], 'rp');
+  ok(r23.ok === false, 'Reports branch: a method that is not a string is refused');
+  for (const [id, mod] of [[24, 'rd'], [25, 'comms'], [26, 'prn'], [27, 'fin'], [28, 'res'], [29, 'expo'], [30, 'train'], [31, 'wv'], [32, 'RP'], [33, ' rp'], [34, 'reports']]) {
+    const r = await call(id, 'rpList', mod);
+    ok(r.ok === false && r.error === 'page_code_old', 'a Reports method sent with the "' + mod + '" tag is not relayed through that branch');
+  }
+  const r35 = await call(35, 'rpList', 'rp', null);
+  ok(r35.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Reports branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
+  const r36 = await call(36, 'wvOverview', 'rp');
+  ok(r36.ok === false && r36.error === 'page_code_old', 'a Waivers method sent with the Reports tag is refused');
+  const r37 = await call(37, 'rpList', 'rp', { token: 'T'.repeat(30), ev: 'e1', method: 'rpRun', mod: 'comms' });
+  ok(r37.ok === true && seen[2] && seen[2].method === 'rpRun' && seen.length === 3, 'Reports branch: a method or tag hidden inside the argument changes nothing (the call still goes to the method it names)');
+  const r38 = await call(38, 'rpList', 'rp', { token: 'T'.repeat(30), ev: 'e1', report: 'money' });
+  ok(r38.ok === true && seen[3].report === 'money', 'Reports branch: the arguments are passed on untouched (the server decides who may see Money)');
+}
+
 // The public runner page code: three read-only public methods and nothing else; the race comes from the link.
 {
   const src = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8').replace(/^import .*$/gm, '');
@@ -299,6 +336,9 @@ for (const [f, id] of files) {
   const WVA = list('WV_ALLOWED');
   ok(WVA.length === 9 && WVA.every((m) => typeof WV[m] === 'function') && Object.keys(WV).filter((m) => typeof WV[m] === 'function').every((m) => WVA.includes(m)) && new Set(WVA).size === WVA.length, 'the Waivers list and the Waivers backend are the same ' + WVA.length + ' methods (none missing, none extra, none twice)');
   ok(WVA.every((m) => /^wv[A-Z]/.test(m)) && !WVA.some((m) => CMA.includes(m) || PN.includes(m) || A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no Waivers method is also listed under another module');
+  const RPA = list('RP_ALLOWED');
+  ok(RPA.length === 3 && RPA.every((m) => typeof RP[m] === 'function') && Object.keys(RP).filter((m) => typeof RP[m] === 'function').every((m) => RPA.includes(m)) && new Set(RPA).size === RPA.length, 'the Reports list and the Reports backend are the same ' + RPA.length + ' methods (none missing, none extra, none twice)');
+  ok(RPA.every((m) => /^rp[A-Z]/.test(m)) && !RPA.some((m) => WVA.includes(m) || CMA.includes(m) || PN.includes(m) || A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no Reports method is also listed under another module');
   const rsrc = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8');
   const RA = rsrc.match(/const ALLOWED = \[([^\]]*)\]/)[1].split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean);
   ok(RA.length === 3 && RA.every((m) => typeof PUB[m] === 'function') && Object.keys(PUB).filter((m) => typeof PUB[m] === 'function').every((m) => RA.includes(m)), 'the runner page lists the three public methods, and the public backend has no others');

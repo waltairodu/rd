@@ -1,3 +1,34 @@
+# Package 5c (Reports): what to change on a site that already runs Package 5b
+
+Date: 2026-11-11. Installing for the first time? Ignore this page and follow SETUP.md.
+Two new backend files and the /rd embed and page code replaced. No existing backend file changes, no collection is made and no existing data is touched: Reports only reads what the other tabs already keep. The one thing it ever writes is a line in the audit trail each time a table is saved as a CSV file.
+
+**Which package does your site run?** If /rd has a **Waivers** tab, it runs Package 5b: follow the steps just below. If it has no such tab, it runs Package 5a or older: do the older steps at the bottom of this page first (Package 5b, then 5a, then 4, then 3, then 2), then these. The /rd embed and page code are replaced only once, with the files from this pack.
+
+## 1. Add two backend files (do this first)
+Code sidebar > Backend:
+- `reports.web.js`: **+ > Add a web module**, name it exactly `reports.web.js`, paste the contents of `1-backend/reports.web.js`.
+- `rd-report.js`: **+ > Add a .js file**, name it exactly `rd-report.js`, paste the contents of `1-backend/rd-report.js`.
+
+Do this before step 2: the new /rd page code imports `reports.web.js`, and Wix will not save it until that file exists. Every other backend file (`racedir.web.js`, `finance.web.js`, `results.web.js`, `comms.web.js`, `waivers.web.js` and the rest) stays exactly as it is.
+
+## 2. Replace the /rd page
+- **Embed:** click the HTML element on /rd (ID `dirFrame`), choose **Enter Code**, select everything, paste `2-pages/rd/rd-embed.html`.
+- **Page code:** open the /rd page's code panel, select everything, paste `2-pages/rd/page-code.js`.
+
+## 3. Publish and check
+1. Publish the site.
+2. At /rd log in as a director. A **Reports** tab sits in a group of its own, after the **Race day** group and before **Admin**. Open it: six buttons across the top (Registrations, Race day, Volunteers, Waivers, Messages, Money) and a card that says "Pick a report".
+3. Pick **Registrations** on a race you know. The counts by category, gender, age group, T-shirt size and day should match what the Registrations tab shows. Look for a name, a bib, a phone number, an e-mail address or a date of birth anywhere on the screen: there is none.
+4. Press **Save as CSV** on one table. A file such as `vizag-half-marathon-reg-cats.csv` is saved and opens in Excel or Numbers with the right columns. In the **live** CMS data open `RDAudit`: a new line "report saved as CSV" with your login, the race, and the report, table and row count.
+5. Pick **Money** and compare "Total income" and "Net so far" with the Finance tab. Pick **Race day** and compare the finishers with the Waves & results board.
+6. Log in as a lead: five reports, no Money button. A viewer, desk, coach or sponsor login does not see the tab.
+7. If a report says "Not read: ..." under its title, the part it names has no data yet (or could not be read) and is counted as zero.
+
+What each report holds, the privacy rules and the limits are in SETUP.md under "Reports".
+
+---
+
 # Package 5b (Waivers): what to change on a site that already runs Package 5a
 
 Date: 2026-11-09. Installing for the first time? Ignore this page and follow SETUP.md.

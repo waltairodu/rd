@@ -26,3 +26,8 @@ unit unit-waiver.mjs
 integration waivers.mjs
 integration waivers-ui.mjs
 pentest pentest-waivers.mjs
+# Package 5c: Reports (counts and totals as tables, and a CSV file of any table)
+unit unit-report.mjs
+integration reports.mjs
+integration reports-ui.mjs
+pentest pentest-reports.mjs

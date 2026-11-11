@@ -1,4 +1,4 @@
-# Regression baseline: the number of checks each suite passed at the last release (2026-11-09, Package 5b: Waivers, who has signed and the papers).
+# Regression baseline: the number of checks each suite passed at the last release (2026-11-11, Package 5c: Reports, counts and totals with CSV files).
 # tests/all.sh fails if any suite now passes fewer checks than listed here, or if any check fails.
 # Update a number only when checks were removed on purpose.
 unit-auth.mjs 122
@@ -27,7 +27,7 @@ print-ui.mjs 178
 runner-ui.mjs 99
 comms.mjs 533
 comms-ui.mjs 267
-security.mjs 487
+security.mjs 515
 director.mjs 211
 plan.mjs 98
 dash.mjs 38
@@ -43,10 +43,14 @@ training-ui.mjs 37
 training-ai.mjs 32
 approvals-ui.mjs 60
 preview-ui.mjs 48
-pagecode.mjs 208
+pagecode.mjs 248
 ui.mjs 45
 rd-ui.mjs 58
 unit-waiver.mjs 128
 pentest-waivers.mjs 306
 waivers.mjs 433
 waivers-ui.mjs 309
+unit-report.mjs 230
+pentest-reports.mjs 796
+reports.mjs 413
+reports-ui.mjs 182

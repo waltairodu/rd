@@ -9,6 +9,7 @@ import * as res from 'backend/results.web';
 import * as prn from 'backend/print.web';
 import * as comms from 'backend/comms.web';
 import * as wv from 'backend/waivers.web';
+import * as rp from 'backend/reports.web';
 
 // Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
 function pickFrame(byId) {
@@ -51,6 +52,10 @@ const COMMS_ALLOWED = ['cmOverview', 'cmPreview', 'cmAudience', 'cmSaveSettings'
 // papers to print). Calls arrive tagged mod:'wv' with the session token added by the screen. The backend decides who may use each one
 // (directors everything; leads look, print and record a paper).
 const WV_ALLOWED = ['wvOverview', 'wvText', 'wvList', 'wvRecords', 'wvSheet', 'wvRecord', 'wvSaveText', 'wvSaveSettings', 'wvVoid'];
+
+// The Reports tab (counts and totals as tables, and a CSV file of a table). Calls arrive tagged mod:'rp' with the session token added by
+// the screen. The backend decides who may run which report (directors all; leads all but Money).
+const RP_ALLOWED = ['rpList', 'rpRun', 'rpCsv'];
 
 $w.onReady(function () {
   const frame = pickFrame($w('#dirFrame'));
@@ -154,6 +159,20 @@ $w.onReady(function () {
       }
       try {
         const result = await wv[msg.method](msg.arg || {});
+        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+      } catch (e) {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
+      }
+      return;
+    }
+    if (msg.mod === 'rp') {
+      if (RP_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+      if (typeof rp[msg.method] !== 'function') {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+        return;
+      }
+      try {
+        const result = await rp[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });

@@ -182,7 +182,7 @@ function api(method,arg,ms,mod){
   });
 }
 // Back to the login page: the session is over (logged out, expired, or ended by a director).
-function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.cm=null;S.wv=null;S.loginErr=why?msg(why):'';render()}
+function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.cm=null;S.wv=null;S.rp=null;S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -230,6 +230,7 @@ async function loadTab(){
     else if(t==='prn'&&(man()||isLead()))await prnLoad();
     else if(t==='comms'&&(man()||isLead()))await cmLoad();
     else if(t==='wv'&&(man()||isLead()))await wvLoad();
+    else if(t==='rp'&&(man()||isLead()))await rpLoad();
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -252,10 +253,10 @@ function loginView(){
 }
 var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4',print:'M7 8V3h10v5M7 17H4v-8h16v8h-3M7 14h10v7H7z',mail:'M3 6h18v12H3zM3 7l9 7 9-7'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['comms','Messages','mail'],['wv','Waivers','shield'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['comms','Messages','mail'],['wv','Waivers','shield'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Reports',[['rp','Reports','list']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
-  if(id==='fin'||id==='res'||id==='prn'||id==='comms'||id==='wv')return man()||isLead();
+  if(id==='fin'||id==='res'||id==='prn'||id==='comms'||id==='wv'||id==='rp')return man()||isLead();
   if(id==='coaching'||id==='setup'||id==='team')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
@@ -552,7 +553,7 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='comms'&&(man()||isLead())?cmView():S.tab==='wv'&&(man()||isLead())?wvView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='comms'&&(man()||isLead())?cmView():S.tab==='wv'&&(man()||isLead())?wvView():S.tab==='rp'&&(man()||isLead())?rpView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
   app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
 }
@@ -828,6 +829,7 @@ document.addEventListener('click',function(e){
   else if(act.indexOf('prn-')===0)prnAct(b,act,id);
   else if(act.indexOf('cm-')===0)cmAct(b,act,id);
   else if(act.indexOf('wv-')===0)wvAct(b,act,id);
+  else if(act.indexOf('rp-')===0)rpAct(b,act,id);
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
@@ -2595,6 +2597,83 @@ document.addEventListener('input',function(e){
   else if(fid==='wvPrintForm'&&t.name==='pcopies')w.pcopies=t.value;
 });
 /* ---------- waivers: end (WAIVERS-END) ---------- */
+
+/* ---------- reports ----------
+   Everything for the Reports tab lives in this block. It talks to reports.web.js through the page (calls tagged mod:'rp'). A report is a
+   few tables of counts and totals: nobody is named in one. A director sees every report, a lead every report but Money; the server
+   decides, this only hides what would be refused. A table can be saved as a CSV file, which the server makes (a word in it can never
+   start a formula). Everything that comes back is shown as text, never as markup. */
+S.rp=null;
+(function(){var add={
+  rp_bad_report:'That report is not available. Reload the page and pick again.',
+  rp_bad_table:'That table is not in this report. Reload the page and try again.'};
+  Object.keys(add).forEach(function(k){if(!ERR[k])ERR[k]=add[k]})})();
+function rpa(m,a,ms){return api(m,a,ms,'rp')}
+function rpNew(){return {ev:S.ev,err:'',list:null,id:'',data:null,loading:false,seq:0,busy:false}}
+async function rpLoad(){
+  if(!S.rp||S.rp.ev!==S.ev)S.rp=rpNew();
+  var r=S.rp;r.err='';
+  try{
+    var l=await rpa('rpList');if(S.rp!==r)return;r.list=l;
+    if(r.id&&!l.reports.some(function(x){return x.id===r.id}))r.id='';
+    if(r.id)rpOpen(r.id);
+  }catch(e){if(S.rp!==r)return;r.err=msg(e.message);toast(r.err,true)}
+}
+// Runs one report. An answer to an earlier pick is dropped.
+async function rpOpen(id){
+  var r=S.rp;if(!r||!r.list)return;
+  if(!r.list.reports.some(function(x){return x.id===id}))return;
+  r.id=id;r.data=null;r.err='';r.loading=true;var n=++r.seq;render();
+  try{var d=await rpa('rpRun',{report:id},60000);if(S.rp!==r||r.seq!==n)return;r.data=d}
+  catch(e){if(S.rp!==r||r.seq!==n)return;r.err=msg(e.message);toast(r.err,true)}
+  r.loading=false;render();
+}
+function rpCell(v,kind){
+  if(typeof v==='number')return kind==='r'?fm(v):kind==='p'?v.toFixed(1)+'%':v.toLocaleString('en-IN');
+  return esc(v);
+}
+function rpTableHtml(t){
+  var head=t.cols.map(function(c){return '<th'+(c.kind==='text'?'':' class="num"')+'>'+esc(c.label)+'</th>'}).join('');
+  var body=t.rows.map(function(row){
+    var tot=row[0]==='Total';
+    return '<tr'+(tot?' style="font-weight:600"':'')+'>'+row.map(function(v,i){var k=t.cols[i]?t.cols[i].kind:'text';return '<td'+(k==='text'?'':' class="num"')+'>'+rpCell(v,k)+'</td>'}).join('')+'</tr>';
+  }).join('');
+  return '<div class="card rp-table"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3>'+esc(t.title)+'</h3><button class="btn sm" data-act="rp-csv" data-id="'+esc(t.id)+'">Save as CSV</button></div>'
+    +(t.rows.length?'<div class="scroll"><table><tr>'+head+'</tr>'+body+'</table></div>':'<p class="muted" style="margin-top:6px">Nothing to count yet.</p>')
+    +(t.note?'<p class="muted" style="margin-top:6px"><small>'+esc(t.note)+'</small></p>':'')+'</div>';
+}
+function rpReportHtml(){
+  var r=S.rp,d=r.data;if(!d)return planLoading();
+  var un=d.unread&&d.unread.length?'<p class="muted" role="alert" style="margin-top:6px">Not read (nothing set up yet, or it could not be read, so counted as zero): '+d.unread.map(esc).join(', ')+'.</p>':'';
+  return '<div class="card"><h3>'+esc(d.report.title)+'</h3><p class="muted" style="margin-top:6px">'+esc(d.report.what)+' Made '+esc(fdate(String(d.made).slice(0,10)))+' '+esc(ftime(d.made))+'.</p>'+un
+    +'<div class="row" style="margin-top:8px"><button class="btn sm" data-act="rp-refresh">Refresh</button></div></div>'
+    +d.tables.map(rpTableHtml).join('');
+}
+function rpView(){
+  var r=S.rp;if(!r||r.ev!==S.ev)return planLoading();
+  var errCard=function(t){return '<div class="card"><p class="muted" role="alert">'+esc(t)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="retry">Try again</button></div></div>'};
+  if(!r.list)return r.err?errCard(r.err):planLoading();
+  var nav='<div class="row" role="tablist" aria-label="Reports">'+r.list.reports.map(function(x){return '<button class="btn sm'+(r.id===x.id?' pri':'')+'" role="tab" aria-selected="'+(r.id===x.id)+'" data-act="rp-pick" data-id="'+esc(x.id)+'">'+esc(x.title)+'</button>'}).join('')+'</div>';
+  var intro='<p class="muted">Counts and totals only. A report never shows a name, a bib, a phone number, an e-mail address or a date of birth, and any table can be saved as a CSV file.'+(man()?'':' The Money report is for directors.')+'</p>';
+  var body=!r.id?'<div class="card"><h3>Pick a report</h3><div class="stack" style="margin-top:8px">'+r.list.reports.map(function(x){return '<div><b>'+esc(x.title)+'</b><div class="muted">'+esc(x.what)+'</div></div>'}).join('')+'</div></div>'
+    :r.loading?planLoading():r.err?errCard(r.err):rpReportHtml();
+  return '<div class="stack">'+nav+intro+body+'</div>';
+}
+async function rpSaveCsv(table){
+  var r=S.rp;if(!r||!r.id||r.busy)return;r.busy=true;
+  try{
+    var d=await rpa('rpCsv',{report:r.id,table:table},60000);if(S.rp!==r)return;
+    download(d.name,String.fromCharCode(65279)+d.csv,'text/csv;charset=utf-8');toast('Saved '+d.name);
+  }catch(e){if(S.rp===r)toast(msg(e.message),true)}
+  r.busy=false;
+}
+function rpAct(b,act,id){
+  var r=S.rp;if(!r||!r.list)return;
+  if(act==='rp-pick'){if(id)rpOpen(id)}
+  else if(act==='rp-refresh'){if(r.id)rpOpen(r.id)}
+  else if(act==='rp-csv'){if(id)rpSaveCsv(id)}
+}
+/* ---------- reports: end (REPORTS-END) ---------- */
 
 function navLabel(t){return t[0]==='fin'&&!man()?'My claims':t[1]}
 

@@ -17,3 +17,6 @@ backend wix/director/rd-comms.js
 # Package 5b: Waivers (the text in versions, who has signed, papers on the day, papers to print)
 backend wix/director/waivers.web.js
 backend wix/director/rd-waiver.js
+# Package 5c: Reports (counts and totals as tables, and a CSV file of any table)
+backend wix/director/reports.web.js
+backend wix/director/rd-report.js

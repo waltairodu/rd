@@ -4,18 +4,18 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 7 | 984 | 0 |
-| 2. Penetration tests | 8 | 1461 | 0 |
-| 3. Integration tests | 15 | 3091 | 0 |
-| 4. Security tests | 1 | 487 | 0 |
-| Component tests (older suites) | 18 | 1451 | 0 |
-| 5. Regression (older suites against the saved baseline) | 49 | 7474 | 0 |
+| 1. Unit tests | 8 | 1214 | 0 |
+| 2. Penetration tests | 9 | 2257 | 0 |
+| 3. Integration tests | 17 | 3686 | 0 |
+| 4. Security tests | 1 | 515 | 0 |
+| Component tests (older suites) | 18 | 1491 | 0 |
+| 5. Regression (older suites against the saved baseline) | 53 | 9163 | 0 |
 
-**Total: 7474 checks passed, 0 failed.**
+**Total: 9163 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
-One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell), the Messages rules (text cleaning, e-mail and chat-link checks, filling templates, CSV safety, who is in an audience), and the Waivers rules (the waiver text and its versions, which answers count as signed, who has signed, the papers to print).
+One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell), the Messages rules (text cleaning, e-mail and chat-link checks, filling templates, CSV safety, who is in an audience), and the Waivers rules (the waiver text and its versions, which answers count as signed, who has signed, the papers to print), and the Reports rules (counts by group, who may run which report, words kept clean, rows cut at 400, a table as a safe CSV file).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -26,10 +26,11 @@ One piece on its own: password hashing, PINs, roles, the Team screen rules, the 
 | `unit-print.mjs` | 120 | 0 |
 | `unit-comms.mjs` | 129 | 0 |
 | `unit-waiver.mjs` | 128 | 0 |
+| `unit-report.mjs` | 230 | 0 |
 
 ## 2. Penetration tests
 
-Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details), the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find) the Messages tab (templates, audiences, sending twice, other races, lead and desk logins, hostile text on every screen) and the Waivers tab (hostile texts and names on the screens and the printed papers, recording twice, marking a mistake, other races, lead and desk logins, damaged data); every attack must fail.
+Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details), the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find) the Messages tab (templates, audiences, sending twice, other races, lead and desk logins, hostile text on every screen) and the Waivers tab (hostile texts and names on the screens and the printed papers, recording twice, marking a mistake, other races, lead and desk logins, damaged data) and the Reports tab (forged, old and short tokens, a login that changes role in the middle of a session, the Money report for a lead, other races, odd table names, formulas and hostile words in a CSV file, 1,200 categories, 60 calls at once, no personal details in any table); every attack must fail.
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -41,10 +42,11 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 | `pentest-print.mjs` | 135 | 0 |
 | `pentest-comms.mjs` | 212 | 0 |
 | `pentest-waivers.mjs` | 306 | 0 |
+| `pentest-reports.mjs` | 796 | 0 |
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -63,14 +65,16 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `comms-ui.mjs` | 267 | 0 |
 | `waivers.mjs` | 433 | 0 |
 | `waivers-ui.mjs` | 309 | 0 |
+| `reports.mjs` | 413 | 0 |
+| `reports-ui.mjs` | 182 | 0 |
 
 ## 4. Security tests
 
-An audit of every method, Finance, Results, Print, Messages, Waivers and the public runner page included, against the written role table, secrets, locks and shipped files.
+An audit of every method, Finance, Results, Print, Messages, Waivers, Reports and the public runner page included, against the written role table, secrets, locks and shipped files.
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `security.mjs` | 487 | 0 |
+| `security.mjs` | 515 | 0 |
 
 ## Component tests (older suites)
 
@@ -93,7 +97,7 @@ Each backend method and each screen, one by one; these also form the regression 
 | `training-ai.mjs` | 32 | 0 |
 | `approvals-ui.mjs` | 60 | 0 |
 | `preview-ui.mjs` | 48 | 0 |
-| `pagecode.mjs` | 208 | 0 |
+| `pagecode.mjs` | 248 | 0 |
 | `ui.mjs` | 45 | 0 |
 | `rd-ui.mjs` | 58 | 0 |
 
@@ -119,11 +123,12 @@ Every suite that existed before a change must still pass at least as many checks
 | `finance.mjs` | 222 | 222 |
 | `integration-flow.mjs` | 100 | 100 |
 | `integration-ui.mjs` | 47 | 47 |
-| `pagecode.mjs` | 208 | 208 |
+| `pagecode.mjs` | 248 | 248 |
 | `pentest-comms.mjs` | 212 | 212 |
 | `pentest-finance-ui.mjs` | 32 | 32 |
 | `pentest-finance.mjs` | 118 | 118 |
 | `pentest-print.mjs` | 135 | 135 |
+| `pentest-reports.mjs` | 796 | 796 |
 | `pentest-results.mjs` | 105 | 105 |
 | `pentest-ui.mjs` | 131 | 131 |
 | `pentest-waivers.mjs` | 306 | 306 |
@@ -134,11 +139,13 @@ Every suite that existed before a change must still pass at least as many checks
 | `print-ui.mjs` | 178 | 178 |
 | `print.mjs` | 219 | 219 |
 | `rd-ui.mjs` | 58 | 58 |
+| `reports-ui.mjs` | 182 | 182 |
+| `reports.mjs` | 413 | 413 |
 | `results-ui.mjs` | 169 | 169 |
 | `results.mjs` | 173 | 173 |
 | `runner-ui.mjs` | 99 | 99 |
 | `scen.mjs` | 97 | 97 |
-| `security.mjs` | 487 | 487 |
+| `security.mjs` | 515 | 515 |
 | `training-ai.mjs` | 32 | 32 |
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
@@ -147,6 +154,7 @@ Every suite that existed before a change must still pass at least as many checks
 | `unit-comms.mjs` | 129 | 129 |
 | `unit-finance.mjs` | 117 | 117 |
 | `unit-print.mjs` | 120 | 120 |
+| `unit-report.mjs` | 230 | 230 |
 | `unit-results.mjs` | 119 | 119 |
 | `unit-team.mjs` | 249 | 249 |
 | `unit-waiver.mjs` | 128 | 128 |
@@ -157,7 +165,7 @@ Every suite that existed before a change must still pass at least as many checks
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
 
-**317 protections removed, 317 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b. Every one is run again once for the final pack.
+**405 protections removed, 405 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c. Every one is run again once for the final pack.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -478,6 +486,94 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | wv-ui-version-title-unescaped | KILLED | waivers-ui.mjs: U11 nor the text screen (title, text, versions, volunteer waiver)   [got [ |
 | wv-ui-record-sends-no-version | KILLED | waivers-ui.mjs: U6 for the runner, with the note and version 1   [got ["runners",["REG~i10 |
 | wv-ui-record-never-stops-resending | KILLED | waivers-ui.mjs: U6 a server that records nobody and gives everybody back is asked once, no |
+| rp-staff-gate-open | KILLED | reports.mjs: Q1 rpCsv is not for a view1   [wanted not_allowed, got no error] |
+| rp-money-open-to-leads | KILLED | reports.mjs: Q1 rpRun: a lead cannot run the Money report   [wanted director_only, got no  |
+| rp-run-money-open-to-leads | KILLED | reports.mjs: Q1 rpRun: a lead cannot run the Money report   [wanted director_only, got no  |
+| rp-csv-money-open-to-leads | KILLED | reports.mjs: Q1 rpCsv: a lead cannot run the Money report   [wanted director_only, got no  |
+| rp-session-never-expires | KILLED | reports.mjs: Q1 rpCsv: a session that has run out, has no date or belongs to nobody is not |
+| rp-session-garbage-expiry-passes | KILLED | pentest-reports.mjs: RA rpCsv: a session that has no end is not a login   [wanted not_logg |
+| rp-token-printed-as-text | KILLED | pentest-reports.mjs: RE every value of the wrong kind in token, ev, report or table is ref |
+| rp-short-token-looked-up | KILLED | pentest-reports.mjs: RA rpCsv: a session that is stored under a token of ten characters is |
+| rp-staff-row-gone-still-in | KILLED | pentest-reports.mjs: RA rpCsv: a session that belongs to nobody is not a login   [wanted n |
+| rp-user-name-case-sensitive | KILLED | reports.mjs |
+| rp-raw-error-leaves | KILLED | pentest-reports.mjs: RE a whole argument of the wrong kind is "not_logged_in", or "server_ |
+| rp-csv-save-not-audited | KILLED | reports.mjs: Q10 every file saved wrote one line to the audit trail   [got 0, wanted 22] |
+| rp-audit-counts-tables-not-rows | KILLED | reports.mjs: Q10 in order   [got ["reg / summary · 6 rows","reg / cats · 6 rows","reg / ge |
+| rp-run-writes-a-note | KILLED | reports.mjs: Q1 nothing was written by any refused call   [got "[[\"ExpoSessions\",[[\"i7\ |
+| rp-unread-not-named | KILLED | reports.mjs: Q11 volunteers: shifts that cannot be read are named; nothing is shown as a r |
+| rp-core-read-failure-hidden | KILLED | reports.mjs: Q11 reg without the registrations is "server_error" and nothing else [got ] |
+| rp-csv-any-table-will-do | KILLED | reports.mjs: Q10 a table that is not there is refused   [wanted rp_bad_table, got no error |
+| rp-csv-table-name-unchecked | KILLED | reports.mjs: Q1 a table that is not a name comes before the race   [wanted rp_bad_table, g |
+| rp-race-out-carries-whole-row | KILLED | reports.mjs: Q2 the race carries its id, name, date and venue and nothing else   [got ["_i |
+| rp-list-carries-login-name | KILLED | pentest-reports.mjs: RM and no password, token, session or user name |
+| rp-lib-lead-list-has-money | KILLED | unit-report.mjs: R1 a lead may run five: not Money   [got ["reg","race","vol","waiver","ms |
+| rp-lib-money-needs-staff-only | KILLED | unit-report.mjs: R1 only Money is for directors   [got [], wanted ["money"]] |
+| rp-lib-csv-formula-open | KILLED | unit-report.mjs: R8 a word starting with = gets a ", a loss stays a number   [got "\"=1+1\ |
+| rp-lib-csv-header-raw | KILLED | unit-report.mjs: R8 the header: every label quoted   [got "Name,Rupees,Count,Rate %", want |
+| rp-lib-csv-nan-as-text | KILLED | unit-report.mjs: R8 a number that is not a number is an empty cell, never NaN or Infinity; |
+| rp-lib-csv-rupees-no-decimals | KILLED | unit-report.mjs: R8 a word starting with = gets a ", a loss stays a number   [got "\"'=1+1 |
+| rp-lib-csv-percent-no-decimal | KILLED | unit-report.mjs: R8 a word starting with = gets a ", a loss stays a number   [got "\"'=1+1 |
+| rp-lib-csv-lines-end-lf | KILLED | unit-report.mjs: R8 the header: every label quoted   [got "\"Name\",\"Rupees\",\"Count\",\ |
+| rp-lib-word-keeps-email | KILLED | unit-report.mjs: R2 sizes in the order of a size chart, "m" and "M" together, a phone numb |
+| rp-lib-word-keeps-phone | KILLED | unit-report.mjs: R4 a role that looks like a phone number is "Other"   [got [], wanted [1, |
+| rp-lib-word-not-cut | KILLED | unit-report.mjs: R2 a word is cut at 60 characters; a long size is "Other" |
+| rp-lib-size-long-text-kept | KILLED | unit-report.mjs: R2 a word is cut at 60 characters; a long size is "Other" |
+| rp-lib-size-without-letter-kept | KILLED | unit-report.mjs: R2 a size that is not a size is never shown: 42   [got [["42",1,1,0],["To |
+| rp-lib-size-digit-run-kept | KILLED | unit-report.mjs: R2 a size that is not a size is never shown: ab12345   [got [["ab12345",1 |
+| rp-lib-other-size-not-last | KILLED | unit-report.mjs: R2 sizes with letters stay, digits only are "Other"   [got ["3XL","Other" |
+| rp-lib-rows-not-capped | KILLED | unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every ro |
+| rp-lib-cap-loses-total | KILLED | unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every ro |
+| rp-lib-cap-note-missing | KILLED | unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every ro |
+| rp-lib-cap-size | KILLED | unit-report.mjs: R2 past 400 rows a table is cut, the totals row stays and counts every ro |
+| rp-lib-total-misses-last-column | KILLED | unit-report.mjs: R2 the totals row   [got ["Total",9,8], wanted ["Total",9,8,1]] |
+| rp-lib-unpaid-counted-paid | KILLED | unit-report.mjs: R2 how many registered, paid and not paid   [got [["Registered",9],["Paid |
+| rp-lib-exact-age-as-group | KILLED | unit-report.mjs: R2 age groups from a date of birth on race day or a declared age; the oth |
+| rp-lib-category-not-cleaned | KILLED | unit-report.mjs: R2 a word is cut at 60 characters; a long size is "Other" |
+| rp-lib-day-in-utc | KILLED | unit-report.mjs: R2 days are Indian days (20:00 UTC is the next morning), with the total s |
+| rp-lib-median-takes-upper | KILLED | unit-report.mjs: R3 fastest, median and slowest of those with a time (an even count: the m |
+| rp-lib-times-of-all-statuses | KILLED | unit-report.mjs: R3 fastest, median and slowest of those with a time (an even count: the m |
+| rp-lib-finish-rate-counts-dns | KILLED | unit-report.mjs: R3 finishers, DNF, DNS, DSQ and the finish rate (DNS and DSQ left out of  |
+| rp-lib-hours-not-capped | KILLED | unit-report.mjs: R4 roles: "Marshal" and "marshal" together; declined places and places on |
+| rp-lib-declined-places-taken | KILLED | unit-report.mjs: R4 roles: "Marshal" and "marshal" together; declined places and places on |
+| rp-lib-still-needed-below-zero | KILLED | unit-report.mjs: R4 roles: "Marshal" and "marshal" together; declined places and places on |
+| rp-lib-waiver-how-swapped | KILLED | unit-report.mjs: R5 where people signed   [got [["On the registration form",0,4],["On pape |
+| rp-lib-whatsapp-counted-as-email | KILLED | unit-report.mjs: R6 the totals   [got [["Batches prepared",2],["Messages made (one for eac |
+| rp-lib-template-rows-counted-as-messages | KILLED | unit-report.mjs: R6 the totals   [got [["Batches prepared",2],["Messages made (one for eac |
+| rp-lib-money-net-is-projected | KILLED | unit-report.mjs: R7 a loss is a negative number   [got ["Net so far",20], wanted ["Net so  |
+| rp-lib-file-name-raw | KILLED | unit-report.mjs: R8 a file name from the race, the report and the table   [got "Vizag Half |
+| rp-lib-file-name-long | KILLED | unit-report.mjs: R8 the file name is plain letters, digits and dashes whatever the race is |
+| rp-ui-tab-for-everyone | KILLED | reports-ui.mjs: U1 a viewer has no Reports tab |
+| rp-ui-loads-for-viewers | KILLED | reports-ui.mjs: U1 a Reports tab button made up by hand does not make a viewer's page call |
+| rp-ui-number-cell-unformatted | KILLED | reports-ui.mjs: U10b numbers are grouped the Indian way, rupees carry the rupee sign, a pe |
+| rp-ui-percent-sign-missing | KILLED | reports-ui.mjs: U3 race: every table, heading, column and number on the screen is what the |
+| rp-ui-word-cell-as-markup | KILLED | reports-ui.mjs: U3 reg: every table, heading, column and number on the screen is what the  |
+| rp-ui-table-title-as-markup | KILLED | reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [nul |
+| rp-ui-column-label-as-markup | KILLED | reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [nul |
+| rp-ui-note-as-markup | KILLED | reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [nul |
+| rp-ui-unread-as-markup | KILLED | reports-ui.mjs: U10b the tables made nothing live   [got [null,2,4], wanted [null,0,0]] |
+| rp-ui-report-title-as-markup | KILLED | reports-ui.mjs: U10 the list made no picture, no script and no handler from it   [got [nul |
+| rp-ui-report-button-as-markup | KILLED | reports-ui.mjs: U10 every report title is the hostile text, shown as text |
+| rp-ui-report-id-as-markup | KILLED | reports-ui.mjs: U10b a report id and title full of quotes and tags stay text and stay insi |
+| rp-ui-table-id-as-markup | KILLED | reports-ui.mjs: U10b a table id full of quotes and tags stays inside its attribute (6 tabl |
+| rp-ui-what-as-markup | KILLED | reports-ui.mjs: U10b the list made nothing live   [got [null,6,12], wanted [null,0,0]] |
+| rp-ui-csv-without-bom | KILLED | reports-ui.mjs: U5 it is text/csv, UTF-8, and starts with a byte-order mark so that a spre |
+| rp-ui-csv-not-csv-type | KILLED | reports-ui.mjs: U5 it is text/csv, UTF-8, and starts with a byte-order mark so that a spre |
+| rp-ui-csv-saves-twice | KILLED | reports-ui.mjs: U5 two presses at once ask the server once   [got 2, wanted 1] |
+| rp-ui-csv-stays-busy | KILLED | reports-ui.mjs: U5 pressing again later saves again   [got 1, wanted 2] |
+| rp-ui-csv-error-silent | KILLED | reports-ui.mjs: U5 a save that failed says so and saves nothing: |
+| rp-ui-late-report-wins | KILLED | reports-ui.mjs: U7 two picks one after the other, the first answered late: the screen is t |
+| rp-ui-late-error-wins | KILLED | reports-ui.mjs: U7 a pick that fails late does not take the screen from the pick made afte |
+| rp-ui-old-race-list-kept | KILLED | reports-ui.mjs: U7 switching race while a report is coming: the old answer is dropped and  |
+| rp-ui-other-race-shown | KILLED | reports-ui.mjs: U7 the Reports tab opened after the race was changed on another screen dra |
+| rp-ui-unlisted-report-asked | KILLED | reports-ui.mjs: U4 a pick button made up for the Money report asks the server for nothing  |
+| rp-ui-list-error-no-toast | KILLED | reports-ui.mjs: U9 a list that fails to load a second time keeps the one on the screen, an |
+| rp-ui-empty-table-silent | KILLED | reports-ui.mjs: U8 and the empty tables say "Nothing to count yet." |
+| rp-ui-unread-not-shown | KILLED | reports-ui.mjs: U9 a source that could not be read is named on the screen, so a zero is ne |
+| rp-ui-first-load-error-hidden | KILLED | reports-ui.mjs: U9 a backend file that does not have Reports yet says so, with "Try again" |
+| rp-ui-refresh-does-nothing | KILLED | reports-ui.mjs: U7 "Refresh" asks again and shows the new registration: 9, not 8 (["Regist |
+| rp-page-relay-unlisted-method | KILLED | pagecode.mjs: Reports branch: "login" is refused (only the three Reports methods go throug |
+| rp-page-allowlist-wider | KILLED | pagecode.mjs: the Reports list and the Reports backend are the same 4 methods (none missin |
+| rp-page-old-backend-text-leaks | KILLED | pagecode.mjs: Reports branch: a listed method missing in the backend says backend_old, not |
 
 ## How to run
 
