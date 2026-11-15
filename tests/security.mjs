@@ -1,4 +1,4 @@
-// SECURITY TESTS: an audit of how the eight backends (RaceOS, Expo desk, Coaching, Finance, Results, Print, Messages, Waivers) and the public runner page are
+// SECURITY TESTS: an audit of how the ten backends (RaceOS, Expo desk, Coaching, Finance, Results, Print, Messages, Waivers, Reports, Privacy) and the public runner page are
 // built and what they store and say. This is not an attack (pentest.mjs, pentest-finance.mjs, pentest-results.mjs and pentest-print.mjs
 // do that); every method is checked here against a written-down policy.
 //   S1  who may call what      the source is read: nothing is decided before the login is checked, and the only methods
@@ -25,6 +25,8 @@ import * as U from './runner.test.mjs';
 import * as CM from './comms.test.mjs';
 import * as WV from './waivers.test.mjs';
 import * as RP from './reports.test.mjs';
+import * as PV from './privacy.test.mjs';
+import * as PRV from './rd-privacy.test.mjs';
 import * as W from './rd-waiver.test.mjs';
 import { C as DATA_C } from './rd-data.test.mjs';
 import wd from 'wix-data';
@@ -229,6 +231,8 @@ const BACKENDS = [
   { id: 'Waivers', mod: WV, file: 'wix/director/waivers.web.js', auth: /await cauth\(arg/, count: 9, pub: [] },
   // Reports: counts and totals as tables, and a CSV file of one table; a director or a lead (the Money report is the directors' only)
   { id: 'Reports', mod: RP, file: 'wix/director/reports.web.js', auth: /await cauth\(arg/, count: 3, pub: [] },
+  // Privacy: show one phone number or e-mail address a list hides (a director or a lead, with a reason), the contact files, the trail and erasing a person (directors)
+  { id: 'Privacy', mod: PV, file: 'wix/director/privacy.web.js', auth: /await cauth\(arg/, count: 5, pub: [] },
 ];
 const BEFORE_LOGIN_CHECK = /wixData|wixEventsV2|guests\.|askClaude|elevate|collections\.|\bthrow\b|\bawait\b|\bif\b|\bfor\b/;
 for (const B of BACKENDS) {
@@ -331,6 +335,10 @@ for (const n of ['wvSaveText', 'wvSaveSettings', 'wvVoid']) WV_LEVEL[n] = 'direc
 // calls check by the report asked for (S4 below).
 const RP_LEVEL = {};
 for (const n of ['rpList', 'rpRun', 'rpCsv']) RP_LEVEL[n] = 'view';
+// Privacy: a director or a lead may show one detail of one person, with a reason ('view'); the screen with the trail, the contact files and
+// erasing a person are the directors' ('director').
+const PV_LEVEL = { pvReveal: 'view' };
+for (const n of ['pvList', 'pvExport', 'pvErasePlan', 'pvErase']) PV_LEVEL[n] = 'director';
 for (const n of ['finOverview', 'finSettings', 'finSaveSettings', 'finListInvoices', 'finRaiseInvoice', 'finCancelInvoice', 'finPayInvoice', 'finListOrders', 'finSaveOrder', 'finAddBill', 'finPayOrder', 'finRefundOrder', 'finCancelOrder', 'finDecideClaim', 'finPayClaim', 'finCash', 'finAddCash', 'finLedger', 'finAddEntry', 'finVoid']) FIN_LEVEL[n] = 'manage';
 
 const TABLES = [
@@ -344,6 +352,7 @@ const TABLES = [
   { B: BACKENDS[7], level: CM_LEVEL, publics: BACKENDS[7].pub },
   { B: BACKENDS[8], level: WV_LEVEL, publics: BACKENDS[8].pub },
   { B: BACKENDS[9], level: RP_LEVEL, publics: BACKENDS[9].pub },
+  { B: BACKENDS[10], level: PV_LEVEL, publics: BACKENDS[10].pub },
 ];
 for (const { B, level, publics } of TABLES) {
   const unplaced = B.names.filter((n) => !level[n] && !publics.includes(n));
@@ -424,6 +433,7 @@ const CM_WANT = {
 };
 const WV_WANT = CM_WANT; // the same door: directors everything, leads the 'view' calls, nobody else
 const RP_WANT = CM_WANT; // the same door again: a director or a lead; nobody else
+const PV_WANT = CM_WANT; // and again: directors everything, leads the 'view' call (one show), nobody else
 // a call that gets past the door must fail quickly and harmlessly on a race that does not exist
 const probe =(token) => ({ token, ev: 'nope', event: 'nope', id: 'probe-item', kind: 'task', status: 'zzz', username: 'nope-user', athlete: 'nope', coach: 'nope' });
 const runMatrix = async (label, B, level, want) => {
@@ -449,6 +459,7 @@ await runMatrix('Print', BACKENDS[5], PRN_LEVEL, PRN_WANT);
 await runMatrix('Messages', BACKENDS[7], CM_LEVEL, CM_WANT);
 await runMatrix('Waivers', BACKENDS[8], WV_LEVEL, WV_WANT);
 await runMatrix('Reports', BACKENDS[9], RP_LEVEL, RP_WANT);
+await runMatrix('Privacy', BACKENDS[10], PV_LEVEL, PV_WANT);
 // "waived" needs the director: a lead may approve or reject a claim but not waive the rule
 await refused(R.decideQual(Object.assign(probe(TOK.lead1), { status: 'waived' })), 'director_only', 'S3 a lead cannot waive a qualification rule');
 await refused(R.decideQual(Object.assign(probe(TOK.view1), { status: 'waived' })), 'director_only', 'S3 a viewer cannot waive one either');
@@ -748,6 +759,110 @@ await wd.insert('RDVolunteers', { _id: WVX.vol, event: EVW, name: 'Waiver Vol', 
   eq(Object.keys(f).sort(), ['csv', 'name', 'rows', 'unread'], 'S4 a file has exactly four things (its name, its text, how many rows, what could not be read)');
 }
 
+// Privacy. A phone number or an e-mail address of a person leaves the server through a few doors only: the "show" of one detail by a director or a
+// lead (with a reason, written in the trail first), the contact files of a director, and the audience file of Messages (directors). Everywhere else a
+// list carries a mask. This puts a raw number and address into every kind of row (a registration and the answers of its form, a volunteer, a pacer, an
+// Expo runner) and asks every screen of every backend what it knows of the race: not one raw detail may come back, and nothing is changed.
+global.__COLS.add('Import911');
+await wd.insert('ExpoConfig', { _id: 'Import911', name: 'Privacy Run', json: JSON.stringify({ bibLot: 50, shirtLot: { S: 5, M: 50, L: 50 } }) }, SA);
+const EVP = (await R.saveEvent({ token: TOK.boss, name: 'Privacy Run', date: day(16), venue: 'Beach Road', expoId: 'Import911' })).event.id;
+await mkStaff('deskp', 'desk', { desks: D1, race: 'Import911' });
+TOK.deskp = await session('deskp');
+const PVP = { rphone: '9812400011', rmail: 'priv.runner@leak.test', fphone: '9812400012', fmail: 'priv.form@leak.test', sphone: '9812400021', smail: 'priv.second@leak.test', vphone: '9812400031', vmail: 'priv.vol@leak.test', pphone: '9812400041', xphone: '9812400051', xmail: 'priv.expo@leak.test' };
+const PVX = { reg1: 'REG~pvs~11', reg2: 'REG~pvs~12', vol: 'VOL~pvs~1', pacer: 'PAC~pvs~1', runner: 'Import911~11' };
+const nowI = () => new Date().toISOString();
+await wd.insert('RDRegs', { _id: PVX.reg1, event: EVP, ticketNumber: 'T11', orderNumber: 'O11', guestId: 'g11', name: 'Priv Runner', cat: '10 K', bib: '11', bibName: 'PRIV', size: 'M', status: 'ok', phone: PVP.rphone, email: PVP.rmail, form: JSON.stringify([{ name: 'Mobile number', value: PVP.fphone }, { name: 'E-mail', value: PVP.fmail }, { name: 'Date of birth', value: '01/02/1990' }]), at: nowI() }, SA);
+await wd.insert('RDRegs', { _id: PVX.reg2, event: EVP, ticketNumber: 'T12', orderNumber: 'O12', guestId: 'g12', name: 'Priv Second', cat: '21 K', bib: '12', bibName: '', size: 'L', status: 'ok', phone: PVP.sphone, email: PVP.smail, form: '[]', at: nowI() }, SA);
+await wd.insert('RDVolunteers', { _id: PVX.vol, event: EVP, name: 'Priv Vol', phone: PVP.vphone, email: PVP.vmail, club: '', status: 'approved', code: 'PVC1', waiverAt: '', waiverVersion: '', createdAt: nowI(), notes: '' }, SA);
+await wd.insert('RDPacers', { _id: PVX.pacer, event: EVP, name: 'Priv Pacer', phone: PVP.pphone, group: '2:00', status: 'approved', notes: '' }, SA);
+await wd.insert('Runners', { _id: PVX.runner, event: 'Import911', bib: '11', bibName: 'PRIV', name: 'Priv Runner', cat: '10K', size: 'M', phone: PVP.xphone, email: PVP.xmail, example: '', checkedInAt: '', bibAt: '', shirtAt: '', shirtSize: '' }, SA);
+// a detail in any form a screen might print it in: as stored, with a space, dashes, a country code, an upper-case address, a link
+const PV_HIDDEN = Object.values(PVP);
+const pvSeen = (text) => {
+  const t = String(text);
+  const hit = PV_HIDDEN.filter((v) => (/^\d{10}$/.test(v) ? [v, v.slice(0, 5) + ' ' + v.slice(5), v.slice(0, 3) + '-' + v.slice(3, 6) + '-' + v.slice(6), '91' + v, '+91 ' + v.slice(0, 5) + ' ' + v.slice(5)] : [v, v.toUpperCase(), encodeURIComponent(v)]).some((f) => t.includes(f)));
+  if (/@leak\.test|%40leak\.test|mailto:|wa\.me/i.test(t)) hit.push('an address or a chat link');
+  return hit;
+};
+const pvB = { token: TOK.boss, ev: EVP };
+const pvL = { token: TOK.lead1, ev: EVP };
+const PV_READS = [
+  () => R.listEvents({ token: TOK.boss }), () => R.listShifts(pvB), () => R.listVolunteers(pvB), () => R.listRun(pvB), () => R.listLog(pvB), () => R.listPacers(pvB), () => R.listChecklist(pvB), () => R.listRegs(pvB), () => R.listQuals(pvB),
+  () => R.overview(pvB), () => R.dashboard(pvB), () => R.racesSummary({ token: TOK.boss }), () => R.expoSummary(pvB), () => R.eventInfo(pvB),
+  () => R.listPlan({ token: TOK.boss, ev: EVP, kinds: ['task', 'supply', 'approval', 'ceremony', 'doc', 'lesson'] }),
+  () => R.listVolunteers(pvL), () => R.listPacers(pvL), () => R.listRegs(pvL), () => R.overview(pvL), () => R.dashboard(pvL), () => R.expoSummary(pvL),
+  () => X.loadPage({ token: TOK.deskp }), () => X.loadSince({ token: TOK.deskp }), () => X.loadPage({ token: TOK.boss, ev: 'Import911' }), () => X.loadSince({ token: TOK.boss, ev: 'Import911' }), () => X.listEvents({ token: TOK.boss }),
+  () => RS.resOverview(pvB), () => RS.resStartList(pvB), () => RS.resBoard(pvB), () => RS.resAwards(pvB), () => RS.resFormFields(pvB), () => RS.resStartList(pvL), () => RS.resOverview(pvL),
+  () => P.prnOverview(pvB), () => P.prnPreview({ token: TOK.boss, ev: EVP, kind: 'bib' }), () => P.prnPreview({ token: TOK.boss, ev: EVP, kind: 'cert' }), () => P.prnBibs(pvB), () => P.prnCerts(pvB), () => P.prnOverview(pvL),
+  () => CM.cmOverview(pvB), () => CM.cmPreview({ token: TOK.boss, ev: EVP, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmAudience({ token: TOK.boss, ev: EVP, tplId: 'bib', aud: { who: 'runners' } }), () => CM.cmAudience({ token: TOK.boss, ev: EVP, tplId: 'bib', aud: { who: 'volunteers' } }), () => CM.cmOverview(pvL),
+  () => WV.wvOverview(pvB), () => WV.wvText(pvB), () => WV.wvList({ token: TOK.boss, ev: EVP, who: 'runners', filter: 'all', from: 0 }), () => WV.wvList({ token: TOK.boss, ev: EVP, who: 'volunteers', filter: 'all', from: 0 }), () => WV.wvRecords({ token: TOK.boss, ev: EVP, who: 'runners', id: PVX.reg1 }), () => WV.wvSheet({ token: TOK.boss, ev: EVP, who: 'runners', mode: 'forms', scope: 'all', from: 0 }), () => WV.wvOverview(pvL),
+  () => RP.rpList(pvB), ...['reg', 'race', 'vol', 'waiver', 'msg', 'money'].map((id) => () => RP.rpRun({ token: TOK.boss, ev: EVP, report: id })), () => RP.rpRun({ token: TOK.lead1, ev: EVP, report: 'reg' }), () => RP.rpCsv({ token: TOK.boss, ev: EVP, report: 'reg', table: 'cats' }),
+  () => U.pubRaces(), () => U.pubFind({ ev: EVP, q: 'Priv' }), () => U.pubFind({ ev: EVP, q: PVP.rphone }), () => U.pubCert({ ev: EVP, bib: '11' }),
+  () => PV.pvList(pvB), () => PV.pvErasePlan({ token: TOK.boss, name: 'Priv Runner', phone: PVP.rphone }), () => PV.pvErasePlan({ token: TOK.boss, email: PVP.rmail }),
+];
+{
+  const w0 = WRITES.length;
+  const bad = [];
+  const outs = [];
+  let answered = 0;
+  for (const read of PV_READS) {
+    try {
+      const r = await read();
+      answered++;
+      const t = JSON.stringify(r);
+      outs.push(t);
+      const s = pvSeen(t);
+      if (s.length) bad.push(read.toString().slice(6, 60) + ' -> ' + s.join(','));
+    } catch (e) {
+      SEEN.add(e.message);
+    }
+  }
+  ok(answered >= PV_READS.length - 6, 'S4 Privacy control: ' + answered + ' of ' + PV_READS.length + ' calls on the race (all screens of all backends, as a director, a lead and a desk) were answered with real data');
+  ok(!bad.length, 'S4 Privacy: not one of ' + answered + ' answers holds a raw phone number or e-mail address (' + PV_HIDDEN.length + ' of them are in the database: registrations, the answers of a form, a volunteer, a pacer, an Expo runner)' + (bad.length ? ' [' + bad.slice(0, 6).join('; ') + ']' : ''));
+  const personal = WRITES.slice(w0).filter((x) => /^(insert|update|save|bulkInsert|bulkUpdate|bulkRemove):(RDRegs|RDVolunteers|RDPacers|Runners|TrainAthletes)$/.test(x));
+  ok(!personal.length, 'S4 Privacy: asking all those questions changed no registration, volunteer, pacer, runner or athlete' + (personal.length ? ' [' + personal + ']' : ''));
+  // the masks are there, and they are the same mask every time
+  const lr = await R.listRegs(pvB);
+  const lv = await R.listVolunteers(pvB);
+  const lp = await R.listPacers(pvB);
+  const mk = (p) => PRV.maskPhone(p);
+  eq([lr.rows.find((x) => x.id === PVX.reg1).phone, lv.volunteers.find((x) => x.id === PVX.vol).phone, lp.pacers.find((x) => x.id === PVX.pacer).phone], [mk(PVP.rphone), mk(PVP.vphone), mk(PVP.pphone)], 'S4 Privacy: a registration, a volunteer and a pacer each show the mask of their number (dots and the last four digits)');
+  eq((await X.loadPage({ token: TOK.deskp })).runners.map((x) => [x.phone, x.email]), [[mk(PVP.xphone), PRV.maskEmail(PVP.xmail)]], 'S4 Privacy: the Expo desk shows the mask of a number and an address too');
+  // the doors that do show a detail: the sweep above can find what it looks for
+  const door = {};
+  door.reveal = await PV.pvReveal({ token: TOK.lead1, ev: EVP, kind: 'reg', id: PVX.reg1, field: 'phone', reason: 'contact' });
+  door.mail = await PV.pvReveal({ token: TOK.boss, ev: EVP, kind: 'vol', id: PVX.vol, field: 'email', reason: 'fix' });
+  door.file = await PV.pvExport({ token: TOK.boss, ev: EVP, kind: 'regs', from: 0, reason: 'contact' });
+  door.aud = await CM.cmExport({ token: TOK.boss, ev: EVP, aud: { who: 'runners' }, cols: ['name', 'phone', 'email'] });
+  eq([door.reveal.value, door.mail.value], [PVP.rphone, PVP.vmail], 'S4 Privacy control: a lead and a director can show one detail with a reason (so the sweep above can find a raw detail when there is one)');
+  ok(door.file.csv.includes(PVP.rphone) && door.file.csv.includes(PVP.smail) && door.aud.csv.includes(PVP.rphone), 'S4 Privacy control: the director\'s contact file and the audience file of Messages carry the real details (the two other doors)');
+  eq([Object.keys(door.reveal).sort(), Object.keys(door.mail).sort()], [['field', 'id', 'kind', 'ms', 'value'], ['field', 'id', 'kind', 'ms', 'value']], 'S4 Privacy: a show gives five things and no other detail of the person (the value, which field, the kind and id asked for, how long to show it)');
+}
+// the trail: who looked, and why, never the detail and never the name
+{
+  const notes = [...DB.RDAudit.values()].filter((r) => /^(reveal phone|reveal e-mail|contacts exported)$/.test(r.action));
+  ok(notes.length >= 3, 'S4 Privacy control: the shows and the file are in the trail (' + notes.length + ' notes)');
+  const text = JSON.stringify(notes);
+  ok(!pvSeen(text).length && !/Priv (Runner|Second|Vol|Pacer)|PRIV/.test(text), 'S4 Privacy: and no note holds a phone number, an e-mail address or a name');
+  eq(notes.filter((r) => /^reveal /.test(r.action)).map((r) => [r.by, r.detail]).sort(), [['boss', 'vol ' + PVX.vol + ' · fix'], ['lead1', 'reg ' + PVX.reg1 + ' · contact']].sort(), 'S4 Privacy: a note of a show says who looked, at which row, and the reason');
+  const sh = await PV.pvList({ token: TOK.boss, ev: EVP });
+  ok(!pvSeen(JSON.stringify(sh)).length && sh.log.some((r) => r.who === 'Priv Runner'), 'S4 Privacy: the trail on the screen names the person by the name the row has now, and holds no detail');
+}
+// erasing: the director may, and afterwards the details of the person are nowhere in the database
+{
+  const plan = await PV.pvErasePlan({ token: TOK.boss, name: 'Priv Second', phone: PVP.sphone });
+  ok(plan.items.length === 1 && !pvSeen(JSON.stringify(plan)).includes(PVP.sphone), 'S4 Privacy: the erase plan finds the person and shows the mask of the number, not the number');
+  ok(dbText().includes(PVP.sphone) && dbText().includes(PVP.smail), 'S4 Privacy control: before the erase the database holds the number and the address');
+  const got = await PV.pvErase({ token: TOK.boss, name: 'Priv Second', phone: PVP.sphone, keys: plan.items.map((i) => i.key), confirm: PRV.CONFIRM_WORD });
+  eq(got.erased, { reg: 1 }, 'S4 Privacy: the director erases the person');
+  const left = PV_HIDDEN.filter((v) => [PVP.sphone, PVP.smail].includes(v) && dbText().includes(v));
+  ok(!left.length, 'S4 Privacy: and the number and the address are in no row of the database any more' + (left.length ? ' [' + left + ']' : ''));
+  const note = [...DB.RDAudit.values()].filter((r) => r.action === 'person erased');
+  ok(note.length === 1 && !pvSeen(JSON.stringify(note)).length && !/Priv Second/.test(JSON.stringify(note)), 'S4 Privacy: the note of an erase holds the counts and no name, number or address');
+  const kept = DB.RDRegs.get(PVX.reg2);
+  eq([kept.bib, kept.cat, kept.size, kept.status, kept.name], ['12', '21 K', 'L', 'ok', PRV.ERASED], 'S4 Privacy: what makes the counts add up stays (bib, category, size, status); the name is gone');
+}
+
 /* =====================================================================================================
    S5. Sessions and tokens
    ===================================================================================================== */
@@ -1002,6 +1117,7 @@ const READS = [
   () => WV.wvOverview({ token: TOK.boss, ev: EVW }), () => WV.wvText({ token: TOK.boss, ev: EVW }), () => WV.wvList({ token: TOK.boss, ev: EVW, who: 'runners', filter: 'all', from: 0 }), () => WV.wvRecords({ token: TOK.boss, ev: EVW, who: 'runners', id: WVX.runner }), () => WV.wvSheet({ token: TOK.boss, ev: EVW, who: 'runners', mode: 'forms', scope: 'all', from: 0 }), () => WV.wvOverview({ token: TOK.lead1, ev: EVW }),
   () => RP.rpList(asBoss), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'reg' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'race' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'vol' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'waiver' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'msg' }), () => RP.rpRun({ token: TOK.boss, ev: EV, report: 'money' }), () => RP.rpCsv({ token: TOK.boss, ev: EV, report: 'reg', table: 'cats' }), () => RP.rpRun({ token: TOK.lead1, ev: EV, report: 'reg' }),
   () => U.pubRaces(), () => U.pubFind({ ev: EV, q: 'secret' }), () => U.pubCert({ ev: EV, bib: '42' }),
+  () => PV.pvList(asBoss), () => PV.pvErasePlan({ token: TOK.boss, name: 'Sec Athlete', phone: '9812345670' }), () => PV.pvList({ token: TOK.dir2, ev: EV }),
 ];
 {
   const bad = [];
@@ -1144,7 +1260,7 @@ for (const [name, text] of [['racedir.web.js', rdText], ['training.web.js', trTe
   ok(lines.every((l) => /^const SETUP_KEY = 'change-this-key'/.test(l) || /SETUP_KEY === 'change-this-key'\) throw/.test(l) || /same\(String\(arg\.key \|\| ''\), SETUP_KEY\)/.test(l)), 'S7 ' + name + ': the key is only compared with the constant-time check, plus the placeholder guard');
 }
 async function shipped(file, out) {
-  const s = src(file).replace("'./ai-core.js'", "'./ai-core.test.mjs'").replace("'./rd-approvals.js'", "'./rd-approvals.test.mjs'").replace("'./rd-auth.js'", "'./rd-auth.test.mjs'");
+  const s = src(file).replace("'./ai-core.js'", "'./ai-core.test.mjs'").replace("'./rd-approvals.js'", "'./rd-approvals.test.mjs'").replace("'./rd-auth.js'", "'./rd-auth.test.mjs'").replace("'./rd-privacy.js'", "'./rd-privacy.test.mjs'");
   fs.writeFileSync(new URL('./' + out, import.meta.url), s);
   return import('./' + out);
 }
@@ -1356,6 +1472,48 @@ ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^wv[A-Z]/.te
   ok(rowWrites.length >= 3 && rowWrites.every((k) => ['ver', 'set', 'sig', 'vd'].includes(k)), 'S8 the four kinds of row Waivers writes are the version of a text, the setup, a record of a paper and a mark on a record: ' + [...new Set(rowWrites)].join(', '));
   const screen = src('wix/director/director-embed.html').split('WAIVERS-START')[1].split('WAIVERS-END')[0];
   ok(screen.length > 8000 && !/\.(dob|phone|email)\b/.test(screen) && !/mailto:/.test(screen) && !/wa\.me/.test(screen), 'S8 the Waivers screen never reads a date of birth, a phone number or an e-mail address out of an answer, and makes no mailto or chat link');
+}
+// Privacy: the page code, the one file that deletes, the order of "note first, then give", and what the screen does with a shown detail
+const PV_ALLOWED = listOf(DP, 'PV_ALLOWED');
+ok(PV_ALLOWED, 'S8 the director page has its tenth list (Privacy)');
+eq(PV_ALLOWED.slice().sort(), BACKENDS[10].names.slice().sort(), 'S8 the director page offers exactly the 5 Privacy methods (none forgotten, none extra)');
+ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^pv[A-Z]/.test(n)) && ![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED, ...RES_ALLOWED, ...PRN_ALLOWED, ...COMMS_ALLOWED, ...WV_ALLOWED].some((n) => BACKENDS[10].names.includes(n)), 'S8 no other page (volunteer, athlete, coach, public runner) and no other list offers a Privacy method');
+{
+  const pc = src(DP);
+  const code = (t) => t.replace(/\/\/[^\n]*/g, '');
+  const pvText = src('wix/director/privacy.web.js');
+  const pvCode = code(pvText);
+  ok(/import \* as pv from 'backend\/privacy\.web';/.test(pc) && /msg\.mod === 'pv'/.test(pc) && /PV_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Privacy and refuses a Privacy call that is not on its list');
+  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*const t = tidyError\(e, 'privacy'\);\s*if \(t && typeof t\.message === 'string' && CODES\.has\(t\.message\)\) throw t;/.test(pvText) && /throw new Error\('server_error'\);\s*\}\s*\}\);/.test(pvText), 'S8 every Privacy method answers through the wrapper that lets only a known code out and turns anything else into "server_error"');
+  const pl = pvText.split('\n');
+  const noSA = pl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
+  ok(!noSA.length, 'S8 every Privacy read and write of a locked collection passes suppressAuth (the collections are admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
+  const pq = pvText.split(/;\s*\n/).filter((x) => /wixData\.query\(/.test(x));
+  const noSAq = pq.filter((x) => !/\.find\(SA\)/.test(x) && !/all\(\(\) => wixData\.query\(/.test(x)).map((x) => x.trim().slice(0, 60));
+  ok(pq.length >= 7 && !noSAq.length, 'S8 and so does every query (' + pq.length + ' of them end in find(SA), or are handed to the helper that does)' + (noSAq.length ? ' [' + noSAq + ']' : ''));
+  ok(!/\.remove\(|\.truncate\(/.test(pvCode) && (pvCode.match(/bulkRemove\(/g) || []).length === 1 && /bulkRemove\(ATOK, toks\.map/.test(pvCode) && /const ATOK = 'TrainTokens';/.test(pvCode), 'S8 the only thing Privacy ever deletes is the sign-in tokens of a training account that is being erased (a person is erased by emptying the row, never by deleting it)');
+  ok(!/arg\.(username|user|role|by|byName|me|as)\b/.test(pvCode), 'S8 no Privacy method reads who is asking from the call (the session token is the only identity)');
+  eq([...pvText.matchAll(/^import[\s\S]*?from '([^']+)';/gm)].map((m) => m[1]).sort(), ['./rd-auth.js', './rd-data.js', './rd-privacy.js', './rd-results.js', 'wix-data', 'wix-web-module'], 'S8 Privacy talks only to the database and the shared readers: no outside request, no secret store, no members, no events, no e-mails or contacts');
+  ok(!/wix-fetch|wix-secrets|wix-members|wix-events|wix-pay|wix-stores|wix-crm|wix-auth|wix-data\.v2|\bfetch\(/.test(pvText), 'S8 and nothing in it makes a request to another site, sends a message, makes a collection or reads a stored secret');
+  const lib = src('wix/director/rd-privacy.js');
+  ok(!/wix-data|wixData|\bfetch\(|wix-|\bawait\b|\bimport\(/.test(code(lib).replace(/^import .*$/gm, '')), 'S8 the privacy rules (rd-privacy.js) have no database, no request and no Wix module in them: every rule is a plain function');
+  // the note is written BEFORE the detail leaves, in all three doors; when the note cannot be written nothing is given
+  ok(/await record\(a, revealAction\(q\.field\), e\.name, revealDetail\(q\.kind, q\.id, q\.reason\)\);\s*return \{ value,/.test(pvCode), 'S8 a show writes its note and only then returns the detail');
+  ok(/await record\(a, 'contacts exported', e\.name, [^\n]*\);\s*return Object\.assign\(\{ name: exportName\(e\.name, q\.kind\) \}, page\);/.test(pvCode), 'S8 a contact file writes its note and only then returns the page');
+  ok(/await record\(a, 'person erased', 'RaceOS', summaryText\(counts\)\);\s*for \(const x of picked\)/.test(pvCode) && pvCode.indexOf("await record(a, 'person erased'") < pvCode.indexOf('await wixData.update(COLLECTION[x.kind]'), 'S8 an erase writes its note before the first row is changed');
+  ok((pvCode.match(/await record\(/g) || []).length === 3, 'S8 and these are the only three notes Privacy writes');
+  ok(/catch \(e\) \{\s*throw new Error\('pv_audit_failed'\);\s*\}/.test(pvCode), 'S8 a note that cannot be written ends the call with "pv_audit_failed" (fail closed)');
+  ok(!/\.(phone|email)\b/.test(pvCode) && !/\bT\(row\.(phone|email)/.test(pvCode), 'S8 the Privacy backend never reads a phone or e-mail field by name: the only value it hands out is row[q.field] of a row the director or lead asked for');
+  ok(/const value = cleanText\(T\(row\[q\.field\]\), 120\);/.test(pvCode) && (pvCode.match(/row\[q\.field\]/g) || []).length === 1, 'S8 and that is in exactly one place (the show)');
+  eq(PRV.REASONS.map((r) => r[0]), ['contact', 'fix', 'pay', 'safety', 'other'], 'S8 the five reasons for a show are fixed in the code (a typed reason is never stored)');
+  eq([PRV.REVEALS_PER_HOUR, PRV.SHOW_MS, PRV.MAX_PLAN, PRV.CONFIRM_WORD], [40, 30000, 200, 'ERASE'], 'S8 forty shows an hour for each login; a shown detail is on screen for 30 seconds; at most 200 rows in one erase; the word to type is ERASE');
+  const screen = src('wix/director/director-embed.html').split('PRIVACY-BEGIN')[1].split('PRIVACY-END')[0];
+  ok(screen.length > 8000, 'S8 control: the Privacy screen is in the director page (' + screen.length + ' characters)');
+  ok(!/localStorage|sessionStorage|indexedDB|document\.cookie|console\.|mailto:/.test(screen), 'S8 the Privacy screen never keeps a shown detail anywhere (no storage, no cookie, no log) and makes no mailto link');
+  ok((screen.match(/wa\.me/g) || []).length === 1 && /'https:\/\/wa\.me\/91'\+String\(value\)/.test(screen), 'S8 and the only chat link it can make is built from a detail the director has just asked to see');
+  ok((screen.match(/S\.shown\[pvKey\(a\.kind,a\.id,a\.field\)\]=\{value:String\(r\.value\),until:Date\.now\(\)\+ms\};/g) || []).length === 1 && /var ms=Math\.min\(PV_SHOW_MS,Math\.max\(1000,Number\(r\.ms\)\|\|PV_SHOW_MS\)\);/.test(screen), 'S8 a shown detail is put in memory in one place, and for no longer than 30 seconds, whatever the server says');
+  const direct = [...src('wix/director/director-embed.html').matchAll(/esc\(\s*(\w+)\.(phone|email)\b/g)].map((m) => m[1] + '.' + m[2]).sort();
+  eq(direct, ['a.phone', 'it.email', 'it.phone', 'pc.phone'], 'S8 the director page prints a phone or e-mail field directly in only these places: the pacer being edited ("Keep ..." of a mask the server sent), a training athlete (a coach sees their own athletes, by design) and the erase plan (masks); everything else goes through the mask cell');
 }
 // source collections of the race lists are only ever read
 {

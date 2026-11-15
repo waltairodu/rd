@@ -1,13 +1,13 @@
 const DB=global.__DB||(global.__DB={});let n=0;
 const tbl=(c)=>DB[c]||(DB[c]=new Map());
 const cl=(o)=>o==null?o:JSON.parse(JSON.stringify(o));
-class Q{constructor(c){this.c=c;this.f=[];this.o=null;this.s=0;this.l=50}
+class Q{constructor(c){this.c=c;this.f=[];this.o=null;this.d=1;this.s=0;this.l=50}
 eq(k,v){this.f.push(r=>r[k]===v);return this}
 hasSome(k,a){this.f.push(r=>a.includes(r[k]));return this}
 lt(k,v){this.f.push(r=>String(r[k])<String(v));return this}
 ge(k,v){this.f.push(r=>new Date(r[k])>=new Date(v));return this}
-ascending(k){this.o=k;return this}skip(n){this.s=n;return this}limit(n){this.l=n;return this}
-rows(){let r=[...tbl(this.c).values()].filter(x=>this.f.every(f=>f(x)));if(this.o)r.sort((a,b)=>String(a[this.o]).localeCompare(String(b[this.o])));return r}
+ascending(k){this.o=k;this.d=1;return this}descending(k){this.o=k;this.d=-1;return this}skip(n){this.s=n;return this}limit(n){this.l=n;return this}
+rows(){let r=[...tbl(this.c).values()].filter(x=>this.f.every(f=>f(x)));if(this.o)r.sort((a,b)=>this.d*String(a[this.o]).localeCompare(String(b[this.o])));return r}
 async find(){const r=this.rows();return{items:r.slice(this.s,this.s+this.l).map(cl),totalCount:r.length}}
 async count(){return this.rows().length}}
 const stamp=(o)=>{o._updatedDate=new Date();return o};

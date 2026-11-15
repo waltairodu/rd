@@ -261,7 +261,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline
     <div class="desk">
       <div>
         <label class="searchbox" for="q"><span class="lbl">Find runner</span>
-          <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Bib number, name, phone or email">
+          <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Bib number, name or last 4 digits of the phone">
         </label>
         <div id="results"></div>
         <div id="panel"></div>
@@ -465,6 +465,8 @@ function search(q){
     if(digits){
       if(r.bibL===q)s=0;else if(r.bibL.indexOf(q)===0)s=1;else if(q.length>=3&&r.bibL.indexOf(q)>=0)s=2;
       else if(q.length>=4&&r.phoneDigits.slice(-q.length)===q)s=3;else if(q.length>=4&&r.phoneDigits.indexOf(q)>=0)s=4;
+      /* the desk is sent only the last four digits of a phone number, so a whole number said out loud is matched by its last four */
+      else if(q.length>=7&&r.phoneDigits.length===4&&r.phoneDigits===q.slice(-4))s=3;
     }else{
       if(q.indexOf('@')>0){if(r.emailL.indexOf(q)>=0)s=r.emailL===q?0:2}
       var toks=q.split(/\s+/);
@@ -927,7 +929,7 @@ function saveFile(name,rows,msgEl){
   }catch(e){msgEl.className='msg';msgEl.textContent='Copy the text below into a file named '+name+'.'}
 }
 function exportRoster(){
-  var rows=[['bib','name','category','phone','registered_size','checked_in','checkin_time','checkin_desk','bib_issued','bib_time','bib_desk','tshirt_issued','tshirt_size_given','tshirt_time','tshirt_desk']];
+  var rows=[['bib','name','category','phone_hidden','registered_size','checked_in','checkin_time','checkin_desk','bib_issued','bib_time','bib_desk','tshirt_issued','tshirt_size_given','tshirt_time','tshirt_desk']];
   S.runners.forEach(function(r){rows.push([csvCell(r.bib),csvCell(r.name,1),csvCell(r.cat,1),csvCell(r.phone),csvCell(r.size),r.checkedIn?'yes':'no',csvCell(r.checkedInAt),csvCell(r.checkedInDesk,1),r.bibIssued?'yes':'no',csvCell(r.bibAt),csvCell(r.bibDesk,1),r.shirtIssued?'yes':'no',csvCell(r.shirtSize),csvCell(r.shirtAt),csvCell(r.shirtDesk,1)])});
   saveFile('runners-and-status.csv',rows,$('#expMsg'));
 }

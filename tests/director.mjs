@@ -314,7 +314,8 @@ ok((await D.importRegs({ token: T.b, ev: E })).added === 0, 'wix: importing agai
 ok((await count('RDRegs', (r) => r.event === E)) === 5, 'wix: one row per ticket, other events and buyers left out');
 let lr = await D.listRegs({ token: T.v, ev: E });
 const ashaReg = lr.rows.find((r) => r.name === 'Asha Rao');
-ok(ashaReg && ashaReg.size === 'M' && ashaReg.bibName === 'ASHA' && ashaReg.phone === '9848012001' && ashaReg.cat === '25 K - Debut Trail', 'wix: size, bib name, phone and ticket name mapped');
+ok(ashaReg && ashaReg.size === 'M' && ashaReg.bibName === 'ASHA' && ashaReg.phone === '••••••2001' && ashaReg.cat === '25 K - Debut Trail', 'wix: size, bib name, phone (masked) and ticket name mapped');
+ok(!JSON.stringify(lr).includes('9848012001'), 'wix: the list holds no full phone number');
 ok(lr.cats.find((c) => c.cat === '10 K - Vanajangi Challenge').total === 1 && lr.rows.find((r) => r.name === 'Unpaid Two').unpaid, 'wix: categories counted, pending payment flagged');
 ok(lr.expoCount !== null && lr.rows.every((r) => r.inExpo === false), 'wix: runners not yet in findmybib are flagged');
 await wd.insert('Runners', { _id: 'Import910~m1', event: 'Import910', bib: 'm1', name: 'Asha R', phone: '9848012001', email: '', cat: '', checkedInAt: '', bibAt: '', shirtAt: '' }, SA);

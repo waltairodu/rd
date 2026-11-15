@@ -1,3 +1,44 @@
+# Package 6 (Privacy): what to change on a site that already runs Package 5c
+
+Date: 2026-11-15. Installing for the first time? Ignore this page and follow SETUP.md.
+Two new backend files, two existing backend files replaced, and the /rd embed and page code replaced. No collection is made and no existing data is touched: a phone number or an e-mail address is hidden on its way to the screen, and the rows keep the full number. The only change Privacy ever makes to your data is when a director erases a person on the new **Privacy** tab (and then only the rows the director ticked); everything else it writes is a line in the audit trail.
+
+**Which package does your site run?** If /rd has a **Reports** tab, it runs Package 5c: follow the steps just below. If it has no such tab, it runs an older package: do the older steps at the bottom of this page first (Package 5c, then 5b, then 5a, then 4, then 3, then 2), then these. The /rd embed, page code and the two replaced backend files are changed only once, with the files from this pack.
+
+## 1. Add two backend files (do this first)
+Code sidebar > Backend:
+- `rd-privacy.js`: **+ > Add a .js file**, name it exactly `rd-privacy.js`, paste the contents of `1-backend/rd-privacy.js`.
+- `privacy.web.js`: **+ > Add a web module**, name it exactly `privacy.web.js`, paste the contents of `1-backend/privacy.web.js`.
+
+Do this before steps 2 and 3: `racedir.web.js`, `exposoft.web.js` and the new /rd page code import these files, and Wix will not save them until the files exist. Both new files use files you already have (`rd-auth.js`, `rd-results.js`, `rd-data.js`).
+
+## 2. Replace two backend files
+Open each in the Backend list, select everything and paste the version from this pack (`1-backend/...`):
+- `exposoft.web.js` (the Expo desk now gets the runner's phone number and e-mail address hidden; a person who was erased is not refilled). It holds no key of your own, so nothing to type again.
+- `racedir.web.js`. **It holds your own `SETUP_KEY`**: before you paste, copy your line `const SETUP_KEY = '...'` from the old file, and after pasting put it back in place of `const SETUP_KEY = 'change-this-key'`. (The key is used only by the first-time setup screen; if you lose it, type a new one.)
+
+What changed in them, for anyone who wants to check (nothing else is different from Package 5c):
+- `racedir.web.js`: one new import line (`rd-privacy.js`); the registration list, the volunteer list and the pacer list send the hidden number or address instead of the full one; a pacer saved with an empty phone box (or one that still holds the dots) keeps the number it has, and an erased pacer is never edited back to life; the example answers on the form-fields screen hide a number or an address; Import / refresh skips a registration that was erased; **Send to Expo desk** skips it too.
+- `exposoft.web.js`: one new import line; a runner's phone number and e-mail address go to the desk hidden; a findmybib sync does not refill a runner that was erased.
+
+## 3. Replace the /rd page
+- **Embed:** click the HTML element on /rd (ID `dirFrame`), choose **Enter Code**, select everything, paste `2-pages/rd/rd-embed.html`. The Expo desk is part of this embed: it is replaced with it.
+- **Page code:** open the /rd page's code panel, select everything, paste `2-pages/rd/page-code.js`.
+
+## 4. Publish and check
+1. Publish the site.
+2. At /rd log in as a director. **Registrations**: the phone and e-mail columns now show dots (for example `••••••2345` and `a•••@g•••.com`) and a **Show** button. **Volunteers** and **Pacers** hide their phone numbers the same way.
+3. Press **Show** on one phone number. A box asks **Why do you need it** with five reasons. Pick one and press Show: the number appears for 30 seconds with a **Hide** button, then the dots come back (they also come back when you leave the tab, change the race or log out). In the **live** CMS open `RDAudit`: a new line "reveal phone" with your login, the race and the row and reason. There is no number and no name in it.
+4. **Volunteers**: the WhatsApp link of a volunteer appears only while that volunteer's number is shown. **Pacers**: press **Edit** on a pacer and **Save** without touching the phone box: the number is unchanged.
+5. **Admin > Privacy** (directors only; a lead has no such tab but can press Show). Three cards: **Files with contact details**, **Erase a person**, **Who looked**. Pick a reason and press **Registrations**: a CSV file with the full phone numbers and e-mail addresses is saved and opens in Excel with the right columns. `RDAudit` has a line "contacts exported". **Who looked** lists the newest notes, with the person's name taken from the registration, never from the note.
+6. Try **Erase a person** on a **test** registration only: type its 10-digit number, press Find, tick the row, type `ERASE`, press Erase. The registration now reads "(erased)", keeps its bib, ticket, category and size, and has no phone, e-mail or form answers. Press **Import / refresh**: the person is skipped, not brought back.
+7. Log in as a **lead**: Show works, there is no Privacy tab. Log in as a **viewer**, **coach**, **sponsor** and a **desk** login: no Show button anywhere. At the Expo desk the runner's phone number and e-mail address are dots; the search box finds a runner by name, bib number or the **last four digits** of the phone number.
+8. If a screen says "This page's code is out of date" or "The backend file is out of date", step 1, 2 or 3 was missed or not published: repeat it.
+
+What is hidden, who may show it, the limits, the files and what erasing does are in SETUP.md under "Privacy".
+
+---
+
 # Package 5c (Reports): what to change on a site that already runs Package 5b
 
 Date: 2026-11-11. Installing for the first time? Ignore this page and follow SETUP.md.

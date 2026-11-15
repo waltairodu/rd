@@ -10,6 +10,7 @@ import * as prn from 'backend/print.web';
 import * as comms from 'backend/comms.web';
 import * as wv from 'backend/waivers.web';
 import * as rp from 'backend/reports.web';
+import * as pv from 'backend/privacy.web';
 
 // Finds the HTML embed. If the element ID is missing or mistyped, it falls back to the page's HTML embed by type.
 function pickFrame(byId) {
@@ -56,6 +57,11 @@ const WV_ALLOWED = ['wvOverview', 'wvText', 'wvList', 'wvRecords', 'wvSheet', 'w
 // The Reports tab (counts and totals as tables, and a CSV file of a table). Calls arrive tagged mod:'rp' with the session token added by
 // the screen. The backend decides who may run which report (directors all; leads all but Money).
 const RP_ALLOWED = ['rpList', 'rpRun', 'rpCsv'];
+
+// The Privacy tab and the Show buttons (showing one phone number or e-mail address that a list hides, a file with all the contact details,
+// the trail of who looked, erasing a person). Calls arrive tagged mod:'pv' with the session token added by the screen. The backend decides
+// who may use each one (directors everything; leads may show one detail).
+const PV_ALLOWED = ['pvList', 'pvReveal', 'pvExport', 'pvErasePlan', 'pvErase'];
 
 $w.onReady(function () {
   const frame = pickFrame($w('#dirFrame'));
@@ -173,6 +179,20 @@ $w.onReady(function () {
       }
       try {
         const result = await rp[msg.method](msg.arg || {});
+        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+      } catch (e) {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
+      }
+      return;
+    }
+    if (msg.mod === 'pv') {
+      if (PV_ALLOWED.indexOf(msg.method) < 0) return refuse(msg);
+      if (typeof pv[msg.method] !== 'function') {
+        frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+        return;
+      }
+      try {
+        const result = await pv[msg.method](msg.arg || {});
         frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });

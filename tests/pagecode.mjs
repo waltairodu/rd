@@ -8,6 +8,7 @@ import * as PR from './print.test.mjs';
 import * as CM from './comms.test.mjs';
 import * as WV from './waivers.test.mjs';
 import * as RP from './reports.test.mjs';
+import * as PV from './privacy.test.mjs';
 import * as PUB from './runner.test.mjs';
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log('  FAIL', m); } };
@@ -255,6 +256,44 @@ for (const [f, id] of files) {
   ok(r38.ok === true && seen[3].report === 'money', 'Reports branch: the arguments are passed on untouched (the server decides who may see Money)');
 }
 
+// The Privacy branch of the director page code: relays only the five Privacy methods, with the token it is given.
+{
+  const src = fs.readFileSync('../wix/director/director-page-code.js', 'utf8').replace(/^import .*$/gm, '');
+  let ready, handler = null; const posts = []; const seen = [];
+  const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
+  const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
+  const repo = { pvList: async (a) => { seen.push(a); return { fine: 1 }; }, pvErase: async () => { throw new Error('pv_stale'); }, login: async () => ({ token: 'leak' }), rpList: async () => ({ wrong: 1 }) };
+  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'wv', 'rp', 'pv', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, {}, {}, {}, repo, console);
+  ready();
+  const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
+  const r1 = await call(1, 'pvList', 'pv', { token: 'T'.repeat(30), ev: 'e1' });
+  ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Privacy branch: pvList is relayed with the token and race it was given');
+  const r2 = await call(2, 'pvExport', 'pv');
+  ok(r2.ok === false && r2.error === 'backend_old', 'Privacy branch: a listed method missing in the backend says backend_old, not a crash');
+  const r3 = await call(3, 'pvErase', 'pv');
+  ok(r3.ok === false && r3.error === 'pv_stale', 'Privacy branch: an error from the backend is passed on as its plain code');
+  for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'pv'], [12, 'pvList '], [13, 'PVLIST'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'pvEraseAll'], [18, 'wvOverview'], [19, 'cmSend'], [20, 'pvDelete'], [21, 'rpList'], [22, 'pvreveal'], [23, 'pvRevealAll'], [24, 'listRegs'], [25, 'listVolunteers']]) {
+    const r = await call(id, m, 'pv');
+    ok(r.ok === false && r.error === 'page_code_old', 'Privacy branch: "' + m + '" is refused (only the five Privacy methods go through)');
+  }
+  const r26 = await call(26, ['pvList'], 'pv');
+  ok(r26.ok === false, 'Privacy branch: a method that is not a string is refused');
+  for (const [id, mod] of [[27, 'rd'], [28, 'comms'], [29, 'prn'], [30, 'fin'], [31, 'res'], [32, 'expo'], [33, 'train'], [34, 'wv'], [35, 'rp'], [36, 'PV'], [37, ' pv'], [38, 'privacy']]) {
+    const r = await call(id, 'pvList', mod);
+    ok(r.ok === false && r.error === 'page_code_old', 'a Privacy method sent with the "' + mod + '" tag is not relayed through that branch');
+  }
+  const r39 = await call(39, 'pvList', 'pv', null);
+  ok(r39.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Privacy branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
+  const r40 = await call(40, 'pvList', 'pv', { token: 'T'.repeat(30), ev: 'e1', method: 'pvErase', mod: 'comms' });
+  ok(r40.ok === true && seen[2] && seen[2].method === 'pvErase' && seen.length === 3, 'Privacy branch: a method or tag hidden inside the argument changes nothing (the call still goes to the method it names)');
+  const r41 = await call(41, 'pvList', 'pv', { token: 'T'.repeat(30), ev: 'e1', phone: '98480 12001', keys: ['a'], confirm: 'ERASE' });
+  ok(r41.ok === true && seen[3].phone === '98480 12001' && seen[3].confirm === 'ERASE' && seen[3].keys[0] === 'a', 'Privacy branch: the arguments are passed on untouched (the server decides who may do what)');
+  const r42 = await call(42, 'pvList', 'pv', 'text');
+  ok(r42.ok === true && seen[4] === 'text', 'Privacy branch: a plain text argument is passed on as it is (the backend answers not_logged_in to anything that is not an object with a token - checked in the backend suite)');
+  const r43 = await call(43, 'rpList', 'pv');
+  ok(r43.ok === false && r43.error === 'page_code_old', 'a Reports method sent with the Privacy tag is refused');
+}
+
 // The public runner page code: three read-only public methods and nothing else; the race comes from the link.
 {
   const src = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8').replace(/^import .*$/gm, '');
@@ -339,6 +378,10 @@ for (const [f, id] of files) {
   const RPA = list('RP_ALLOWED');
   ok(RPA.length === 3 && RPA.every((m) => typeof RP[m] === 'function') && Object.keys(RP).filter((m) => typeof RP[m] === 'function').every((m) => RPA.includes(m)) && new Set(RPA).size === RPA.length, 'the Reports list and the Reports backend are the same ' + RPA.length + ' methods (none missing, none extra, none twice)');
   ok(RPA.every((m) => /^rp[A-Z]/.test(m)) && !RPA.some((m) => WVA.includes(m) || CMA.includes(m) || PN.includes(m) || A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no Reports method is also listed under another module');
+  const PVA = list('PV_ALLOWED');
+  ok(PVA.length === 5 && PVA.every((m) => typeof PV[m] === 'function') && Object.keys(PV).filter((m) => typeof PV[m] === 'function').every((m) => PVA.includes(m)) && new Set(PVA).size === PVA.length, 'the Privacy list and the Privacy backend are the same ' + PVA.length + ' methods (none missing, none extra, none twice)');
+  ok(PVA.every((m) => /^pv[A-Z]/.test(m)) && !PVA.some((m) => RPA.includes(m) || WVA.includes(m) || CMA.includes(m) || PN.includes(m) || A.includes(m) || E.includes(m) || T.includes(m) || FI.includes(m)), 'no Privacy method is also listed under another module');
+  ok(/import \* as pv from 'backend\/privacy\.web';/.test(src), 'the page code imports the Privacy backend file');
   const rsrc = fs.readFileSync('../wix/director/runner-page-code.js', 'utf8');
   const RA = rsrc.match(/const ALLOWED = \[([^\]]*)\]/)[1].split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean);
   ok(RA.length === 3 && RA.every((m) => typeof PUB[m] === 'function') && Object.keys(PUB).filter((m) => typeof PUB[m] === 'function').every((m) => RA.includes(m)), 'the runner page lists the three public methods, and the public backend has no others');

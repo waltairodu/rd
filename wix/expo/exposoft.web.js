@@ -11,6 +11,7 @@ import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
 import { kindOf, unameOf, deskValueOf, deskList, tidyError } from './rd-auth.js';
+import { maskPhone, maskEmail, isErased } from './rd-privacy.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
 const webMethod = (permission, fn) =>
@@ -195,8 +196,8 @@ function toRunner(it) {
     bibName: it.bibName || '',
     cat: it.cat || '',
     size: it.size || '',
-    phone: it.phone || '',
-    email: it.email || '',
+    phone: maskPhone(it.phone),
+    email: maskEmail(it.email),
     example: it.example === '1',
     checkedIn: !!it.checkedInAt,
     checkedInAt: it.checkedInAt || null,
@@ -526,7 +527,7 @@ async function upsert(clean, example, ev, updateExisting) {
   clean.forEach((c) => {
     const old = byId.get(ev + '~' + c.id);
     if (old) {
-      if (!updateExisting) {
+      if (isErased(old) || !updateExisting) {
         skipped++;
         return;
       }

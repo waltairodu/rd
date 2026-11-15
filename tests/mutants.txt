@@ -403,4 +403,109 @@ rp-ui-refresh-does-nothing	KILLED	reports-ui.mjs: U7 "Refresh" asks again and sh
 rp-page-relay-unlisted-method	KILLED	pagecode.mjs: Reports branch: "login" is refused (only the three Reports methods go through)
 rp-page-allowlist-wider	KILLED	pagecode.mjs: the Reports list and the Reports backend are the same 4 methods (none missing, none extra, none
 rp-page-old-backend-text-leaks	KILLED	pagecode.mjs: Reports branch: a listed method missing in the backend says backend_old, not a crash
-# 405 mutants, 405 killed, 0 survived
+pv-staff-gate-open	KILLED	privacy.mjs: W1 view1 calls pvList -> not_allowed   [wanted not_allowed, got director_only]
+pv-director-only-ignored	KILLED	privacy.mjs: W1 lead1 calls pvList -> director_only   [got ]
+pv-session-never-expires	KILLED	privacy.mjs: W1 pvList with an expired session   [wanted not_logged_in, got no error]
+pv-session-garbage-expiry-passes	KILLED	pentest-privacy.mjs: PA sessions with an odd expiry, no login, a login that is gone or a token too short never work 
+pv-token-printed-as-text	KILLED	privacy.mjs: W1 pvList with a list as the token   [wanted not_logged_in, got no error]
+pv-short-token-looked-up	KILLED	pentest-privacy.mjs: PA sessions with an odd expiry, no login, a login that is gone or a token too short never work 
+pv-staff-row-gone-still-in	KILLED	privacy.mjs: W1 pvList with a person who is no longer staff   [wanted not_logged_in, got not_allowed]
+pv-user-name-case-sensitive	KILLED	pentest-privacy.mjs
+pv-raw-error-leaves	KILLED	privacy.mjs: W9 registrations that cannot be read stop the plan, with no detail   [wanted server_error, got 
+pv-reveal-no-note	KILLED	privacy.mjs: W3 one note for every show: 0
+pv-reveal-note-failure-ignored	KILLED	privacy.mjs: W3 when the note cannot be written nothing is shown   [got "", wanted "pv_audit_failed"]
+pv-reveal-no-limit	KILLED	privacy.mjs: W3 forty shows an hour, then "too many"   [got [45,""], wanted [40,"pv_too_many"]]
+pv-reveal-limit-shared-by-all	KILLED	privacy.mjs
+pv-reveal-other-race-row	KILLED	privacy.mjs: W3 a row of another race (the race on the screen decides)   [wanted pv_not_found, got no error]
+pv-reveal-value-not-cleaned	KILLED	pentest-privacy.mjs: PF a shown phone has no control or direction character, and is never longer than 120: "98123‮00
+pv-reveal-time-too-long	KILLED	privacy.mjs: W3 a director sees a registrant's phone number   [got ["9848012345","phone","reg","i23~T101",30
+pv-reveal-returns-whole-row	KILLED	pentest-privacy.mjs: PD a show answers from the row, with the time of the code, whatever else the call says   [got [
+pv-export-open-to-leads	KILLED	privacy.mjs: W1 lead1 calls pvExport -> director_only   [got ]
+pv-export-no-note	KILLED	privacy.mjs: W4 each file is noted: undefined
+pv-export-note-names-someone	KILLED	privacy.mjs: W4 each file is noted: Registrations: rows 1-5 of 5 · contact <img src=x onerror=1>Eve
+pv-export-erased-people-in-file	KILLED	unit-privacy.mjs: V7 an erased person is not in a file
+pv-export-page-too-big	KILLED	unit-privacy.mjs: V7 2500 rows are three pages: 1000, 1000, 500
+pv-export-no-next-page	KILLED	unit-privacy.mjs: V7 2500 rows are three pages: 1000, 1000, 500
+pv-export-from-unbounded	KILLED	unit-privacy.mjs: V7 start refused: 1000001   [got "", wanted "pv_bad_request"]
+pv-export-from-fraction	KILLED	unit-privacy.mjs: V7 start refused: 1.5   [got "", wanted "pv_bad_request"]
+pv-export-kind-inherited	KILLED	unit-privacy.mjs: V7 kind refused: "__proto__"   [got "", wanted "pv_bad_request"]
+pv-list-open-to-leads	KILLED	privacy.mjs: W1 lead1 calls pvList -> director_only   [got ]
+pv-list-trail-unfiltered	KILLED	privacy.mjs: W5 six notes about contact details; the login and the report notes are not among them: reveal p
+pv-plan-open-to-leads	KILLED	privacy.mjs: W1 lead1 calls pvErasePlan -> director_only   [got ]
+pv-erase-open-to-leads	KILLED	privacy.mjs: W1 lead1 calls pvErase -> director_only   [got pv_need_confirm]
+pv-erase-no-confirm	KILLED	privacy.mjs: W6 another person   [got [], wanted ["athlete~ath-other"]]
+pv-erase-no-note	KILLED	privacy.mjs: W7 when the note cannot be written nothing is erased   [got ["","(erased)"], wanted ["pv_audit_
+pv-erase-note-after-change	KILLED	privacy.mjs
+pv-erase-stale-keys-allowed	KILLED	privacy.mjs: W7 a key of someone else is not in the plan   [wanted pv_stale, got server_error]
+pv-erase-too-big-allowed	KILLED	privacy.mjs: W6 and refuses to erase so many in one go   [wanted pv_too_big, got no error]
+pv-erase-skips-dependents	KILLED	privacy.mjs: W7 the hand-over record loses the selfie and the friend and keeps that it happened   [got ["Ash
+pv-erase-keeps-sign-ins	KILLED	privacy.mjs: W7 the athlete is signed out everywhere   [got 1, wanted 0]
+pv-erase-removes-every-sign-in	KILLED	pentest-privacy.mjs: PN only the erased athlete's sign-ins are gone: every other athlete stays signed in, and keeps 
+pv-plan-not-capped	KILLED	privacy.mjs: W6 a plan shows at most 200 rows and says it is cut   [got [205,205,true], wanted [200,205,true
+pv-plan-same-bib-any-name	KILLED	pentest-privacy.mjs: PN the Expo runner at the same bib is part of the person when the name is the same (spacing and
+pv-plan-shows-phone	KILLED	unit-privacy.mjs: V8 a row of the plan is masked and has a key   [got {"key":"reg~e~1","kind":"reg","race":"VHM 2
+pv-plan-shows-email	KILLED	unit-privacy.mjs: V8 a row of the plan is masked and has a key   [got {"key":"reg~e~1","kind":"reg","race":"VHM 2
+pvl-mask-phone-shows-six	KILLED	unit-privacy.mjs: V1 a ten digit number shows its last four digits   [got "••••••012345", wanted "••••••2345"]
+pvl-mask-phone-short-shown	KILLED	unit-privacy.mjs: V1 six digits is not a phone number: nothing of it is shown   [got "••••••3456", wanted "••••••
+pvl-mask-phone-empty-dots	KILLED	unit-privacy.mjs: V1 no digits is empty: ""   [got "••••••", wanted ""]
+pvl-mask-email-shows-name	KILLED	unit-privacy.mjs: V2 first letter, dots, first letter of the domain, the ending   [got "rahul.k•••@g•••.com", wan
+pvl-mask-email-shows-domain	KILLED	unit-privacy.mjs: V2 first letter, dots, first letter of the domain, the ending   [got "r•••@gmail.com", wanted "
+pvl-mask-not-an-address-shown	KILLED	unit-privacy.mjs: V2 something that is not an address is hidden whole   [got "nope", wanted "••••••"]
+pvl-mask-first-sign-kept	KILLED	unit-privacy.mjs: V2 capitals are shown as small letters   [got "R•••@G•••.com", wanted "r•••@g•••.com"]
+pvl-sample-number-not-masked	KILLED	unit-privacy.mjs: V3 a number is masked   [got "98480 12345", wanted "••••••2345"]
+pvl-may-reveal-viewers	KILLED	unit-privacy.mjs: V4 viewer may reveal: false
+pvl-may-export-leads	KILLED	unit-privacy.mjs: V4 lead may export: false
+pvl-may-erase-leads	KILLED	unit-privacy.mjs: V4 lead may erase: false
+pvl-may-inherited-word	KILLED	unit-privacy.mjs
+pvl-reveal-kind-inherited	KILLED	unit-privacy.mjs: V5 kind refused: "__proto__"   [got "FIELDS_OF[a.kind].includes is not a function", wanted "pv_
+pvl-reveal-pacer-email	KILLED	unit-privacy.mjs: V5 a pacer has a phone number and nothing else to show   [got ["phone","email"], wanted ["phone
+pvl-reveal-any-field	KILLED	unit-privacy.mjs: V5 pacer/email/contact is refused
+pvl-reveal-id-unbounded	KILLED	unit-privacy.mjs: V5 id refused: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx   [got "", wanted "pv_bad_request"]
+pvl-reason-any-text	KILLED	unit-privacy.mjs: V5 reason refused: "bored"   [got "", wanted "pv_need_reason"]
+pvl-limit-too-high	KILLED	unit-privacy.mjs: V5 forty shows an hour, a shown detail stays thirty seconds
+pvl-show-time-long	KILLED	unit-privacy.mjs: V5 forty shows an hour, a shown detail stays thirty seconds
+pvl-person-short-phone	KILLED	unit-privacy.mjs: V8 refused: {"phone":"12345"}   [got "", wanted "pv_bad_person"]
+pvl-person-half-email	KILLED	unit-privacy.mjs: V8 refused: {"email":"a@b"}   [got "", wanted "pv_bad_person"]
+pvl-person-phone-first-ten	KILLED	unit-privacy.mjs: V8 a number: its last ten digits   [got {"phone":"9198480123","email":""}, wanted {"phone":"984
+pvl-isperson-email-case	KILLED	unit-privacy.mjs: V8 the same address in any case is the person
+pvl-isperson-whole-number	KILLED	unit-privacy.mjs: V8 the same number in any writing is the person
+pvl-patch-reg-keeps-phone	KILLED	unit-privacy.mjs: V9 a registration loses who the person is   [got ["(erased)","","9848012345","",""], wanted ["(
+pvl-patch-reg-keeps-form	KILLED	unit-privacy.mjs: V9 a registration loses who the person is   [got ["(erased)","","","","[{\"name\":\"x\"}]"], wa
+pvl-summary-wrong-plural	KILLED	unit-privacy.mjs: V8 the plan in words   [got "2 registration, 1 volunteers", wanted "2 registrations, 1 voluntee
+pv-rd-regs-phone-raw	KILLED	privacy.mjs: W2 boss: the registrations list holds no full phone number or address   [got ["9848012345","984
+pv-rd-regs-email-raw	KILLED	privacy.mjs: W2 boss: the registrations list holds no full phone number or address   [got ["asha.rao@example
+pv-rd-pacers-phone-raw	KILLED	privacy.mjs: W2 boss: the pacers list holds no full phone number   [got ["+91 98480","9111111111"], wanted [
+pv-rd-vols-phone-raw	KILLED	privacy.mjs: W2 boss: the volunteers list holds no full phone number or address   [got ["9848012345","900000
+pv-rd-vols-email-raw	KILLED	privacy.mjs: W2 boss: the volunteers list holds no full phone number or address   [got ["asha.rao@example.co
+pv-rd-form-sample-raw	KILLED	privacy.mjs: W2 form examples that are numbers are masked   [got false, wanted true]
+pv-rd-pacer-edit-saves-mask	KILLED	privacy.mjs
+pv-rd-pacer-edit-blank-wipes	KILLED	privacy.mjs: W13 an edit saved with the phone box empty keeps the number   [got "", wanted "9222233333"]
+pv-rd-erased-pacer-revived	KILLED	privacy.mjs: W13 an erased pacer cannot be edited back to life   [wanted no_pacer, got no error]
+pv-rd-import-overwrites-erased	KILLED	privacy.mjs: W8 the erased registration stays erased   [got ["Asha Rao","9848012345","asha.rao@example.com",
+pv-rd-send-to-expo-erased	KILLED	privacy.mjs: W8 sending again does not make a runner out of the erased registration: {"added":1,"filled":0,"
+pv-xb-runner-phone-raw	KILLED	privacy.mjs: W2 Expo boss: the runner list holds no full phone number or address   [got ["9848012345","98123
+pv-xb-runner-email-raw	KILLED	privacy.mjs: W2 Expo boss: the runner list holds no full phone number or address   [got ["chitra@example.com
+pv-xb-upsert-revives-erased	KILLED	privacy.mjs: W8 a sync from findmybib adds the new runner and does not touch the erased one: {"done":true,"n
+pv-page-relay-unlisted-method	KILLED	pagecode.mjs: Privacy branch: "login" is refused (only the five Privacy methods go through)
+pv-page-allowlist-wider	KILLED	pagecode.mjs: the Privacy list and the Privacy backend are the same 6 methods (none missing, none extra, none
+pv-page-old-backend-text-leaks	KILLED	pagecode.mjs: Privacy branch: a listed method missing in the backend says backend_old, not a crash
+pv-ui-time-not-cut	KILLED	privacy-ui.mjs: U4 a time longer than thirty seconds is cut to thirty (the longest wait asked for was 100000017
+pv-ui-hide-keeps-value	KILLED	privacy-ui.mjs: U3 Hide puts the dots and the Show button back
+pv-ui-value-as-markup	KILLED	privacy-ui.mjs: U5 a detail with markup in it is shown as the characters it is
+pv-ui-mask-as-markup	KILLED	privacy-ui.mjs: U5 regs: the dots of a list that has markup in them are shown as the characters they are
+pv-ui-reason-not-required	KILLED	privacy-ui.mjs: U3 pressing Show without a reason is told to pick one and asks the server nothing
+pv-ui-show-button-for-everyone	KILLED	privacy-ui.mjs: U2 a viewer sees dots, no Show button, and is told they are hidden for their login
+pv-ui-clear-keeps-shown	KILLED	privacy-ui.mjs: U4 going to another tab and back hides it
+pv-ui-hidden-page-keeps-shown	KILLED	privacy-ui.mjs: U4 the page going to the background hides it
+pv-ui-late-answer-shown	KILLED	privacy-ui.mjs: U4 an answer that arrives after Cancel is not shown
+pv-ui-expired-value-shown	KILLED	privacy-ui.mjs: U4b a cell drawn after the time was up shows the dots again, and only the new detail is on the 
+pv-ui-erase-button-without-word	KILLED	privacy-ui.mjs: U8 drawn again with two ticked and "ERAS" typed, the button is still off
+pv-ui-erase-click-without-word	KILLED	privacy-ui.mjs: U8 pressing the button while it is off asks the server nothing   [got 1, wanted 0]
+pv-ui-file-one-page-only	KILLED	privacy-ui.mjs: U7 a file of several pages asks for each page in turn, from where the server said the next star
+pv-ui-file-without-bom	KILLED	privacy-ui.mjs: U7 it starts with a byte-order mark and the heading row, so a spreadsheet reads it right
+pv-ui-file-without-reason	KILLED	privacy-ui.mjs: U7 a file without a reason is refused on the screen: no call, no file
+pv-ui-erase-ticks-everything	KILLED	privacy-ui.mjs: U8 nothing is ticked at first
+pv-ui-erase-keeps-shown	KILLED	privacy-ui.mjs: U8 and the open question about a number is closed (nothing that was being shown stays on the sc
+pv-ui-trail-text-as-markup	KILLED	privacy-ui.mjs: U6 a note with markup in its fields is drawn as the characters it is (who, what, the detail, th
+pv-ui-plan-name-as-markup	KILLED	privacy-ui.mjs: U8 a name with markup is shown as text in the list
+# 510 mutants, 510 killed, 0 survived

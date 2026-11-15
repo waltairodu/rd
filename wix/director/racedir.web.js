@@ -20,6 +20,7 @@ import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
 import { wixEventsV2, guests } from 'wix-events.v2';
 import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
+import { BULLET, maskPhone, maskEmail, maskSample, isErased } from './rd-privacy.js';
 import { SCOPES, LEGACY_TITLES, cleanScope, suggest, planRows as templateRows, follow, itemByKey, permitByKey, renderLetter, editionLabel } from './rd-approvals.js';
 import { checkPassword, hashPassword, needsUpgrade, genPin, genPassword, newToken, kindOf as staffKind, DESKS, canonDesk, parseDesks, deskValueOf, tidyError, takeSlot, freeSlots, slotKey } from './rd-auth.js';
 
@@ -576,8 +577,8 @@ function volOut(v, asg, shifts) {
   return {
     id: v._id,
     name: v.name,
-    phone: v.phone,
-    email: v.email || '',
+    phone: maskPhone(v.phone),
+    email: maskEmail(v.email),
     club: v.club || '',
     status: v.status,
     code: v.code,
@@ -794,7 +795,7 @@ function paceRow(finish, distKm) {
   for (let km = 5; km < distKm; km += 5) splits.push({ km, time: hms(per * km) });
   return { pace: Math.floor(Math.round(per) / 60) + ':' + String(Math.round(per) % 60).padStart(2, '0'), finish: hms(finish), splits };
 }
-const pacerOut = (x) => ({ id: x._id, name: x.name, phone: x.phone || '', group: x.group || '', status: x.status || 'applied', trial: x.trial || 'waiting', briefing: x.briefing === '1', kit: x.kit === '1', notes: x.notes || '' });
+const pacerOut = (x) => ({ id: x._id, name: x.name, phone: maskPhone(x.phone), group: x.group || '', status: x.status || 'applied', trial: x.trial || 'waiting', briefing: x.briefing === '1', kit: x.kit === '1', notes: x.notes || '' });
 
 export const listPacers = webMethod(Permissions.Anyone, async (arg) => {
   await auth(arg);
@@ -843,7 +844,11 @@ export const savePacer = webMethod(Permissions.Anyone, async (arg) => {
   const e = eventOut(await getEvent(arg.ev));
   const name = clean(arg.name, 80);
   if (name.length < 2) throw new Error('name_needed');
-  const phone = arg.phone ? phoneDigits(arg.phone) : '';
+  // The pacer list shows a hidden number (••••••2001), so the edit screen has nothing to fill the phone box with. On an edit, an empty box
+  // (or one that still holds the dots) keeps the number as it is; a number typed there replaces it.
+  const typed = arg.phone ? String(arg.phone) : '';
+  const keepPhone = !!arg.id && (!typed.trim() || typed.indexOf(BULLET) >= 0);
+  const phone = keepPhone || !typed ? '' : phoneDigits(typed);
   if (phone && !validPhone(phone)) throw new Error('bad_phone');
   const group = clean(arg.group, 12);
   if (group && !e.groups.some((g) => g.label === group)) throw new Error('bad_group');
@@ -855,8 +860,9 @@ export const savePacer = webMethod(Permissions.Anyone, async (arg) => {
   if (list.some((p) => p._id !== arg.id && phone && p.phone === phone)) throw new Error('already_signed_up');
   if (arg.id) {
     const old = list.find((p) => p._id === arg.id);
-    if (!old) throw new Error('no_pacer');
-    await wixData.update(PACERS, Object.assign({}, old, body), SA);
+    // a pacer who was erased is not edited back to life (a screen opened before the erase could do that)
+    if (!old || isErased(old)) throw new Error('no_pacer');
+    await wixData.update(PACERS, Object.assign({}, old, body, keepPhone ? { phone: old.phone || '' } : {}), SA);
     return { id: old._id };
   }
   return { id: (await wixData.insert(PACERS, body, SA))._id };
@@ -969,7 +975,7 @@ export const wixFormFields = webMethod(Permissions.Anyone, async (arg) => {
       const f = fields.get(i.name) || { name: i.name, count: 0, sample: [] };
       if (i.value) {
         f.count++;
-        if (f.sample.length < 3 && !f.sample.includes(i.value.slice(0, 40))) f.sample.push(i.value.slice(0, 40));
+        if (f.sample.length < 3 && !f.sample.includes(maskSample(i.value.slice(0, 40)))) f.sample.push(maskSample(i.value.slice(0, 40)));
       }
       fields.set(i.name, f);
     });
@@ -1045,7 +1051,8 @@ export const importRegs = webMethod(Permissions.Anyone, async (arg) => {
   // Wix replaces the whole row on an update, so each row sent back starts from the stored one: whatever the team added to a
   // registration (its bib number) survives a refresh. Only the fields that come from Wix Events are refreshed.
   const oldBy = new Map(old.map((o) => [o._id, o]));
-  const upd = ids.filter((i) => have.has(i)).map((i) => Object.assign({}, oldBy.get(i), byId.get(i)));
+  const upd = ids.filter((i) => have.has(i) && !isErased(oldBy.get(i))).map((i) => Object.assign({}, oldBy.get(i), byId.get(i)));
+  skipped.erased = ids.filter((i) => have.has(i) && isErased(oldBy.get(i))).length;
   if (add.length) await wixData.bulkInsert(REGS, add, SA);
   if (upd.length) await wixData.bulkUpdate(REGS, upd, SA);
   return { done: !h.next, next: h.next, added: add.length, updated: upd.length, skipped };
@@ -1069,7 +1076,7 @@ export const listRegs = webMethod(Permissions.Anyone, async (arg) => {
     if (inExpo === false) c.missingInExpo++;
     if (!r.size) c.noSize++;
     cats.set(r.cat, c);
-    return { id: r._id, ticket: r.ticketNumber, name: r.name, email: r.email, phone: r.phone, cat: r.cat, size: r.size, bibName: r.bibName, bib: r.bib || '', unpaid: r.status === 'unpaid', inExpo };
+    return { id: r._id, ticket: r.ticketNumber, name: r.name, email: maskEmail(r.email), phone: maskPhone(r.phone), cat: r.cat, size: r.size, bibName: r.bibName, bib: r.bib || '', unpaid: r.status === 'unpaid', inExpo };
   });
   list.sort((a, b) => a.name.localeCompare(b.name));
   return { linked: !!e.wixEventId, wixEventId: e.wixEventId, map: e.wixMap, total: list.length, expoCount: expo ? expo.count : null, cats: Array.from(cats.values()).sort((a, b) => a.cat.localeCompare(b.cat)), rows: list.slice(0, 2000) };
@@ -2225,6 +2232,7 @@ export const sendToExpo = webMethod(Permissions.Anyone, async (arg) => {
       out.noBib++;
       continue;
     }
+    if (isErased(r)) continue;
     const id = e.expoId + '~' + expoDocId(r.bib);
     if (seen.has(id)) continue;
     seen.add(id);

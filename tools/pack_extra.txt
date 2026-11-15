@@ -20,3 +20,6 @@ backend wix/director/rd-waiver.js
 # Package 5c: Reports (counts and totals as tables, and a CSV file of any table)
 backend wix/director/reports.web.js
 backend wix/director/rd-report.js
+# Package 6: Privacy (hidden phone numbers and e-mail addresses, contact files, erasing a person)
+backend wix/director/privacy.web.js
+backend wix/director/rd-privacy.js

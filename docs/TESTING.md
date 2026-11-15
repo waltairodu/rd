@@ -4,18 +4,18 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 8 | 1214 | 0 |
-| 2. Penetration tests | 9 | 2257 | 0 |
-| 3. Integration tests | 17 | 3686 | 0 |
-| 4. Security tests | 1 | 515 | 0 |
-| Component tests (older suites) | 18 | 1491 | 0 |
-| 5. Regression (older suites against the saved baseline) | 53 | 9163 | 0 |
+| 1. Unit tests | 9 | 1614 | 0 |
+| 2. Penetration tests | 10 | 2786 | 0 |
+| 3. Integration tests | 19 | 4314 | 0 |
+| 4. Security tests | 1 | 574 | 0 |
+| Component tests (older suites) | 18 | 1538 | 0 |
+| 5. Regression (older suites against the saved baseline) | 57 | 10826 | 0 |
 
-**Total: 9163 checks passed, 0 failed.**
+**Total: 10826 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
-One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell), the Messages rules (text cleaning, e-mail and chat-link checks, filling templates, CSV safety, who is in an audience), and the Waivers rules (the waiver text and its versions, which answers count as signed, who has signed, the papers to print), and the Reports rules (counts by group, who may run which report, words kept clean, rows cut at 400, a table as a safe CSV file).
+One piece on its own: password hashing, PINs, roles, the Team screen rules, the Finance rules (money arithmetic, numbering, text cleaning), and the Results rules (times, ranking, age groups, awards, waves, reading a results file), and the printing rules (text cleaning, picture and colour limits, filling bibs and certificates, spare bibs, what the public page may tell), the Messages rules (text cleaning, e-mail and chat-link checks, filling templates, CSV safety, who is in an audience), and the Waivers rules (the waiver text and its versions, which answers count as signed, who has signed, the papers to print), and the Reports rules (counts by group, who may run which report, words kept clean, rows cut at 400, a table as a safe CSV file), and the Privacy rules (how a phone number and an e-mail address are hidden, the five reasons, the hourly limit, the contact files as safe CSV, what erasing a person changes and keeps).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -27,10 +27,11 @@ One piece on its own: password hashing, PINs, roles, the Team screen rules, the 
 | `unit-comms.mjs` | 129 | 0 |
 | `unit-waiver.mjs` | 128 | 0 |
 | `unit-report.mjs` | 230 | 0 |
+| `unit-privacy.mjs` | 400 | 0 |
 
 ## 2. Penetration tests
 
-Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details), the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find) the Messages tab (templates, audiences, sending twice, other races, lead and desk logins, hostile text on every screen) and the Waivers tab (hostile texts and names on the screens and the printed papers, recording twice, marking a mistake, other races, lead and desk logins, damaged data) and the Reports tab (forged, old and short tokens, a login that changes role in the middle of a session, the Money report for a lead, other races, odd table names, formulas and hostile words in a CSV file, 1,200 categories, 60 calls at once, no personal details in any table); every attack must fail.
+Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (money, claims, cash, the screens and what they print), the Waves & results tab (results files, placing, fixing, voiding, personal details), the Bibs & certificates tab with the public runner page (designs, pictures, printing, the page's switches, what a stranger can find) the Messages tab (templates, audiences, sending twice, other races, lead and desk logins, hostile text on every screen) and the Waivers tab (hostile texts and names on the screens and the printed papers, recording twice, marking a mistake, other races, lead and desk logins, damaged data) and the Reports tab (forged, old and short tokens, a login that changes role in the middle of a session, the Money report for a lead, other races, odd table names, formulas and hostile words in a CSV file, 1,200 categories, 60 calls at once, no personal details in any table) and the Privacy tab (made-up, old and short tokens, a lead asking for a director's file, another race's rows, hostile names and numbers in files and on the screens, 60 shows at the same moment, a 2,300-row file, one number shared by 205 people, ticking someone else's row, erasing twice, the audit trail never holding a number, an address or a name, nothing deleted); every attack must fail.
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -43,10 +44,11 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 | `pentest-comms.mjs` | 212 | 0 |
 | `pentest-waivers.mjs` | 306 | 0 |
 | `pentest-reports.mjs` | 796 | 0 |
+| `pentest-privacy.mjs` | 529 | 0 |
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -67,14 +69,16 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `waivers-ui.mjs` | 309 | 0 |
 | `reports.mjs` | 413 | 0 |
 | `reports-ui.mjs` | 182 | 0 |
+| `privacy.mjs` | 387 | 0 |
+| `privacy-ui.mjs` | 241 | 0 |
 
 ## 4. Security tests
 
-An audit of every method, Finance, Results, Print, Messages, Waivers, Reports and the public runner page included, against the written role table, secrets, locks and shipped files.
+An audit of every method, Finance, Results, Print, Messages, Waivers, Reports and the public runner page included, against the written role table, secrets, locks and shipped files; the Privacy backend is audited on its own (who may show, export and erase, the note before the detail, the one place a detail leaves, the one thing it deletes).
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `security.mjs` | 515 | 0 |
+| `security.mjs` | 574 | 0 |
 
 ## Component tests (older suites)
 
@@ -82,7 +86,7 @@ Each backend method and each screen, one by one; these also form the regression 
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `director.mjs` | 211 | 0 |
+| `director.mjs` | 212 | 0 |
 | `plan.mjs` | 98 | 0 |
 | `dash.mjs` | 38 | 0 |
 | `ai.mjs` | 77 | 0 |
@@ -97,7 +101,7 @@ Each backend method and each screen, one by one; these also form the regression 
 | `training-ai.mjs` | 32 | 0 |
 | `approvals-ui.mjs` | 60 | 0 |
 | `preview-ui.mjs` | 48 | 0 |
-| `pagecode.mjs` | 248 | 0 |
+| `pagecode.mjs` | 294 | 0 |
 | `ui.mjs` | 45 | 0 |
 | `rd-ui.mjs` | 58 | 0 |
 
@@ -117,17 +121,18 @@ Every suite that existed before a change must still pass at least as many checks
 | `dash-ui.mjs` | 15 | 15 |
 | `dash.mjs` | 38 | 38 |
 | `director-ui.mjs` | 73 | 73 |
-| `director.mjs` | 211 | 211 |
+| `director.mjs` | 212 | 212 |
 | `expo-int.mjs` | 65 | 65 |
 | `finance-ui.mjs` | 180 | 180 |
 | `finance.mjs` | 222 | 222 |
 | `integration-flow.mjs` | 100 | 100 |
 | `integration-ui.mjs` | 47 | 47 |
-| `pagecode.mjs` | 248 | 248 |
+| `pagecode.mjs` | 294 | 294 |
 | `pentest-comms.mjs` | 212 | 212 |
 | `pentest-finance-ui.mjs` | 32 | 32 |
 | `pentest-finance.mjs` | 118 | 118 |
 | `pentest-print.mjs` | 135 | 135 |
+| `pentest-privacy.mjs` | 529 | 529 |
 | `pentest-reports.mjs` | 796 | 796 |
 | `pentest-results.mjs` | 105 | 105 |
 | `pentest-ui.mjs` | 131 | 131 |
@@ -138,6 +143,8 @@ Every suite that existed before a change must still pass at least as many checks
 | `preview-ui.mjs` | 48 | 48 |
 | `print-ui.mjs` | 178 | 178 |
 | `print.mjs` | 219 | 219 |
+| `privacy-ui.mjs` | 241 | 241 |
+| `privacy.mjs` | 387 | 387 |
 | `rd-ui.mjs` | 58 | 58 |
 | `reports-ui.mjs` | 182 | 182 |
 | `reports.mjs` | 413 | 413 |
@@ -145,7 +152,7 @@ Every suite that existed before a change must still pass at least as many checks
 | `results.mjs` | 173 | 173 |
 | `runner-ui.mjs` | 99 | 99 |
 | `scen.mjs` | 97 | 97 |
-| `security.mjs` | 515 | 515 |
+| `security.mjs` | 574 | 574 |
 | `training-ai.mjs` | 32 | 32 |
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
@@ -154,6 +161,7 @@ Every suite that existed before a change must still pass at least as many checks
 | `unit-comms.mjs` | 129 | 129 |
 | `unit-finance.mjs` | 117 | 117 |
 | `unit-print.mjs` | 120 | 120 |
+| `unit-privacy.mjs` | 400 | 400 |
 | `unit-report.mjs` | 230 | 230 |
 | `unit-results.mjs` | 119 | 119 |
 | `unit-team.mjs` | 249 | 249 |
@@ -165,7 +173,7 @@ Every suite that existed before a change must still pass at least as many checks
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
 
-**405 protections removed, 405 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c. Every one is run again once for the final pack.
+**510 protections removed, 510 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). Every one is run again once for the final pack.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -574,6 +582,111 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | rp-page-relay-unlisted-method | KILLED | pagecode.mjs: Reports branch: "login" is refused (only the three Reports methods go throug |
 | rp-page-allowlist-wider | KILLED | pagecode.mjs: the Reports list and the Reports backend are the same 4 methods (none missin |
 | rp-page-old-backend-text-leaks | KILLED | pagecode.mjs: Reports branch: a listed method missing in the backend says backend_old, not |
+| pv-staff-gate-open | KILLED | privacy.mjs: W1 view1 calls pvList -> not_allowed   [wanted not_allowed, got director_only |
+| pv-director-only-ignored | KILLED | privacy.mjs: W1 lead1 calls pvList -> director_only   [got ] |
+| pv-session-never-expires | KILLED | privacy.mjs: W1 pvList with an expired session   [wanted not_logged_in, got no error] |
+| pv-session-garbage-expiry-passes | KILLED | pentest-privacy.mjs: PA sessions with an odd expiry, no login, a login that is gone or a t |
+| pv-token-printed-as-text | KILLED | privacy.mjs: W1 pvList with a list as the token   [wanted not_logged_in, got no error] |
+| pv-short-token-looked-up | KILLED | pentest-privacy.mjs: PA sessions with an odd expiry, no login, a login that is gone or a t |
+| pv-staff-row-gone-still-in | KILLED | privacy.mjs: W1 pvList with a person who is no longer staff   [wanted not_logged_in, got n |
+| pv-user-name-case-sensitive | KILLED | pentest-privacy.mjs |
+| pv-raw-error-leaves | KILLED | privacy.mjs: W9 registrations that cannot be read stop the plan, with no detail   [wanted  |
+| pv-reveal-no-note | KILLED | privacy.mjs: W3 one note for every show: 0 |
+| pv-reveal-note-failure-ignored | KILLED | privacy.mjs: W3 when the note cannot be written nothing is shown   [got "", wanted "pv_aud |
+| pv-reveal-no-limit | KILLED | privacy.mjs: W3 forty shows an hour, then "too many"   [got [45,""], wanted [40,"pv_too_ma |
+| pv-reveal-limit-shared-by-all | KILLED | privacy.mjs |
+| pv-reveal-other-race-row | KILLED | privacy.mjs: W3 a row of another race (the race on the screen decides)   [wanted pv_not_fo |
+| pv-reveal-value-not-cleaned | KILLED | pentest-privacy.mjs: PF a shown phone has no control or direction character, and is never  |
+| pv-reveal-time-too-long | KILLED | privacy.mjs: W3 a director sees a registrant's phone number   [got ["9848012345","phone"," |
+| pv-reveal-returns-whole-row | KILLED | pentest-privacy.mjs: PD a show answers from the row, with the time of the code, whatever e |
+| pv-export-open-to-leads | KILLED | privacy.mjs: W1 lead1 calls pvExport -> director_only   [got ] |
+| pv-export-no-note | KILLED | privacy.mjs: W4 each file is noted: undefined |
+| pv-export-note-names-someone | KILLED | privacy.mjs: W4 each file is noted: Registrations: rows 1-5 of 5 · contact <img src=x oner |
+| pv-export-erased-people-in-file | KILLED | unit-privacy.mjs: V7 an erased person is not in a file |
+| pv-export-page-too-big | KILLED | unit-privacy.mjs: V7 2500 rows are three pages: 1000, 1000, 500 |
+| pv-export-no-next-page | KILLED | unit-privacy.mjs: V7 2500 rows are three pages: 1000, 1000, 500 |
+| pv-export-from-unbounded | KILLED | unit-privacy.mjs: V7 start refused: 1000001   [got "", wanted "pv_bad_request"] |
+| pv-export-from-fraction | KILLED | unit-privacy.mjs: V7 start refused: 1.5   [got "", wanted "pv_bad_request"] |
+| pv-export-kind-inherited | KILLED | unit-privacy.mjs: V7 kind refused: "__proto__"   [got "", wanted "pv_bad_request"] |
+| pv-list-open-to-leads | KILLED | privacy.mjs: W1 lead1 calls pvList -> director_only   [got ] |
+| pv-list-trail-unfiltered | KILLED | privacy.mjs: W5 six notes about contact details; the login and the report notes are not am |
+| pv-plan-open-to-leads | KILLED | privacy.mjs: W1 lead1 calls pvErasePlan -> director_only   [got ] |
+| pv-erase-open-to-leads | KILLED | privacy.mjs: W1 lead1 calls pvErase -> director_only   [got pv_need_confirm] |
+| pv-erase-no-confirm | KILLED | privacy.mjs: W6 another person   [got [], wanted ["athlete~ath-other"]] |
+| pv-erase-no-note | KILLED | privacy.mjs: W7 when the note cannot be written nothing is erased   [got ["","(erased)"],  |
+| pv-erase-note-after-change | KILLED | privacy.mjs |
+| pv-erase-stale-keys-allowed | KILLED | privacy.mjs: W7 a key of someone else is not in the plan   [wanted pv_stale, got server_er |
+| pv-erase-too-big-allowed | KILLED | privacy.mjs: W6 and refuses to erase so many in one go   [wanted pv_too_big, got no error] |
+| pv-erase-skips-dependents | KILLED | privacy.mjs: W7 the hand-over record loses the selfie and the friend and keeps that it hap |
+| pv-erase-keeps-sign-ins | KILLED | privacy.mjs: W7 the athlete is signed out everywhere   [got 1, wanted 0] |
+| pv-erase-removes-every-sign-in | KILLED | pentest-privacy.mjs: PN only the erased athlete's sign-ins are gone: every other athlete s |
+| pv-plan-not-capped | KILLED | privacy.mjs: W6 a plan shows at most 200 rows and says it is cut   [got [205,205,true], wa |
+| pv-plan-same-bib-any-name | KILLED | pentest-privacy.mjs: PN the Expo runner at the same bib is part of the person when the nam |
+| pv-plan-shows-phone | KILLED | unit-privacy.mjs: V8 a row of the plan is masked and has a key   [got {"key":"reg~e~1","ki |
+| pv-plan-shows-email | KILLED | unit-privacy.mjs: V8 a row of the plan is masked and has a key   [got {"key":"reg~e~1","ki |
+| pvl-mask-phone-shows-six | KILLED | unit-privacy.mjs: V1 a ten digit number shows its last four digits   [got "••••••012345",  |
+| pvl-mask-phone-short-shown | KILLED | unit-privacy.mjs: V1 six digits is not a phone number: nothing of it is shown   [got "•••• |
+| pvl-mask-phone-empty-dots | KILLED | unit-privacy.mjs: V1 no digits is empty: ""   [got "••••••", wanted ""] |
+| pvl-mask-email-shows-name | KILLED | unit-privacy.mjs: V2 first letter, dots, first letter of the domain, the ending   [got "ra |
+| pvl-mask-email-shows-domain | KILLED | unit-privacy.mjs: V2 first letter, dots, first letter of the domain, the ending   [got "r• |
+| pvl-mask-not-an-address-shown | KILLED | unit-privacy.mjs: V2 something that is not an address is hidden whole   [got "nope", wante |
+| pvl-mask-first-sign-kept | KILLED | unit-privacy.mjs: V2 capitals are shown as small letters   [got "R•••@G•••.com", wanted "r |
+| pvl-sample-number-not-masked | KILLED | unit-privacy.mjs: V3 a number is masked   [got "98480 12345", wanted "••••••2345"] |
+| pvl-may-reveal-viewers | KILLED | unit-privacy.mjs: V4 viewer may reveal: false |
+| pvl-may-export-leads | KILLED | unit-privacy.mjs: V4 lead may export: false |
+| pvl-may-erase-leads | KILLED | unit-privacy.mjs: V4 lead may erase: false |
+| pvl-may-inherited-word | KILLED | unit-privacy.mjs |
+| pvl-reveal-kind-inherited | KILLED | unit-privacy.mjs: V5 kind refused: "__proto__"   [got "FIELDS_OF[a.kind].includes is not a |
+| pvl-reveal-pacer-email | KILLED | unit-privacy.mjs: V5 a pacer has a phone number and nothing else to show   [got ["phone"," |
+| pvl-reveal-any-field | KILLED | unit-privacy.mjs: V5 pacer/email/contact is refused |
+| pvl-reveal-id-unbounded | KILLED | unit-privacy.mjs: V5 id refused: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx   [got "", wanted "pv_bad_ |
+| pvl-reason-any-text | KILLED | unit-privacy.mjs: V5 reason refused: "bored"   [got "", wanted "pv_need_reason"] |
+| pvl-limit-too-high | KILLED | unit-privacy.mjs: V5 forty shows an hour, a shown detail stays thirty seconds |
+| pvl-show-time-long | KILLED | unit-privacy.mjs: V5 forty shows an hour, a shown detail stays thirty seconds |
+| pvl-person-short-phone | KILLED | unit-privacy.mjs: V8 refused: {"phone":"12345"}   [got "", wanted "pv_bad_person"] |
+| pvl-person-half-email | KILLED | unit-privacy.mjs: V8 refused: {"email":"a@b"}   [got "", wanted "pv_bad_person"] |
+| pvl-person-phone-first-ten | KILLED | unit-privacy.mjs: V8 a number: its last ten digits   [got {"phone":"9198480123","email":"" |
+| pvl-isperson-email-case | KILLED | unit-privacy.mjs: V8 the same address in any case is the person |
+| pvl-isperson-whole-number | KILLED | unit-privacy.mjs: V8 the same number in any writing is the person |
+| pvl-patch-reg-keeps-phone | KILLED | unit-privacy.mjs: V9 a registration loses who the person is   [got ["(erased)","","9848012 |
+| pvl-patch-reg-keeps-form | KILLED | unit-privacy.mjs: V9 a registration loses who the person is   [got ["(erased)","","","","[ |
+| pvl-summary-wrong-plural | KILLED | unit-privacy.mjs: V8 the plan in words   [got "2 registration, 1 volunteers", wanted "2 re |
+| pv-rd-regs-phone-raw | KILLED | privacy.mjs: W2 boss: the registrations list holds no full phone number or address   [got  |
+| pv-rd-regs-email-raw | KILLED | privacy.mjs: W2 boss: the registrations list holds no full phone number or address   [got  |
+| pv-rd-pacers-phone-raw | KILLED | privacy.mjs: W2 boss: the pacers list holds no full phone number   [got ["+91 98480","9111 |
+| pv-rd-vols-phone-raw | KILLED | privacy.mjs: W2 boss: the volunteers list holds no full phone number or address   [got ["9 |
+| pv-rd-vols-email-raw | KILLED | privacy.mjs: W2 boss: the volunteers list holds no full phone number or address   [got ["a |
+| pv-rd-form-sample-raw | KILLED | privacy.mjs: W2 form examples that are numbers are masked   [got false, wanted true] |
+| pv-rd-pacer-edit-saves-mask | KILLED | privacy.mjs |
+| pv-rd-pacer-edit-blank-wipes | KILLED | privacy.mjs: W13 an edit saved with the phone box empty keeps the number   [got "", wanted |
+| pv-rd-erased-pacer-revived | KILLED | privacy.mjs: W13 an erased pacer cannot be edited back to life   [wanted no_pacer, got no  |
+| pv-rd-import-overwrites-erased | KILLED | privacy.mjs: W8 the erased registration stays erased   [got ["Asha Rao","9848012345","asha |
+| pv-rd-send-to-expo-erased | KILLED | privacy.mjs: W8 sending again does not make a runner out of the erased registration: {"add |
+| pv-xb-runner-phone-raw | KILLED | privacy.mjs: W2 Expo boss: the runner list holds no full phone number or address   [got [" |
+| pv-xb-runner-email-raw | KILLED | privacy.mjs: W2 Expo boss: the runner list holds no full phone number or address   [got [" |
+| pv-xb-upsert-revives-erased | KILLED | privacy.mjs: W8 a sync from findmybib adds the new runner and does not touch the erased on |
+| pv-page-relay-unlisted-method | KILLED | pagecode.mjs: Privacy branch: "login" is refused (only the five Privacy methods go through |
+| pv-page-allowlist-wider | KILLED | pagecode.mjs: the Privacy list and the Privacy backend are the same 6 methods (none missin |
+| pv-page-old-backend-text-leaks | KILLED | pagecode.mjs: Privacy branch: a listed method missing in the backend says backend_old, not |
+| pv-ui-time-not-cut | KILLED | privacy-ui.mjs: U4 a time longer than thirty seconds is cut to thirty (the longest wait as |
+| pv-ui-hide-keeps-value | KILLED | privacy-ui.mjs: U3 Hide puts the dots and the Show button back |
+| pv-ui-value-as-markup | KILLED | privacy-ui.mjs: U5 a detail with markup in it is shown as the characters it is |
+| pv-ui-mask-as-markup | KILLED | privacy-ui.mjs: U5 regs: the dots of a list that has markup in them are shown as the chara |
+| pv-ui-reason-not-required | KILLED | privacy-ui.mjs: U3 pressing Show without a reason is told to pick one and asks the server  |
+| pv-ui-show-button-for-everyone | KILLED | privacy-ui.mjs: U2 a viewer sees dots, no Show button, and is told they are hidden for the |
+| pv-ui-clear-keeps-shown | KILLED | privacy-ui.mjs: U4 going to another tab and back hides it |
+| pv-ui-hidden-page-keeps-shown | KILLED | privacy-ui.mjs: U4 the page going to the background hides it |
+| pv-ui-late-answer-shown | KILLED | privacy-ui.mjs: U4 an answer that arrives after Cancel is not shown |
+| pv-ui-expired-value-shown | KILLED | privacy-ui.mjs: U4b a cell drawn after the time was up shows the dots again, and only the  |
+| pv-ui-erase-button-without-word | KILLED | privacy-ui.mjs: U8 drawn again with two ticked and "ERAS" typed, the button is still off |
+| pv-ui-erase-click-without-word | KILLED | privacy-ui.mjs: U8 pressing the button while it is off asks the server nothing   [got 1, w |
+| pv-ui-file-one-page-only | KILLED | privacy-ui.mjs: U7 a file of several pages asks for each page in turn, from where the serv |
+| pv-ui-file-without-bom | KILLED | privacy-ui.mjs: U7 it starts with a byte-order mark and the heading row, so a spreadsheet  |
+| pv-ui-file-without-reason | KILLED | privacy-ui.mjs: U7 a file without a reason is refused on the screen: no call, no file |
+| pv-ui-erase-ticks-everything | KILLED | privacy-ui.mjs: U8 nothing is ticked at first |
+| pv-ui-erase-keeps-shown | KILLED | privacy-ui.mjs: U8 and the open question about a number is closed (nothing that was being  |
+| pv-ui-trail-text-as-markup | KILLED | privacy-ui.mjs: U6 a note with markup in its fields is drawn as the characters it is (who, |
+| pv-ui-plan-name-as-markup | KILLED | privacy-ui.mjs: U8 a name with markup is shown as text in the list |
 
 ## How to run
 
@@ -581,4 +694,5 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 sh tests/all.sh                  every suite once, writes this report
 python3 tests/report.py --only security
 python3 tests/mutants.py        mutation spot-checks
+sh tests/days.sh                the date-sensitive suites again on three other days (a race 30, 60 and 90 days away falls on 1 January); about 12 minutes, run it before a release
 ```

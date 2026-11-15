@@ -31,3 +31,8 @@ unit unit-report.mjs
 integration reports.mjs
 integration reports-ui.mjs
 pentest pentest-reports.mjs
+# Package 6: Privacy (phone numbers and e-mail addresses hidden by default, shown one at a time with a reason, contact files, erasing a person)
+unit unit-privacy.mjs
+integration privacy.mjs
+integration privacy-ui.mjs
+pentest pentest-privacy.mjs

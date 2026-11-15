@@ -14,6 +14,7 @@ Software for running a VTRA race end to end, built on Wix (Velo). Started with t
 | Messages: templates, audiences, e-mails through one Wix triggered e-mail, WhatsApp chat links, history | Built, tested in a simulator | `wix/director/comms.web.js` |
 | Waivers: the waiver text in versions, who has signed, papers recorded on the day, papers to print, "waiver not signed" as a Messages audience | Built, tested in a simulator | `wix/director/waivers.web.js` |
 | Reports: six reports of counts and totals (registrations, race day, volunteers, waivers, messages, money), every table a safe CSV file, no personal details in any of them | Built, tested in a simulator | `wix/director/reports.web.js` |
+| Privacy: phone numbers and e-mail addresses hidden in every list, shown one at a time with a reason (audited), contact files and erasing a person for directors | Built, tested in a simulator | `wix/director/privacy.web.js`, `wix/director/rd-privacy.js` |
 | Registration admin, budget, clubs, ambassadors, academy, coach platform, Android | Designed as mockups, not built | `docs/mockups`, `docs/PLAN.md` |
 
 None of these packages has run on a live Wix site yet. Rehearse on the published site before race day.
@@ -31,7 +32,7 @@ None of these packages has run on a live Wix site yet. Rehearse on the published
 
 ## Secrets
 
-`SETUP_KEY` in `exposoft.web.js` and `racedir.web.js` ships as `change-this-key`. Change it in Wix to your own secret. Never commit your real key.
+`SETUP_KEY` in `racedir.web.js` (and the optional manual setup of `training.web.js`) ships as `change-this-key`. Change it in Wix to your own secret. Never commit your real key.
 
 ## Site map
 See docs/SITEMAP.md. Race Director is at /rd, volunteers at /volunteer, athletes at /train, coaches at /coach.

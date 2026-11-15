@@ -56,6 +56,9 @@ td{padding:9px 8px;border-bottom:1px solid var(--surface-2);vertical-align:top}
 .alert{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--info-bg);margin-top:8px}
 .alert.warn{background:var(--warn-bg)}.alert.bad{background:var(--bad-bg)}
 .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;max-width:90vw}
+.pvm{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.pvv{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-weight:600;word-break:break-all}
+.pvask{border:2px solid var(--primary);margin-bottom:14px}
 .toast.err{background:var(--bad);color:#fff}
 .login{max-width:380px;margin:12vh auto 0}
 .login form{display:flex;flex-direction:column;gap:12px;margin-top:14px}
@@ -182,7 +185,7 @@ function api(method,arg,ms,mod){
   });
 }
 // Back to the login page: the session is over (logged out, expired, or ended by a director).
-function endSession(why){dropExpo();S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.cm=null;S.wv=null;S.rp=null;S.loginErr=why?msg(why):'';render()}
+function endSession(why){dropExpo();pvClear();PV_META={};S.pvt=null;S.token='';S.me=null;S.ev='';S.ov=null;S.expoOnly=false;S.team=null;S.tf=null;S.teamSecret=null;S.fin=null;S.fsub='';S.res=null;S.prn=null;S.cm=null;S.wv=null;S.rp=null;S.loginErr=why?msg(why):'';render()}
 var tt;
 function toast(t,bad){var el=$('#toast');el.textContent=t;el.className='toast'+(bad?' err':'');el.hidden=false;clearTimeout(tt);tt=setTimeout(function(){el.hidden=true},bad?5000:2500)}
 function can(){return !!(S.me&&S.me.canWrite)}
@@ -231,6 +234,7 @@ async function loadTab(){
     else if(t==='comms'&&(man()||isLead()))await cmLoad();
     else if(t==='wv'&&(man()||isLead()))await wvLoad();
     else if(t==='rp'&&(man()||isLead()))await rpLoad();
+    else if(t==='pv'&&man())await pvLoad();
     else if(PLAN_TABS[t])S.plan=await api('listPlan',{kinds:planKindsFor(t)});
   }catch(e){S.loadErr=msg(e.message);toast(S.loadErr,true)}
   render();
@@ -253,11 +257,11 @@ function loginView(){
 }
 var IC={spark:'M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z',home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',users:'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21c0-4 3.6-6 8-6s8 2 8 6',check:'M5 12l5 5L20 7',scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',list:'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',rupee:'M7 5h10M7 9h10M7 5c6 0 6 8 0 8H6l8 7',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',flag:'M5 21V4M5 4h11l-2 4 2 4H5',box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',run:'M13 5a1.5 1.5 0 1 0 .01 0M6 21l4-6 3 2 2-5-3-3-4 2M15 12l4 2',whistle:'M4 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0M14 11h6v3h-6',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',logo:'M13 4a2 2 0 1 0 .01 0M5 20l4-7 3 2 2-5M14 10l-3-2-3 4M12 15l1 5',key:'M15 3a5 5 0 1 1-3.6 8.5L4 19v2h3v-2h2v-2h2l1.2-1.2',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4',print:'M7 8V3h10v5M7 17H4v-8h16v8h-3M7 14h10v7H7z',mail:'M3 6h18v12H3zM3 7l9 7 9-7'};
 function ico(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||IC.home)+'"/></svg>'}
-var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['comms','Messages','mail'],['wv','Waivers','shield'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Reports',[['rp','Reports','list']]],['Admin',[['team','Team','key'],['setup','Settings','gear']]]];
+var NAV=[['',[['overview','Dashboard','home'],['ai','Ask RaceOS','spark']]],['Race',[['regs','Registrations','users'],['bibs','Bibs and sync','scan'],['quals','Qualification','check']]],['Plan',[['plan','Plan','list'],['money','Money','rupee'],['approvals','Approvals','shield'],['ceremonies','Ceremonies','flag'],['logistics','Logistics','box']]],['Accounts',[['fin','Finance','receipt']]],['People',[['volunteers','Volunteers','heart'],['comms','Messages','mail'],['wv','Waivers','shield'],['pacers','Pacers','run'],['coaching','Coaching','whistle']]],['Race day',[['expo','BIB & Expo','scan'],['res','Waves & results','flag'],['prn','Bibs & certificates','print'],['raceday','Race day','clock'],['safety','Safety','cross']]],['Reports',[['rp','Reports','list']]],['Admin',[['team','Team','key'],['pv','Privacy','shield'],['setup','Settings','gear']]]];
 function navShown(id){
   if(id==='money')return !(S.me&&S.me.role==='viewer');
   if(id==='fin'||id==='res'||id==='prn'||id==='comms'||id==='wv'||id==='rp')return man()||isLead();
-  if(id==='coaching'||id==='setup'||id==='team')return man();
+  if(id==='coaching'||id==='setup'||id==='team'||id==='pv')return man();
   if(id==='expo')return man()&&!!EXPO_SRC;
   return true;
 }
@@ -422,16 +426,15 @@ function volView(){
    +(shifts.length?shifts.map(function(s){return '<tr><td><b>'+esc(s.role)+'</b>'+(s.notes?'<br><small>'+esc(s.notes)+'</small>':'')+'</td><td>'+esc(s.location)+'</td><td>'+esc(fdate(s.date))+'<br><small>'+esc(s.start)+' to '+esc(s.end)+'</small></td><td>'+s.taken+' / '+s.need+' '+(s.left===0?pill('Full','good'):'')+'</td><td>'+s.onSite+'</td><td>'+(can()?'<button class="btn sm" data-act="shiftEdit" data-id="'+esc(s.id)+'">Edit</button> ':'')+(man()?arm('rs'+s.id,'Delete','shiftDel','data-id="'+esc(s.id)+'"'):'')+'</td></tr>'}).join(''):'<tr><td colspan="6" class="muted">No shifts yet. Add the roles you need, for example aid stations, marshals and the expo desk.</td></tr>')
    +'</table></div>'+shiftForm()+'</div>'
    +(can()?'<div class="card"><h3>Check-in on race day</h3><p class="muted" style="margin:4px 0 8px">Type the volunteer\'s code (from their confirmation) and press In when they arrive, Out when they leave. Hours are worked out for you.</p><div class="row"><input id="ciCode" placeholder="Code, e.g. K7M2XQ" maxlength="10" value="'+esc(S.ci)+'" style="text-transform:uppercase;width:180px"><button class="btn pri" data-act="ciIn">Check in</button><button class="btn" data-act="ciOut">Check out</button></div></div>':'')
-   +'<div class="card"><div class="row between"><h3>Volunteers</h3><div class="row"><input id="volQ" placeholder="Search name, phone, club or code" value="'+esc(S.volQ)+'" style="width:240px"><select id="volF" aria-label="Filter">'+[['all','All'],['applied','Waiting'],['approved','Approved'],['declined','Declined']].map(function(o){return '<option value="'+o[0]+'"'+(S.volF===o[0]?' selected':'')+'>'+o[1]+' ('+counts[o[0]]+')</option>'}).join('')+'</select><button class="btn sm" data-act="csv">Download CSV</button></div></div>'
-   +'<div class="scroll"><table><tr><th>Name</th><th>Contact</th><th>Status</th><th>Shifts</th><th></th></tr>'
+   +'<div class="card"><div class="row between"><h3>Volunteers</h3><div class="row"><input id="volQ" placeholder="Search name, last 4 digits, club or code" value="'+esc(S.volQ)+'" style="width:240px"><select id="volF" aria-label="Filter">'+[['all','All'],['applied','Waiting'],['approved','Approved'],['declined','Declined']].map(function(o){return '<option value="'+o[0]+'"'+(S.volF===o[0]?' selected':'')+'>'+o[1]+' ('+counts[o[0]]+')</option>'}).join('')+'</select><button class="btn sm" data-act="csv">Download CSV</button></div></div>'
+   +'<p class="muted" style="margin:6px 0">'+pvNote()+'</p><div class="scroll"><table><tr><th>Name</th><th>Contact</th><th>Status</th><th>Shifts</th><th></th></tr>'
    +(list.length?list.map(volRow).join(''):'<tr><td colspan="5" class="muted">No volunteers match.</td></tr>')+'</table></div>'
    +(can()?'<form id="addVol" class="form" style="margin-top:12px"><label class="f">Add by hand: name<input name="name" required></label><label class="f">Mobile<input name="phone" inputmode="tel" required></label><label class="f">Club<input name="club"></label><button class="btn" type="submit">Add as approved</button></form>':'')+'</div></div>';
 }
 function volRow(v){
   var kind=v.status==='approved'?'good':v.status==='declined'?'bad':'warn';
-  var wa='https://wa.me/91'+String(v.phone==null?'':v.phone).replace(/\D/g,'').slice(-10)+'?text='+encodeURIComponent('Hi '+v.name.split(' ')[0]+', this is VTRA. Your volunteer code is '+v.code+'. Please keep it handy for check-in.');
   return '<tr><td><b>'+esc(v.name)+'</b><br><small>'+esc(v.club)+(v.notes?' · '+esc(v.notes):'')+'</small></td>'
-   +'<td>'+esc(v.phone)+'<br><small><a href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a> · code '+esc(v.code)+'</small></td>'
+   +'<td>'+pvCell('vol',v.id,'phone',v.phone,v.name)+'<br><small>code '+esc(v.code)+'</small></td>'
    +'<td>'+pill(v.status==='applied'?'Waiting':v.status,kind)+(v.hours?'<br><small>'+v.hours+' h</small>':'')+'</td>'
    +'<td>'+(v.shifts.length?v.shifts.map(function(s){return '<div>'+esc(s.role)+' <small>'+esc(fdate(s.date))+' '+esc(s.start)+'</small> '+(s.checkedOutAt?pill('Done','good'):s.checkedInAt?pill('On site','good'):'')+(can()&&!s.checkedInAt?' <button class="btn sm" data-act="unassign" data-id="'+esc(s.assignId)+'" aria-label="Remove from shift">×</button>':'')+'</div>'}).join(''):'<small>none</small>')
    +(can()&&v.status!=='declined'?'<select data-act="assign" data-vid="'+esc(v.id)+'" aria-label="Add a shift" style="margin-top:4px;min-height:30px"><option value="">+ shift</option>'+S.shifts.filter(function(s){return s.left>0&&!v.shifts.some(function(x){return x.shiftId===s.id})}).map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.role+' '+fdate(s.date)+' '+s.start)+'</option>'}).join('')+'</select>':'')+'</td>'
@@ -457,14 +460,14 @@ function paceView(){
   var pc=S.editPacer;
   var rows=p.groups.map(function(g){return '<tr><td><b>'+esc(g.label)+'</b></td><td>'+esc(g.finish)+'</td><td>'+esc(g.pace)+' /km</td><td>'+g.splits.map(function(s){return esc(s.km)+'k '+esc(s.time)}).join(' · ')+'</td><td>'+g.have+' / '+g.need+' '+(g.short?pill('Need '+g.short,'warn'):pill('Covered','good'))+'</td><td>'+g.ready+'</td></tr>'}).join('');
   var gEd=can()?'<details style="margin-top:12px"><summary class="btn sm">Edit pace groups</summary><form id="groupForm" style="margin-top:10px"><div class="form"><label class="f">Race distance (km)<input name="distanceKm" type="number" step="0.0001" min="1" max="100" value="'+esc(p.distanceKm)+'"></label></div><div id="groupRows" style="margin-top:8px;display:flex;flex-direction:column;gap:8px">'+p.groups.map(groupRow).join('')+'</div><div class="row" style="margin-top:8px"><button class="btn sm" type="button" data-act="groupAdd">+ Group</button><button class="btn pri" type="submit">Save groups</button></div></form></details>':'';
-  var roster=p.pacers.map(function(x){return '<tr><td><b>'+esc(x.name)+'</b><br><small>'+esc(x.phone)+'</small></td><td>'+esc(x.group||'–')+'</td><td>'+pill(x.status,x.status==='approved'?'good':x.status==='declined'?'bad':'warn')+'</td><td>'+pill(x.trial==='passed'?'Trial passed':x.trial==='retest'?'Re-test':'Trial waiting',x.trial==='passed'?'good':'warn')+' '+pill(x.briefing?'Briefed':'Not briefed',x.briefing?'good':'')+' '+pill(x.kit?'Kit given':'No kit',x.kit?'good':'')+'</td><td>'+(can()?'<button class="btn sm" data-act="pacerEdit" data-id="'+esc(x.id)+'">Edit</button> ':'')+(man()?arm('rp'+x.id,'Remove','pacerDel','data-id="'+esc(x.id)+'"'):'')+'</td></tr>'}).join('');
-  var form=can()?'<form id="pacerForm" class="card" style="margin-top:10px"><h3>'+(pc&&pc.id?'Edit pacer':'Add pacer')+'</h3><div class="form" style="margin-top:8px"><label class="f">Name<input name="name" value="'+esc(pc?pc.name:'')+'" required></label><label class="f">Mobile<input name="phone" value="'+esc(pc?pc.phone:'')+'"></label>'
+  var roster=p.pacers.map(function(x){return '<tr><td><b>'+esc(x.name)+'</b><br><small>'+pvCell('pacer',x.id,'phone',x.phone,x.name)+'</small></td><td>'+esc(x.group||'–')+'</td><td>'+pill(x.status,x.status==='approved'?'good':x.status==='declined'?'bad':'warn')+'</td><td>'+pill(x.trial==='passed'?'Trial passed':x.trial==='retest'?'Re-test':'Trial waiting',x.trial==='passed'?'good':'warn')+' '+pill(x.briefing?'Briefed':'Not briefed',x.briefing?'good':'')+' '+pill(x.kit?'Kit given':'No kit',x.kit?'good':'')+'</td><td>'+(can()?'<button class="btn sm" data-act="pacerEdit" data-id="'+esc(x.id)+'">Edit</button> ':'')+(man()?arm('rp'+x.id,'Remove','pacerDel','data-id="'+esc(x.id)+'"'):'')+'</td></tr>'}).join('');
+  var form=can()?'<form id="pacerForm" class="card" style="margin-top:10px"><h3>'+(pc&&pc.id?'Edit pacer':'Add pacer')+'</h3><div class="form" style="margin-top:8px"><label class="f">Name<input name="name" value="'+esc(pc?pc.name:'')+'" required></label><label class="f">Mobile<input name="phone" inputmode="tel" autocomplete="off" value="" placeholder="'+(pc&&pc.id?(pc.phone?'Keep '+esc(pc.phone)+' (type a new number to change it)':'No number saved'):'Mobile')+'"></label>'
    +'<label class="f">Pace group<select name="group"><option value="">–</option>'+p.groups.map(function(g){return '<option value="'+esc(g.label)+'"'+(pc&&pc.group===g.label?' selected':'')+'>'+esc(g.label)+'</option>'}).join('')+'</select></label>'
    +'<label class="f">Status<select name="status">'+['applied','approved','reserve','declined'].map(function(s){return '<option'+(pc&&pc.status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></label>'
    +'<label class="f">Trial run<select name="trial">'+[['waiting','Waiting'],['passed','Passed'],['retest','Re-test']].map(function(s){return '<option value="'+s[0]+'"'+(pc&&pc.trial===s[0]?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></label>'
    +'<label class="f"><span>Briefed</span><input name="briefing" type="checkbox"'+(pc&&pc.briefing?' checked':'')+'></label><label class="f"><span>Kit given</span><input name="kit" type="checkbox"'+(pc&&pc.kit?' checked':'')+'></label><label class="f">Notes<input name="notes" value="'+esc(pc?pc.notes:'')+'"></label></div><div class="row" style="margin-top:10px"><button class="btn pri" type="submit">Save pacer</button>'+(pc?'<button class="btn" type="button" data-act="pacerCancel">Cancel</button>':'')+'</div></form>':'';
   return '<div class="stack"><div class="card"><h3>Pace plan · '+esc(p.distanceKm)+' km</h3><p class="muted" style="margin:4px 0 8px">Even-pace targets worked out from each finish time.</p><div class="scroll"><table><tr><th>Group</th><th>Finish</th><th>Pace</th><th>Checkpoints</th><th>Pacers</th><th>Ready</th></tr>'+rows+'</table></div>'+gEd+'</div>'
-   +'<div class="card"><h3>Pacers</h3><div class="scroll"><table><tr><th>Pacer</th><th>Group</th><th>Status</th><th>Progress</th><th></th></tr>'+(roster||'<tr><td colspan="5" class="muted">No pacers yet.</td></tr>')+'</table></div>'+form+'</div></div>';
+   +'<div class="card"><h3>Pacers</h3><p class="muted" style="margin:6px 0">'+pvNote()+'</p><div class="scroll"><table><tr><th>Pacer</th><th>Group</th><th>Status</th><th>Progress</th><th></th></tr>'+(roster||'<tr><td colspan="5" class="muted">No pacers yet.</td></tr>')+'</table></div>'+form+'</div></div>';
 }
 function groupRow(g){return '<div class="form gr"><label class="f">Name<input name="label" value="'+esc(g.label)+'" required></label><label class="f">Finish time<input name="finish" value="'+esc(g.finish)+'" placeholder="1:45" required></label><label class="f">Pacers needed<input name="need" type="number" min="0" max="20" value="'+esc(g.need)+'"></label><button class="btn sm bad" type="button" data-act="groupDel">Remove</button></div>'}
 
@@ -510,7 +513,7 @@ function regsView(){
   var cats='<div class="scroll"><table style="margin-top:10px"><tr><th>Ticket</th><th>Registered</th><th>Payment pending</th><th>No size</th>'+(g.expoCount!==null?'<th>Not in Expo list</th>':'')+'</tr>'+g.cats.map(function(c){return '<tr><td><b>'+esc(c.cat)+'</b></td><td>'+c.total+'</td><td>'+(c.unpaid?pill(c.unpaid,'warn'):'0')+'</td><td>'+(c.noSize?pill(c.noSize,'warn'):'0')+'</td>'+(g.expoCount!==null?'<td>'+c.missingInExpo+'</td>':'')+'</tr>'}).join('')+'</table></div>';
   var q=S.regQ.toLowerCase();
   var list=g.rows.filter(function(r){return !q||(r.name+' '+r.phone+' '+r.email+' '+r.cat+' '+r.ticket).toLowerCase().indexOf(q)>=0});
-  var tbl='<div class="card"><div class="row between"><h3>Everyone</h3><div class="row"><input id="regQ" placeholder="Search name, phone, ticket" value="'+esc(S.regQ)+'"><button class="btn" data-act="regCsv">Download CSV</button></div></div><div class="scroll"><table><tr><th>Name</th><th>Ticket</th><th>Size</th><th>Bib name</th><th>Phone</th><th></th></tr>'+(list.slice(0,300).map(function(r){return '<tr><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.email)+'</small></td><td>'+esc(r.cat)+'</td><td>'+esc(r.size||'–')+'</td><td>'+esc(r.bibName||'–')+'</td><td>'+esc(r.phone)+'</td><td>'+(r.unpaid?pill('Payment pending','warn'):'')+(r.inExpo===false?pill('Not in Expo list',''):'')+'</td></tr>'}).join('')||'<tr><td colspan="6" class="muted">Nothing here yet. Press Import.</td></tr>')+'</table></div>'+(list.length>300?'<p class="muted">Showing the first 300 of '+list.length+'. Use search or the CSV.</p>':'')+'</div>';
+  var tbl='<div class="card"><div class="row between"><h3>Everyone</h3><div class="row"><input id="regQ" placeholder="Search name, last 4 digits, ticket" value="'+esc(S.regQ)+'"><button class="btn" data-act="regCsv">Download CSV</button></div></div><p class="muted" style="margin:6px 0">'+pvNote()+'</p><div class="scroll"><table><tr><th>Name</th><th>Ticket</th><th>Size</th><th>Bib name</th><th>Phone</th><th></th></tr>'+(list.slice(0,300).map(function(r){return '<tr><td><b>'+esc(r.name)+'</b><br><small>'+pvCell('reg',r.id,'email',r.email,r.name)+'</small></td><td>'+esc(r.cat)+'</td><td>'+esc(r.size||'–')+'</td><td>'+esc(r.bibName||'–')+'</td><td>'+pvCell('reg',r.id,'phone',r.phone,r.name)+'</td><td>'+(r.unpaid?pill('Payment pending','warn'):'')+(r.inExpo===false?pill('Not in Expo list',''):'')+'</td></tr>'}).join('')||'<tr><td colspan="6" class="muted">Nothing here yet. Press Import.</td></tr>')+'</table></div>'+(list.length>300?'<p class="muted">Showing the first 300 of '+list.length+'. Use search or the CSV.</p>':'')+'</div>';
   return '<div class="stack">'+top+map+cats+'</div>'+tbl+'</div>';
 }
 function formMap(){
@@ -553,9 +556,9 @@ function render(){
   if(S.expoOnly){app.className='app';app.innerHTML=expoOnlyView();showExpo(true);return}
   if(!S.token){app.className='app';app.innerHTML='<div class="loginwrap">'+loginView()+'</div>';showExpo(false);return}
   showExpo(S.tab==='expo'&&man());
-  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='comms'&&(man()||isLead())?cmView():S.tab==='wv'&&(man()||isLead())?wvView():S.tab==='rp'&&(man()||isLead())?rpView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
+  var body=!S.ev&&S.tab!=='setup'&&S.tab!=='team'&&S.tab!=='expo'?noEvent():S.tab==='overview'?overviewView():S.tab==='volunteers'?volView():S.tab==='raceday'?racedayView():S.tab==='pacers'?paceView():S.tab==='safety'?safetyView():S.tab==='quals'?qualView():S.tab==='regs'?regsView():S.tab==='bibs'?bibsView():S.tab==='ai'?aiView():S.tab==='plan'?planTabView():S.tab==='money'?moneyTabView():S.tab==='approvals'?approvalsTabView():S.tab==='ceremonies'?ceremoniesTabView():S.tab==='logistics'?logisticsTabView():S.tab==='fin'&&(man()||isLead())?finView():S.tab==='res'&&(man()||isLead())?resView():S.tab==='prn'&&(man()||isLead())?prnView():S.tab==='comms'&&(man()||isLead())?cmView():S.tab==='wv'&&(man()||isLead())?wvView():S.tab==='rp'&&(man()||isLead())?rpView():S.tab==='pv'&&man()?pvView():S.tab==='coaching'&&man()?coachingView():S.tab==='team'&&man()?teamView():S.tab==='expo'?'':S.tab==='setup'&&man()?setupView():'';
   app.className='app wide';
-  app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content">'+body+'</div></main></div>';
+  app.innerHTML='<div class="shell">'+head()+'<main class="main">'+topbar()+'<div class="content"><div id="pvAskBox">'+pvAskHtml()+'</div>'+body+'</div></main></div>';
 }
 
 /* ---------- planning: tasks, money, approvals, ceremonies, logistics ---------- */
@@ -815,7 +818,7 @@ function formData(f){var o={};Array.prototype.forEach.call(f.elements,function(e
 function download(name,text,mime){try{var b=new Blob([text],{type:mime||'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){toast('Download is blocked here. Copy the list instead.',true)}}
 /* A spreadsheet runs a cell that starts with = + - @ as a formula, so a volunteer who types "=HYPERLINK(...)" as a name could run it on the director's computer. Such a cell gets a ' in front. Plain numbers and phone numbers such as +91 98765 43210 are left alone. */
 function csvCell(v){var s=String(v==null?'':v);if(/^[=@\t\r]/.test(s)||(/^[+\-]/.test(s)&&!/^[+\-][\d\s().\-]*$/.test(s)))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
-async function doTab(t){S.tab=t;if(S.fin){S.fin.form=null;S.fin.open=''}if(S.res)S.res.form=null;S.teamSecret=null;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
+async function doTab(t){pvClear();S.tab=t;if(S.fin){S.fin.form=null;S.fin.open=''}if(S.res)S.res.form=null;S.teamSecret=null;S.armed=null;S.pedit=null;S.plan=null;S.letter=null;S.tpl=null;S.editShift=null;S.editPacer=null;render();await loadTab()}
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||b.tagName==='INPUT')return;
   var act=b.getAttribute('data-act'),id=b.getAttribute('data-id');
@@ -830,12 +833,13 @@ document.addEventListener('click',function(e){
   else if(act.indexOf('cm-')===0)cmAct(b,act,id);
   else if(act.indexOf('wv-')===0)wvAct(b,act,id);
   else if(act.indexOf('rp-')===0)rpAct(b,act,id);
+  else if(act.indexOf('pv-')===0)pvAct(b,act,id);
   else if(act==='qOk'||act==='qNo'||act==='qWaive'){var ne=document.querySelector('[data-note="'+id+'"]');var nt=ne?ne.value:'';var stt=act==='qOk'?'approved':act==='qNo'?'rejected':'waived';run(async function(){await api('decideQual',{runnerId:id,status:stt,note:nt});toast('Saved');await reload()})}
   else if(act==='loadWix')run(async function(){S.wixEvents=(await api('listWixEvents')).events;render()});
   else if(act==='chkForm'){S.mapOpen=!S.mapOpen;render();if(S.mapOpen&&!S.wixForm)run(async function(){S.wixForm=await api('wixFormFields');render()})}
   else if(act==='unlinkWix')run(async function(){await api('linkWixEvent',{wixEventId:''});S.wixEvents=null;S.wixForm=null;toast('Unlinked');await loadTab()});
   else if(act==='impRegs')run(async function(){var cur='',add=0,upd=0,sk=0;for(var i=0;i<60;i++){var r=await api('importRegs',{cursor:cur});add+=r.added;upd+=r.updated;sk+=r.skipped.cancelled+r.skipped.noName;S.impMsg='importing... '+(add+upd);render();cur=r.next;if(r.done)break}S.impMsg='Imported: '+add+' new, '+upd+' updated, '+sk+' skipped (cancelled or no name)';await reload()});
-  else if(act==='regCsv'){var rr=S.regs.rows;download('registrations.csv',[['Name','Email','Phone','Ticket','Ticket no.','Size','Bib name','Payment pending']].concat(rr.map(function(r){return [r.name,r.email,r.phone,r.cat,r.ticket,r.size,r.bibName,r.unpaid?'yes':'']})).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
+  else if(act==='regCsv'){var rr=S.regs.rows;download('registrations.csv',[['Name','Email (hidden)','Phone (hidden)','Ticket','Ticket no.','Size','Bib name','Payment pending']].concat(rr.map(function(r){return [r.name,r.email,r.phone,r.cat,r.ticket,r.size,r.bibName,r.unpaid?'yes':'']})).map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
   else if(act==='logout'){if(S.token)api('logout').catch(function(){});endSession('')}
   else if(act==='copyLink'){var t=$('#linkOut').textContent;try{navigator.clipboard.writeText(t).then(function(){toast('Link copied')},function(){toast(t)})}catch(x){toast(t)}}
   else if(act==='shiftNew'){S.editShift={id:'',role:'',location:'',date:(S.events.find(function(x){return x.id===S.ev})||{}).date||'',start:'05:00',end:'09:00',need:'4',notes:''};render()}
@@ -846,7 +850,7 @@ document.addEventListener('click',function(e){
   else if(act==='unassign')run(async function(){await api('unassignShift',{assignId:id});await reload()});
   else if(act==='ciIn'||act==='ciOut'){var code=($('#ciCode').value||'').trim();S.ci=code;if(!code){toast('Type the code first',true);return}
     run(async function(){var r=await api('volunteerCheck',{code:code,action:act==='ciOut'?'out':'in'});S.ci='';toast(r.name+(r.action==='in'?' checked in as ':' checked out ')+(r.action==='in'?r.role:'('+r.hours+' h)'));await reload()})}
-  else if(act==='csv'){var rows=[['Name','Mobile','Email','Club','Status','Code','Hours','Shifts']].concat(S.vols.map(function(v){return [v.name,v.phone,v.email,v.club,v.status,v.code,v.hours,v.shifts.map(function(s){return s.role+' '+s.date+' '+s.start}).join('; ')]}));download('volunteers.csv',rows.map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
+  else if(act==='csv'){var rows=[['Name','Mobile (hidden)','Email (hidden)','Club','Status','Code','Hours','Shifts']].concat(S.vols.map(function(v){return [v.name,v.phone,v.email,v.club,v.status,v.code,v.hours,v.shifts.map(function(s){return s.role+' '+s.date+' '+s.start}).join('; ')]}));download('volunteers.csv',rows.map(function(r){return r.map(csvCell).join(',')}).join('\n'))}
   else if(act==='runStep'){var it=S.run.find(function(r){return r.id===id});var nx={todo:'doing',doing:'done',done:'todo'}[it.status];run(async function(){await api('saveRunItem',{id:id,time:it.time,what:it.what,owner:it.owner,status:nx});await reload()})}
   else if(act==='runDel')run(async function(){await api('removeRunItem',{id:id});await reload()});
   else if(act==='groupAdd'){var d=document.createElement('div');d.innerHTML=groupRow({label:'',finish:'',need:2});$('#groupRows').appendChild(d.firstChild)}
@@ -873,7 +877,7 @@ document.addEventListener('click',function(e){
   else if(act==='aiChip'){S.aiQ=ASK_CHIPS[parseInt(id,10)]||'';askAi()}
   else if(act==='aiWrite')run(async function(){S.aiBusy='write';render();try{var r=await api('aiBriefing',{write:true});S.brief=r}finally{S.aiBusy=''}render()});
   else if(act==='copyDraft'){var t2=(($('#dSubject')?$('#dSubject').value+'\n\n':'')+($('#dBody')?$('#dBody').value:''));try{navigator.clipboard.writeText(t2).then(function(){toast('Copied')},function(){toast('Select the text and copy it')})}catch(x){toast('Select the text and copy it')}}
-  else if(act==='openRace'){if(id!==S.ev){S.ev=id;try{localStorage.setItem('rd.ev',S.ev)}catch(x){}S.ov=null;S.dash=null;loadTab()}}
+  else if(act==='openRace'){if(id!==S.ev){pvClear();S.ev=id;try{localStorage.setItem('rd.ev',S.ev)}catch(x){}S.ov=null;S.dash=null;loadTab()}}
   else if(act==='pcancel'){S.pedit=null;render()}
   else if(act==='pdel')run(async function(){await api('removePlanItem',{id:id});toast('Removed');await reload()});
   else if(act==='pseed')run(async function(){var r=await api('seedPlanLists',{kinds:[b.getAttribute('data-kind')]});var n=0;Object.keys(r.added).forEach(function(k){n+=r.added[k]});toast('Added '+n+' starter items');await reload()});
@@ -891,7 +895,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var t=e.target;
-  if(t.id==='evPick'){S.ev=t.value;try{localStorage.setItem('rd.ev',S.ev)}catch(x){}S.ov=null;loadTab()}
+  if(t.id==='evPick'){pvClear();S.ev=t.value;try{localStorage.setItem('rd.ev',S.ev)}catch(x){}S.ov=null;loadTab()}
   else if(t.id==='tfRole'&&t.form){S.tf=readTeamForm(t.form);S.tf.role=t.value;render()}
   else if(t.form&&t.form.id==='teamForm'){S.tf=readTeamForm(t.form)}
   else if(t.id==='volF'){S.volF=t.value;render()}
@@ -951,6 +955,7 @@ document.addEventListener('submit',function(e){
   else if(id==='prnForm'||id==='prnPubForm')prnSubmit(f,id,d);
   else if(id==='cmTplForm'||id==='cmSetForm')cmSubmit(f,id,d);
   else if(id==='wvFindForm'||id==='wvTextForm'||id==='wvSetForm')wvSubmit(f,id,d);
+  else if(id==='pvFindForm'){if(S.pvt){S.pvt.ph=d.phone||'';S.pvt.em=d.email||'';pvFind()}}
   else if(id==='eventForm')run(async function(){var r=await api('saveEvent',Object.assign({id:S.editEvent&&S.editEvent.id||undefined},d));S.editEvent=null;toast('Race saved');S.ev=r.event.id;await loadEvents();S.ev=r.event.id;await loadTab()});
 });
 /* ---------- finance: invoices, orders, claims, cash, the ledger (FINANCE-BEGIN) ---------- */
@@ -2674,6 +2679,241 @@ function rpAct(b,act,id){
   else if(act==='rp-csv'){if(id)rpSaveCsv(id)}
 }
 /* ---------- reports: end (REPORTS-END) ---------- */
+
+/* ---------- privacy (PRIVACY-BEGIN) ----------
+   Hidden phone numbers and e-mail addresses, and the Privacy tab. Every list shows a number as ••••••2001 and an address as a•••@g•••.com,
+   and the server sends nothing more. Showing one detail asks the server (calls tagged mod:'pv'), which writes the reason in the audit trail
+   BEFORE it answers, so a detail that was not noted is never shown. A shown detail is kept in this page for a short while only, then thrown
+   away; leaving the tab, changing the race, hiding the page or logging out throws it away too. The Privacy tab (directors) has the files
+   with contact details, the trail of who looked and erasing a person. The server decides who may do what; this only hides what would be
+   refused. Everything that comes back is shown as text, never as markup. */
+S.shown={};S.pvAsk=null;S.pvt=null;
+var PV_REASONS=[['contact','To contact them about the race'],['fix','To check or correct their details'],['pay','A payment or refund question'],['safety','Safety or an emergency'],['other','Another reason']];
+var PV_SHOW_MS=30000,PV_PER_HOUR=40,PV_T=0,PV_META={}; // PV_META: what each cell on the screen hides (the dots and the person's name); no detail is ever in it
+var PV_KIND={reg:'Registration',runner:'Expo runner',vol:'Volunteer',pacer:'Pacer',athlete:'Training account'};
+(function(){var add={
+  pv_bad_request:'That could not be done. Reload the page and try again.',
+  pv_need_reason:'Pick a reason first.',
+  pv_not_found:'That detail is not there any more (the person may have been erased or removed).',
+  pv_too_many:'You have shown as many details as you may this hour. Try again later, or ask a director.',
+  pv_audit_failed:'The note in the audit trail could not be saved, so nothing was shown. Try again.',
+  pv_bad_person:'Type a whole phone number (10 digits) or a whole e-mail address.',
+  pv_need_confirm:'Type ERASE to confirm.',
+  pv_stale:'The people found have changed. Press Find again.',
+  pv_too_big:'That is more than 200 rows, too many to erase in one go. Check the number or address you typed.',
+  setup_needed:'The database is not set up for this yet. Ask the owner.',
+  server_error:'The server could not do that. Try again; if it keeps happening, tell the owner.'};
+  Object.keys(add).forEach(function(k){if(!ERR[k])ERR[k]=add[k]})})();
+function pva(m,a,ms){return api(m,a,ms,'pv')}
+function canShow(){return man()||isLead()}
+function pvKey(kind,id,field){return kind+'|'+id+'|'+field}
+function pvShownVal(kind,id,field){var s=S.shown&&S.shown[pvKey(kind,id,field)];return s&&s.until>Date.now()?s.value:''}
+function pvNote(){return canShow()?'Phone numbers and e-mail addresses are hidden. Press Show to see one for '+Math.round(PV_SHOW_MS/1000)+' seconds; each time is written in the audit trail with your reason.':'Phone numbers and e-mail addresses are hidden for your login.'}
+// The WhatsApp chat of a volunteer exists only while that volunteer's number is shown.
+function pvWaLink(id,value){
+  var v=(S.vols||[]).find(function(x){return x.id===id});if(!v)return '';
+  return 'https://wa.me/91'+String(value).replace(/\D/g,'').slice(-10)+'?text='+encodeURIComponent('Hi '+String(v.name||'').split(' ')[0]+', this is VTRA. Your volunteer code is '+v.code+'. Please keep it handy for check-in.');
+}
+// What a hidden detail looks like in a list: the dots with a Show button, or (for a short while) the detail itself with a Hide button.
+function pvInner(kind,id,field,masked){
+  var val=pvShownVal(kind,id,field),what=field==='email'?'e-mail address':'phone number';
+  if(val){
+    var wa=kind==='vol'&&field==='phone'?pvWaLink(id,val):'';
+    return '<span class="pvv">'+esc(val)+'</span> <button class="btn sm" data-act="pv-hide" data-kind="'+esc(kind)+'" data-id="'+esc(id)+'" data-field="'+esc(field)+'" aria-label="Hide the '+what+'">Hide</button>'+(wa?' <a href="'+esc(wa)+'" target="_blank" rel="noopener">WhatsApp</a>':'');
+  }
+  if(!masked)return '<span class="muted">–</span>';
+  return '<span class="pvm">'+esc(masked)+'</span>'+(canShow()?' <button class="btn sm" data-act="pv-ask" data-kind="'+esc(kind)+'" data-id="'+esc(id)+'" data-field="'+esc(field)+'" aria-label="Show the '+what+'">Show</button>':'');
+}
+function pvCell(kind,id,field,masked,name){
+  PV_META[pvKey(kind,id,field)]={masked:masked||'',name:name||''};
+  return '<span class="pvc" data-pvc="'+esc(pvKey(kind,id,field))+'" data-kind="'+esc(kind)+'" data-id="'+esc(id)+'" data-field="'+esc(field)+'">'+pvInner(kind,id,field,masked||'')+'</span>';
+}
+// Hiding and showing change the cells in place, so nothing a person is typing elsewhere on the page is lost.
+function pvRepaint(){
+  [].forEach.call(document.querySelectorAll('[data-pvc]'),function(el){
+    var k=el.getAttribute('data-kind'),i=el.getAttribute('data-id'),f=el.getAttribute('data-field'),m=PV_META[pvKey(k,i,f)];
+    el.innerHTML=pvInner(k,i,f,m?m.masked:'');
+  });
+}
+function pvSchedule(){
+  clearTimeout(PV_T);var soon=0;
+  Object.keys(S.shown||{}).forEach(function(k){var u=S.shown[k].until;if(!soon||u<soon)soon=u});
+  if(soon)PV_T=setTimeout(pvSweep,Math.max(50,soon-Date.now()+20));
+}
+function pvSweep(){
+  var now=Date.now(),any=false;
+  Object.keys(S.shown||{}).forEach(function(k){if(S.shown[k].until<=now){delete S.shown[k];any=true}});
+  if(any)pvRepaint();
+  pvSchedule();
+}
+// Everything shown is thrown away: leaving a tab, changing the race, the page going to the background, a login ending.
+function pvClear(){
+  clearTimeout(PV_T);
+  var had=!!S.shown&&Object.keys(S.shown).length>0;
+  S.shown={};S.pvAsk=null;
+  if(had)pvRepaint();
+  pvAskPaint();
+}
+document.addEventListener('visibilitychange',function(){if(document.hidden)pvClear()});
+function pvReasonOpts(sel){return '<option value="">Pick a reason</option>'+PV_REASONS.map(function(r){return '<option value="'+r[0]+'"'+(sel===r[0]?' selected':'')+'>'+esc(r[1])+'</option>'}).join('')}
+function pvAskHtml(){
+  var a=S.pvAsk;if(!a)return '';
+  var what=a.field==='email'?'e-mail address':'phone number';
+  return '<div class="card pvask" role="dialog" aria-label="Show a hidden detail"><h3>Show the '+what+' of '+esc(a.name||'this person')+'</h3>'
+    +'<p class="muted" style="margin-top:6px">This is written in the audit trail with your login and the reason (never the '+what+' itself). It stays on the screen for '+Math.round(PV_SHOW_MS/1000)+' seconds. You can show up to '+PV_PER_HOUR+' an hour.</p>'
+    +'<div class="row" style="margin-top:10px;align-items:flex-end"><label class="f">Why do you need it<select id="pvReason">'+pvReasonOpts(a.reason)+'</select></label>'
+    +'<button class="btn pri" data-act="pv-go"'+(a.busy?' disabled':'')+'>'+(a.busy?'Showing…':'Show')+'</button><button class="btn" data-act="pv-cancel">Cancel</button></div>'
+    +'<div class="muted" role="alert" style="color:var(--bad);margin-top:6px">'+esc(a.err||'')+'</div></div>';
+}
+function pvAskPaint(){var el=$('#pvAskBox');if(el)el.innerHTML=pvAskHtml()}
+async function pvGo(){
+  var a=S.pvAsk;if(!a||a.busy)return;
+  if(!a.reason){a.err=msg('pv_need_reason');pvAskPaint();return}
+  a.busy=true;a.err='';pvAskPaint();
+  try{
+    var r=await pva('pvReveal',{kind:a.kind,id:a.id,field:a.field,reason:a.reason});
+    if(S.pvAsk!==a)return; /* the page moved on (another tab, another race, a login that ended): the answer is dropped */
+    var ms=Math.min(PV_SHOW_MS,Math.max(1000,Number(r.ms)||PV_SHOW_MS));
+    S.shown[pvKey(a.kind,a.id,a.field)]={value:String(r.value),until:Date.now()+ms};
+    S.pvAsk=null;pvAskPaint();pvRepaint();pvSchedule();
+  }catch(e){
+    if(S.pvAsk!==a)return;
+    a.busy=false;a.err=msg(e.message);pvAskPaint();
+  }
+}
+function pvNew(){return {ev:S.ev,err:'',list:null,reason:'',busy:'',ph:'',em:'',plan:null,planErr:'',finding:false,pick:{},confirm:'',erasing:false,done:null}}
+async function pvLoad(){
+  if(!S.pvt||S.pvt.ev!==S.ev)S.pvt=pvNew();
+  var t=S.pvt;t.err='';
+  try{var l=await pva('pvList');if(S.pvt!==t)return;t.list=l}
+  catch(e){if(S.pvt!==t)return;t.err=msg(e.message);toast(t.err,true)}
+}
+function pvWhen(at){var s=String(at||'');return s?fdate(s.slice(0,10))+' '+ftime(s):''}
+function pvReasonText(id){var r=PV_REASONS.find(function(x){return x[0]===id});return r?r[1]:String(id||'')}
+function pvTrailHtml(l){
+  var rows=l.log.map(function(r){
+    var what=/^reveal /.test(r.action)?(r.action==='reveal e-mail'?'Showed an e-mail address':'Showed a phone number')+(r.who?' of '+esc(r.who):r.kind?' of a person who is no longer listed':'')+(r.reason?'<br><small>'+esc(pvReasonText(r.reason))+'</small>':''):esc(r.action)+(r.detail?'<br><small>'+esc(r.detail)+'</small>':'');
+    return '<tr><td>'+esc(pvWhen(r.at))+'</td><td>'+esc(r.by)+'</td><td>'+what+'</td><td>'+esc(r.race)+'</td></tr>';
+  }).join('');
+  return '<div class="card"><h3>Who looked</h3><p class="muted" style="margin-top:6px">The newest '+l.log.length+' notes about contact details: showing a number or an address, files, WhatsApp chats, erasing a person. A note never holds the number or address itself.</p>'
+    +'<div class="scroll"><table><tr><th>When</th><th>Who</th><th>What</th><th>Race</th></tr>'+(rows||'<tr><td colspan="4" class="muted">Nobody has looked yet.</td></tr>')+'</table></div></div>';
+}
+function pvFilesHtml(t){
+  var l=t.list;
+  return '<div class="card"><h3>Files with contact details</h3><p class="muted" style="margin-top:6px">A spreadsheet (CSV) with the phone numbers and e-mail addresses of everyone in this race, for a mail merge, a print list or a hand-over. Keep it safe and delete it when you are done. Pick a reason, then the file. Every download is written in the audit trail.</p>'
+    +'<div class="row" style="margin-top:10px;align-items:flex-end"><label class="f">Why do you need it<select id="pvFileReason">'+pvReasonOpts(t.reason)+'</select></label>'
+    +l.files.map(function(f){return '<button class="btn" data-act="pv-file" data-kind="'+esc(f.kind)+'"'+(t.busy?' disabled':'')+'>'+(t.busy===f.kind?'Preparing…':esc(f.title)+' ('+f.rows+')')+'</button>'}).join('')+'</div></div>';
+}
+function pvPicked(t){return t.plan?t.plan.items.filter(function(i){return t.pick[i.key]}).map(function(i){return i.key}):[]}
+function pvEraseHtml(t){
+  var h='<h3>Erase a person</h3><p class="muted" style="margin-top:6px">Takes a person\'s name, phone number, e-mail address and notes out of RaceOS: registrations, Expo runners, volunteer and pacer rows, hand-over records (with their selfies), qualification claims, waiver notes and a training account. The bib, ticket, category, size and times stay, so counts and results do not change. This cannot be undone. Wix Events, Wix Contacts and the findmybib list keep their own copy of the person: erase it there too.</p>'
+    +'<form id="pvFindForm" class="form" style="margin-top:10px"><label class="f">Phone number<input name="phone" inputmode="tel" autocomplete="off" maxlength="30" placeholder="10 digits" value="'+esc(t.ph)+'"></label>'
+    +'<label class="f">E-mail address<input name="email" autocomplete="off" maxlength="120" value="'+esc(t.em)+'"></label>'
+    +'<button class="btn" type="submit"'+(t.finding||t.erasing?' disabled':'')+'>'+(t.finding?'Looking…':'Find')+'</button></form>'
+    +'<div class="muted" role="alert" style="color:var(--bad);margin-top:6px">'+esc(t.planErr||'')+'</div>';
+  if(t.done)h+='<p style="margin-top:8px" role="status"><b>Erased: '+esc(t.done.summary)+'.</b></p>'+(t.done.unread.length?'<p class="muted" role="alert" style="color:var(--bad)">These could not be read, so what hangs on the person in them was not changed: '+t.done.unread.map(esc).join(', ')+'. Run the search again later.</p>':'');
+  var p=t.plan;
+  if(!p)return h;
+  var warn=p.unread&&p.unread.length?'<p class="muted" role="alert" style="color:var(--bad);margin-top:8px">These could not be read, so nobody was looked for in them: '+p.unread.map(esc).join(', ')+'. Try again when they can be read.</p>':'';
+  if(!p.items.length)return h+'<p class="muted" style="margin-top:8px">Nobody found with that number or address.</p>'+warn;
+  var n=pvPicked(t).length;
+  h+=warn+'<p class="muted" style="margin-top:8px">'+p.total+' row'+(p.total===1?'':'s')+' found'+(p.capped?' (only the first '+p.items.length+' are listed: check the number or address)':'')+'. A phone number can be shared by a family, so tick only the rows that are this person.</p>'
+    +'<div class="row" style="margin-top:6px"><button class="btn sm" data-act="pv-tickall">Tick all</button><button class="btn sm" data-act="pv-tickno">Tick none</button></div>'
+    +'<div class="scroll"><table><tr><th></th><th>Person</th><th>Row</th><th>Race</th><th>Hidden details</th></tr>'
+    +p.items.map(function(it){return '<tr><td><input type="checkbox" data-act="pv-tick" data-key="'+esc(it.key)+'"'+(t.pick[it.key]?' checked':'')+' aria-label="Erase '+esc(it.name||'this row')+'"></td><td><b>'+esc(it.name||'–')+'</b>'+(it.bib?'<br><small>Bib '+esc(it.bib)+'</small>':'')+'</td><td>'+esc(PV_KIND[it.kind]||it.kind)+'</td><td>'+esc(it.race||'–')+'</td><td>'+esc(it.phone)+'<br><small>'+esc(it.email)+'</small></td></tr>'}).join('')+'</table></div>'
+    +'<div class="row" style="margin-top:10px;align-items:flex-end"><label class="f">Type ERASE to confirm<input id="pvConfirm" autocomplete="off" maxlength="10" value="'+esc(t.confirm)+'"></label>'
+    +'<button class="btn bad" id="pvEraseBtn" data-act="pv-erase"'+(n&&t.confirm==='ERASE'&&!t.erasing?'':' disabled')+'>'+(t.erasing?'Erasing…':'Erase '+n+' row'+(n===1?'':'s'))+'</button></div>';
+  return h;
+}
+function pvErasePaint(){var el=$('#pvErase');if(el&&S.pvt)el.innerHTML=pvEraseHtml(S.pvt)}
+// A tick changes the boxes and the Erase button in place (the table is not redrawn, so the keyboard stays where it is).
+function pvBtnPaint(){
+  var t=S.pvt,btn=$('#pvEraseBtn');if(!t||!btn)return;
+  var n=pvPicked(t).length;
+  btn.disabled=!(n&&t.confirm==='ERASE'&&!t.erasing);
+  btn.textContent=t.erasing?'Erasing…':'Erase '+n+' row'+(n===1?'':'s');
+}
+function pvTickPaint(){
+  var t=S.pvt;if(!t)return;
+  [].forEach.call(document.querySelectorAll('#pvErase [data-act="pv-tick"]'),function(c){c.checked=!!t.pick[c.getAttribute('data-key')]});
+  pvBtnPaint();
+}
+function pvView(){
+  var t=S.pvt;if(!t||t.ev!==S.ev)return planLoading();
+  if(!t.list)return t.err?'<div class="card"><p class="muted" role="alert">'+esc(t.err)+'</p><div class="row" style="margin-top:8px"><button class="btn sm" data-act="retry">Try again</button></div></div>':planLoading();
+  var l=t.list;
+  return '<div class="stack"><div class="card"><h3>Privacy</h3><p class="muted" style="margin-top:6px">Every list in RaceOS and at the Expo desk hides phone numbers and e-mail addresses (for example ••••••2001 and a•••@g•••.com). A director or a lead can show one, for '+Math.round(PV_SHOW_MS/1000)+' seconds, after picking a reason, up to '+l.perHour+' an hour. Only a director can download a file with all of them or erase a person. Every one of these is written in the trail below, with who and why, and never the number or address.</p></div>'
+    +pvFilesHtml(t)+'<div class="card" id="pvErase">'+pvEraseHtml(t)+'</div>'+pvTrailHtml(l)+'</div>';
+}
+async function pvFile(kind){
+  var t=S.pvt;if(!t||t.busy)return;
+  if(!t.reason){toast(msg('pv_need_reason'),true);return}
+  t.busy=kind;render();
+  try{
+    var from=0,parts=[],name='',total=0;
+    for(var i=0;i<500;i++){ /* a thousand rows to a page; the server says where the next page starts */
+      var r=await pva('pvExport',{kind:kind,reason:t.reason,from:from},60000);if(S.pvt!==t)return;
+      name=r.name;total=r.total;parts.push(r.csv);
+      if(r.next===null||r.next===undefined)break;
+      from=r.next;
+    }
+    download(name,String.fromCharCode(65279)+parts.join(''),'text/csv;charset=utf-8');
+    toast('Saved '+name+' ('+total+' rows). It is written in the audit trail.');
+    try{var l=await pva('pvList');if(S.pvt===t)t.list=l}catch(x){}
+  }catch(e){if(S.pvt===t)toast(msg(e.message),true)}
+  if(S.pvt!==t)return;
+  t.busy='';render();
+}
+async function pvFind(){
+  var t=S.pvt;if(!t||t.finding||t.erasing)return;
+  var q={phone:t.ph,email:t.em};
+  t.finding=true;t.planErr='';t.done=null;t.plan=null;t.pick={};t.confirm='';pvErasePaint();
+  try{var p=await pva('pvErasePlan',q,60000);if(S.pvt!==t)return;p.q=q;t.plan=p}
+  catch(e){if(S.pvt!==t)return;t.planErr=msg(e.message)}
+  t.finding=false;pvErasePaint();
+}
+async function pvDoErase(){
+  var t=S.pvt;if(!t||t.erasing||!t.plan)return;
+  var keys=pvPicked(t);if(!keys.length)return;
+  if(t.confirm!=='ERASE'){t.planErr=msg('pv_need_confirm');pvErasePaint();return}
+  t.erasing=true;t.planErr='';pvErasePaint();
+  try{
+    var r=await pva('pvErase',{phone:t.plan.q.phone,email:t.plan.q.email,keys:keys,confirm:t.confirm},120000);if(S.pvt!==t)return;
+    t.done={summary:r.summary,unread:r.unread||[]};t.plan=null;t.pick={};t.confirm='';t.ph='';t.em='';
+    toast('Erased: '+r.summary);
+    pvClear(); /* nothing that was shown stays on the screen */
+    try{var l=await pva('pvList');if(S.pvt===t)t.list=l}catch(x){}
+  }catch(e){if(S.pvt!==t)return;t.planErr=msg(e.message)}
+  if(S.pvt!==t)return;
+  t.erasing=false;render();
+}
+function pvAct(b,act,id){
+  if(act==='pv-ask'){
+    if(!canShow())return;
+    var kd=b.getAttribute('data-kind'),fd=b.getAttribute('data-field'),mt=PV_META[pvKey(kd,id,fd)];
+    S.pvAsk={kind:kd,id:id,field:fd,name:mt?mt.name:'',reason:'',busy:false,err:''};
+    pvAskPaint();var c=$('#pvAskBox .pvask');if(c&&c.scrollIntoView)c.scrollIntoView({block:'center'});
+  }
+  else if(act==='pv-go')pvGo();
+  else if(act==='pv-cancel'){S.pvAsk=null;pvAskPaint()}
+  else if(act==='pv-hide'){delete S.shown[pvKey(b.getAttribute('data-kind'),id,b.getAttribute('data-field'))];pvRepaint();pvSchedule()}
+  else if(act==='pv-file')pvFile(b.getAttribute('data-kind'));
+  else if(act==='pv-tickall'){var t=S.pvt;if(t&&t.plan){t.plan.items.forEach(function(i){t.pick[i.key]=true});pvTickPaint()}}
+  else if(act==='pv-tickno'){var t2=S.pvt;if(t2){t2.pick={};pvTickPaint()}}
+  else if(act==='pv-erase')pvDoErase();
+}
+document.addEventListener('change',function(e){
+  var t=e.target;if(!t||!t.getAttribute)return;
+  if(t.id==='pvReason'&&S.pvAsk){S.pvAsk.reason=t.value;S.pvAsk.err=''}
+  else if(t.id==='pvFileReason'&&S.pvt){S.pvt.reason=t.value}
+  else if(t.getAttribute('data-act')==='pv-tick'&&S.pvt){S.pvt.pick[t.getAttribute('data-key')]=!!t.checked;pvBtnPaint()}
+});
+document.addEventListener('input',function(e){
+  var t=e.target;if(!t||!S.pvt)return;
+  if(t.id==='pvConfirm'){S.pvt.confirm=t.value;pvBtnPaint()}
+  else if(t.form&&t.form.id==='pvFindForm'){if(t.name==='phone')S.pvt.ph=t.value;else if(t.name==='email')S.pvt.em=t.value}
+});
+/* ---------- privacy: end (PRIVACY-END) ---------- */
 
 function navLabel(t){return t[0]==='fin'&&!man()?'My claims':t[1]}
 
