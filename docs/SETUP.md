@@ -45,7 +45,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## B. First-time steps
 
-1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets).
+1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets). A Wix Premium plan that allows enough database items for your race (section C below: **read it before race day**, it decides which plan you need).
 2. **Backend.** Add all the backend files above (the plain files first). In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
 3. **Pages.** Create /rd, /volunteer, /train, /coach and /runner (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
 4. **Publish** the site. Everything works on the published site only.
@@ -66,6 +66,59 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 11. **Volunteers** (/rd > Volunteers): add shifts (roles are suggested), then Copy link and share it.
 12. **Coaching** (/coach): log in with a director or coach login (made on the Team screen). The first login creates the Training collections and three starter 8-week plans. Check Settings. Then open /train on a phone and sign up as a test athlete.
 13. **Test** with a test race, a test volunteer, a test athlete and one login of each desk before announcing. Send any error text with the page name.
+
+## C. Your Wix plan and database space (read before race day)
+
+RaceOS keeps everything in Wix CMS collections, and Wix limits how many **items** (rows) a site may hold in all its own collections together. At the limit Wix refuses every new row: the Expo desk could not record a hand-over, an import would stop part-way and a message could not be marked as sent. Nothing already saved is lost, but race day stops. So choose the plan before the race and check the count a week before and on the morning.
+
+**What Wix allows** (Wix Help Center, "CMS: Understanding Collection Storage Limits and Quotas", updated 26 October 2026; Wix can change plans, so read that page again before you buy):
+
+| Wix plan | Items in your own collections | Database space |
+|---|---|---|
+| Light | 1,500 | 10 GB |
+| Core | 4,000 | 10 GB |
+| Business | 20,000 | 10 GB |
+| Business Elite, Elite | 10,000,000 | 100 GB |
+| Free site | 1,000 (10,000 in a Wix Studio account) | |
+
+All the RaceOS collections are your own collections, so they all count. Wix's own collections (Wix Events tickets, Wix Contacts, Wix Members) do not count, but RaceOS's own copy of each registration does. All races and the training module share the one limit until rows are deleted.
+
+**What a race uses** (counted from the code, an upper bound with every desk in use):
+
+| Rows for one runner | How many |
+|---|---|
+| Registration (`RDRegs`) | 1 |
+| Expo runner (`Runners`) | 1 |
+| Wave (`RDWaveAssign`) | 1 |
+| Result (`RDResults`) | 1 |
+| Expo hand-overs (`ExpoCheckins`): check-in, bib and T-shirt records, plus the two selfies | up to 5 |
+| Messages (`RDComms`) | 1 for each message that runner is sent |
+| Paper waiver (`RDWaivers`) | 1 if recorded on paper |
+
+So **items for one race = runners x (9 + the messages each runner is sent) + about 500** (the plan, checklists, volunteers, shifts, money and the audit trail). The training module adds **about 60 per athlete per 8-week plan** (56 sessions, the enrolment and the messages).
+
+| Runners | 3 messages each | 6 messages each |
+|---|---|---|
+| 500 | 6,500 | 8,000 |
+| 1,000 | 12,500 | 15,500 |
+| 2,000 | 24,500 | 30,500 |
+| 3,000 | 36,500 | 45,500 |
+| 5,000 | 60,500 | 75,500 |
+
+What that means:
+- **Light and Core are too small** for a real race (300 runners with three messages each already need 4,100 items; Core allows 4,000).
+- **Business (20,000)** holds one race of up to about 1,000 runners (12,500 to 15,500 items in the table), and only if earlier races and the rehearsal are cleared (below).
+- **Business Elite or Elite** for a race of 1,500 or more, for several races on the site at the same time, or if you do not want to clear old races. RaceOS is built for races of up to 5,000 runners (that is the size of one message batch and of one results file).
+- **Space is not the problem.** The biggest rows are the selfies at the Expo: the phone shrinks each photo to 480 pixels (about 40 to 60 KB) and RaceOS refuses one over 250 KB, so a runner costs about 0.1 MB and 2,000 runners about 200 MB. Wix allows 512 KB in one item; everything else RaceOS stores is small text.
+
+**Check the numbers** (a week before, and on the morning of the race): Wix dashboard > **CMS** > **More Actions** > **Data storage** shows the items and the space used by each collection. The CMS also shows "You have N/20000 items" under **Your Collections**. Take what is there now, add this race from the table, and keep about 20% free for walk-ins, corrections, message re-sends and the rehearsal.
+
+**Free space after a race** (once the results are out and the money is settled; there is no delete button in RaceOS on purpose): first save what you want to keep (**Reports > Save as CSV**, **Admin > Privacy > Save a contacts file**). Then in the Wix CMS open the collection, filter the `event` column on the race (its `_id` in `RDEvents`), select the rows and delete them:
+- `ExpoCheckins`: the hand-over records and the selfies. The selfies are personal photos that you do not need after the race, so this is also the right thing to do for privacy.
+- `RDComms` rows whose `kind` is `rcp` (who was sent what), only if you will not send that batch again.
+- The **test race** of your rehearsal: every row with its `event`, in every collection.
+
+Keep the race's own record: `RDRegs`, `RDResults`, `RDWaveAssign`, `RDWaivers` (the signed waivers), `RDLedger`, `RDInvoices`, `RDOrders` (the accounts) and `RDAudit` (the record of who looked at or exported personal details). If you do reach the limit, Wix deletes nothing: free some space or upgrade and carry on.
 
 ## Expo desk rules (enforced on the server; the screen only mirrors them)
 
@@ -92,6 +145,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 - Waivers: on a test race, open **People > Waivers > Waiver text**, press **Use the standard wording** and save it (version 1). In **Setup**, pick the waiver question of your registration form and save. In **Who has signed**, tick yourself and press **Record 1 paper as signed** (then **Sure?**): you move to "Signed". Press it again after ticking nothing new: nothing changes. Open **Records**, mark the record as a mistake with a reason (directors only) and watch yourself go back to "Not signed at all". Open **Print papers**, print one page for yourself and a blank page, and check that the paper holds a name, a bib and a category and no phone number or e-mail address. Save a second wording, set **Lowest version that counts as signed** to 2, and see everybody listed as signed an older version. In **Messages** pick **Waiver: Has not signed the current waiver** and see the same people. Log in as a lead: the text and the setup are read-only, and printing and recording work.
 - Reports: open **Reports** and pick **Registrations** on a race you know: the counts by category, gender, age group, T-shirt size and day agree with the Registrations tab, and no name, bib, phone number, e-mail address or date of birth is on the screen. Press **Save as CSV** on a table, open the file in Excel or Numbers, and check `RDAudit` for the new "report saved as CSV" line. Pick **Money** and compare it with Finance, and **Race day** and compare it with the Waves & results board. Log in as a lead: five reports, no Money. Log in as a viewer: no tab.
 - Privacy: on a test race that holds your own registration, open **Registrations**: your phone number and e-mail address are dots. Press **Show** on the phone number, pick a reason and read the number: it is dots again after 30 seconds. In `RDAudit` there is a "reveal phone" line with your login and the reason, and no number. Log in as a lead: Show works and there is no Privacy tab. Log in as a viewer, a coach and a desk login: no Show button anywhere. In **Admin > Privacy** pick a reason and save the **Registrations** file: the full numbers are in it, and `RDAudit` has "contacts exported". At the Expo desk the runner's phone number is dots and the last four digits find the runner. Last, erase **yourself** (a test registration only): Find, tick, type `ERASE`: the row reads "(erased)" and keeps its bib; **Import / refresh** does not bring it back.
+- Database space: open Wix CMS > More Actions > Data storage and write down the item count before and after the rehearsal. When you are done, delete the test race's rows (section C) so they do not use the space of the real race.
 
 ## Planning tabs
 After publishing, log in once at /rd: the RDPlan collection is created by itself. Create a new race to get the starter lists, or open an existing race and press "Load the starter list" in each empty section (Plan, Money, Approvals, Ceremonies, Logistics). No new page or element is needed.

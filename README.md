@@ -19,6 +19,8 @@ Software for running a VTRA race end to end, built on Wix (Velo). Started with t
 
 None of these packages has run on a live Wix site yet. Rehearse on the published site before race day.
 
+**Choose the Wix plan before race day.** Wix limits the items a site may hold in its own collections (Light 1,500, Core 4,000, Business 20,000, Business Elite and Elite 10 million) and refuses new rows at the limit. A race uses about 9 items per runner plus one per message sent, plus about 500: a race of 1,000 runners is about 12,500 items. See `docs/SETUP.md` section C for the table, how to check the count and how to free space after a race.
+
 ## Layout
 
 - `wix/expo`: Expo desk (backend module, HTML embed, page code, README).

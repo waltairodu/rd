@@ -3,6 +3,8 @@
 Date: 2026-11-15. Installing for the first time? Ignore this page and follow SETUP.md.
 Two new backend files, two existing backend files replaced, and the /rd embed and page code replaced. No collection is made and no existing data is touched: a phone number or an e-mail address is hidden on its way to the screen, and the rows keep the full number. The only change Privacy ever makes to your data is when a director erases a person on the new **Privacy** tab (and then only the rows the director ticked); everything else it writes is a line in the audit trail.
 
+**Before race day: your Wix plan.** Wix limits the number of database items a site may hold and refuses new rows at the limit (Business: 20,000). A race of 1,000 runners uses about 12,500. Read SETUP.md section C and check CMS > More Actions > Data storage first. This package changes nothing about it.
+
 **Which package does your site run?** If /rd has a **Reports** tab, it runs Package 5c: follow the steps just below. If it has no such tab, it runs an older package: do the older steps at the bottom of this page first (Package 5c, then 5b, then 5a, then 4, then 3, then 2), then these. The /rd embed, page code and the two replaced backend files are changed only once, with the files from this pack.
 
 ## 1. Add two backend files (do this first)

@@ -173,7 +173,7 @@ Every suite that existed before a change must still pass at least as many checks
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
 
-**510 protections removed, 510 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). Every one is run again once for the final pack.
+**510 protections removed, 510 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -288,7 +288,7 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | prn-lead-can-save-designs | KILLED | pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the swi |
 | prn-unpaid-runner-gets-a-bib | KILLED | pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not f |
 | prn-unfinished-runner-gets-a-certificate | KILLED | pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not f |
-| prn-printing-not-noted | KILLED | print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth |
+| prn-printing-not-noted | KILLED | print.mjs: Q5 a print of three pages is one line in the audit log, written with the first  |
 | prn-cursor-unchecked | KILLED | pentest-print.mjs: PE6 a cursor that is negative, fractional, text, NaN, infinite, huge, a |
 | prn-category-unchecked | KILLED | pentest-print.mjs: PE7 a category the race does not have, or that is not text, is "bad_cat |
 | prn-spares-cap-removed | KILLED | unit-print.mjs: P6 spare bibs: from 1, to not below from, at most 500, whole numbers   [go |
@@ -311,7 +311,7 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | run-hidden-race-shows | KILLED | pentest-print.mjs: PG4 20 kinds of race that is not showing (every switch off, deleted, no |
 | run-certificate-without-switches | KILLED | pentest-print.mjs: PG7 start list only: the runner is found with a start and no result, an |
 | run-question-length-unchecked | KILLED | pentest-print.mjs: PG3 a question that is not text, or is longer than 200 letters, is "bad |
-| run-memory-never-expires | KILLED | print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth |
+| run-memory-never-expires | KILLED | print.mjs: Q8 half a minute later it is, with the new place   [got ["0:56:20",3], wanted [ |
 | run-search-writes-a-note | KILLED | pentest-print.mjs: PG5b the first probes (102 questions and requests) wrote nothing at all |
 | run-page-names-not-escaped | KILLED | runner-ui.mjs: V3 and shown exactly as typed, as text |
 | run-certificate-frame-not-sandboxed | KILLED | runner-ui.mjs: V5 it is drawn in a frame that is allowed to do nothing |
@@ -342,7 +342,7 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | cm-backend-deletes-a-row | KILLED | security.mjs: S8 nothing in Messages removes a row: a template is archived, a batch is a n |
 | cm-log-row-holds-text | KILLED | security.mjs: S8 the log row of a person (written in the two places that send or mark) and |
 | cm-writer-taken-from-call | KILLED | security.mjs: S5 a template saved with "by: boss" and an old date in the call is written,  |
-| cm-address-in-the-export-note | KILLED | security.mjs: S6 the Results change notes hold no phone number, e-mail address or date of  |
+| cm-address-in-the-export-note | KILLED | security.mjs: S4 Privacy: not one of 61 answers holds a raw phone number or e-mail address |
 | cm-test-address-kept-in-the-log | KILLED | security.mjs: S6 the Messages change notes and everything kept in its collection (template |
 | cm-send-claim-not-unique | KILLED | comms.mjs: K8 a log row is the batch, the person's id, the template, the state and who pre |
 | cm-send-deadline-ignored | KILLED | comms.mjs: K8 a call that runs out of time stops starting new people (10 of 10 sent) and s |

@@ -96,7 +96,7 @@ res-csv-formulas-run	KILLED	results-ui.mjs: U9 a name that looks like a formula 
 res-skip-tick-leaves-save-off	KILLED	results-ui.mjs: U6 ticking "skip lines with problems" turns it on
 res-lead-offered-the-edit-buttons	KILLED	results-ui.mjs: U10 a lead sees all 15 results and has no Fix or Void
 res-lead-offered-the-director-sections	KILLED	results-ui.mjs: U1 a lead gets three sections: Results, Awards, Start list   [got ["Results","Import","Awards",
-res-import-retry-new-key	KILLED	results-ui.mjs: U6 three quick clicks sent one request, and it carried the same key as the failed attempt (kmvv
+res-import-retry-new-key	KILLED	results-ui.mjs: U6 three quick clicks sent one request, and it carried the same key as the failed attempt (kmwi
 prn-role-check-removed	KILLED	pentest-print.mjs: PA6 made desk staff: the same token is refused at once   [wanted not_allowed, got no error]
 prn-director-only-removed	KILLED	pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the switches), with good values
 prn-expiry-fails-open	KILLED	pentest-print.mjs: PA5 a session with a blank or damaged expiry (10 kinds) is refused [prnOverview "" -> let in,pr
@@ -109,7 +109,7 @@ prn-lead-can-change-switches	KILLED	pentest-print.mjs: PB1 lead1 on the 2 direct
 prn-lead-can-save-designs	KILLED	pentest-print.mjs: PB1 lead1 on the 2 director-only methods (save a design, change the switches), with good values
 prn-unpaid-runner-gets-a-bib	KILLED	pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not finish, whose result was 
 prn-unfinished-runner-gets-a-certificate	KILLED	pentest-print.mjs: PC3 a bib or a certificate of the other race, of a runner who did not finish, whose result was 
-prn-printing-not-noted	KILLED	print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth
+prn-printing-not-noted	KILLED	print.mjs: Q5 a print of three pages is one line in the audit log, written with the first page
 prn-cursor-unchecked	KILLED	pentest-print.mjs: PE6 a cursor that is negative, fractional, text, NaN, infinite, huge, an object or a list is "b
 prn-category-unchecked	KILLED	pentest-print.mjs: PE7 a category the race does not have, or that is not text, is "bad_cat" [prnBibs "Nope" -> it 
 prn-spares-cap-removed	KILLED	unit-print.mjs: P6 spare bibs: from 1, to not below from, at most 500, whole numbers   [got ["bad_spares","bad_
@@ -132,7 +132,7 @@ prn-certificate-offered-with-switch-off	KILLED	unit-print.mjs: P9 with results o
 run-hidden-race-shows	KILLED	pentest-print.mjs: PG4 20 kinds of race that is not showing (every switch off, deleted, not there, a cut or padded
 run-certificate-without-switches	KILLED	pentest-print.mjs: PG7 start list only: the runner is found with a start and no result, and the certificate is "no
 run-question-length-unchecked	KILLED	pentest-print.mjs: PG3 a question that is not text, or is longer than 200 letters, is "bad_query" (nothing is sear
-run-memory-never-expires	KILLED	print.mjs: Q2 the overview holds no phone number, e-mail address or date of birth
+run-memory-never-expires	KILLED	print.mjs: Q8 half a minute later it is, with the new place   [got ["0:56:20",3], wanted ["0:45:00",1]]
 run-search-writes-a-note	KILLED	pentest-print.mjs: PG5b the first probes (102 questions and requests) wrote nothing at all: not a result, not a de
 run-page-names-not-escaped	KILLED	runner-ui.mjs: V3 and shown exactly as typed, as text
 run-certificate-frame-not-sandboxed	KILLED	runner-ui.mjs: V5 it is drawn in a frame that is allowed to do nothing
@@ -148,8 +148,8 @@ prn-update-without-suppressauth	KILLED	security.mjs: S8 every Print read and wri
 run-backend-deletes-a-row	KILLED	security.mjs: S4 and looking at the public page writes nothing (1 writes)
 cm-role-check-removed	KILLED	security.mjs: S3 Messages: view1 on all 12 methods [cmOverview -> no_event (wanted not_allowed); cmPreview ->
 cm-director-only-removed	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveSettings -> no_event (wanted director_only); cmSave
-cm-expiry-fails-open	KILLED	pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "not logged in" ("85ab18a5
-cm-token-coerced-to-text	KILLED	pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "not logged in" (["e9bcea1
+cm-expiry-fails-open	KILLED	pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "not logged in" ("84fa00fe
+cm-token-coerced-to-text	KILLED	pentest-comms.mjs: MA cmAudience: 28 kinds of wrong or damaged login are all refused as "not logged in" (["edea1e9
 cm-lead-can-send	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmSend -> no_event (wanted director_only)]
 cm-lead-can-save-templates	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmSaveTemplate -> no_event (wanted director_only)]
 cm-lead-can-export	KILLED	security.mjs: S3 Messages: lead1 on all 12 methods [cmExport -> no_event (wanted director_only)]
@@ -163,7 +163,7 @@ cm-update-without-suppressauth	KILLED	security.mjs: S8 every Messages read and w
 cm-backend-deletes-a-row	KILLED	security.mjs: S8 nothing in Messages removes a row: a template is archived, a batch is a new batch, the log o
 cm-log-row-holds-text	KILLED	security.mjs: S8 the log row of a person (written in the two places that send or mark) and the row of a test 
 cm-writer-taken-from-call	KILLED	security.mjs: S5 a template saved with "by: boss" and an old date in the call is written, and noted, under th
-cm-address-in-the-export-note	KILLED	security.mjs: S6 the Results change notes hold no phone number, e-mail address or date of birth, and the reco
+cm-address-in-the-export-note	KILLED	security.mjs: S4 Privacy: not one of 61 answers holds a raw phone number or e-mail address (11 of them are in
 cm-test-address-kept-in-the-log	KILLED	security.mjs: S6 the Messages change notes and everything kept in its collection (templates, frozen lists of 
 cm-send-claim-not-unique	KILLED	comms.mjs: K8 a log row is the batch, the person's id, the template, the state and who pressed Send: no na
 cm-send-deadline-ignored	KILLED	comms.mjs: K8 a call that runs out of time stops starting new people (10 of 10 sent) and says where to go 
@@ -214,8 +214,8 @@ cm-ui-double-press-prepares-twice	KILLED	comms-ui.mjs: U9 and pressing it anyway
 cm-page-relay-list-open	KILLED	pagecode.mjs: Messages branch: "login" is refused (only the twelve Messages methods go through)
 wv-role-check-removed	KILLED	security.mjs: S3 Waivers: view1 on all 9 methods [wvOverview -> no_event (wanted not_allowed); wvText -> no_e
 wv-director-only-removed	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveText -> no_event (wanted director_only); wvSaveSettin
-wv-expiry-fails-open	KILLED	pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not logged in" ("b07503a41d2e
-wv-token-coerced-to-text	KILLED	pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not logged in" (["dad4a35558e
+wv-expiry-fails-open	KILLED	pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not logged in" ("127f956c732c
+wv-token-coerced-to-text	KILLED	pentest-waivers.mjs: WA wvList: 29 kinds of wrong or damaged login are all refused as "not logged in" (["1067e57070b
 wv-lead-can-save-text	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveText -> no_event (wanted director_only)]
 wv-lead-can-save-settings	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvSaveSettings -> no_event (wanted director_only)]
 wv-lead-can-void	KILLED	security.mjs: S3 Waivers: lead1 on all 9 methods [wvVoid -> no_event (wanted director_only)]
@@ -328,7 +328,7 @@ rp-user-name-case-sensitive	KILLED	reports.mjs
 rp-raw-error-leaves	KILLED	pentest-reports.mjs: RE a whole argument of the wrong kind is "not_logged_in", or "server_error" when it fights back
 rp-csv-save-not-audited	KILLED	reports.mjs: Q10 every file saved wrote one line to the audit trail   [got 0, wanted 22]
 rp-audit-counts-tables-not-rows	KILLED	reports.mjs: Q10 in order   [got ["reg / summary · 6 rows","reg / cats · 6 rows","reg / gender · 6 rows","re
-rp-run-writes-a-note	KILLED	reports.mjs: Q1 nothing was written by any refused call   [got "[[\"ExpoSessions\",[[\"i7\",{\"token\":\"14d
+rp-run-writes-a-note	KILLED	reports.mjs: Q1 nothing was written by any refused call   [got "[[\"ExpoSessions\",[[\"i7\",{\"token\":\"1bf
 rp-unread-not-named	KILLED	reports.mjs: Q11 volunteers: shifts that cannot be read are named; nothing is shown as a role   [got [[],["T
 rp-core-read-failure-hidden	KILLED	reports.mjs: Q11 reg without the registrations is "server_error" and nothing else [got ]
 rp-csv-any-table-will-do	KILLED	reports.mjs: Q10 a table that is not there is refused   [wanted rp_bad_table, got no error]
@@ -489,7 +489,7 @@ pv-xb-upsert-revives-erased	KILLED	privacy.mjs: W8 a sync from findmybib adds th
 pv-page-relay-unlisted-method	KILLED	pagecode.mjs: Privacy branch: "login" is refused (only the five Privacy methods go through)
 pv-page-allowlist-wider	KILLED	pagecode.mjs: the Privacy list and the Privacy backend are the same 6 methods (none missing, none extra, none
 pv-page-old-backend-text-leaks	KILLED	pagecode.mjs: Privacy branch: a listed method missing in the backend says backend_old, not a crash
-pv-ui-time-not-cut	KILLED	privacy-ui.mjs: U4 a time longer than thirty seconds is cut to thirty (the longest wait asked for was 100000017
+pv-ui-time-not-cut	KILLED	privacy-ui.mjs: U4 a time longer than thirty seconds is cut to thirty (the longest wait asked for was 100000014
 pv-ui-hide-keeps-value	KILLED	privacy-ui.mjs: U3 Hide puts the dots and the Show button back
 pv-ui-value-as-markup	KILLED	privacy-ui.mjs: U5 a detail with markup in it is shown as the characters it is
 pv-ui-mask-as-markup	KILLED	privacy-ui.mjs: U5 regs: the dots of a list that has markup in them are shown as the characters they are
