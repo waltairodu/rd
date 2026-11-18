@@ -12,7 +12,7 @@
 // same way. Erasing keeps each row (bib, ticket, category, size, times) and empties what says who the person is, so that counts, stock and
 // money still add up and a refresh from Wix Events or findmybib does not bring the person back. It touches RaceOS's own copies only: Wix
 // Events, Wix Contacts and the findmybib collection are not changed from here.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { kindOf, unameOf, tidyError, takeSlot, slotKey } from './rd-auth.js';
 import { T, cleanText, lc } from './rd-results.js';
@@ -28,21 +28,20 @@ const CODES = new Set([
   'not_logged_in', 'not_allowed', 'director_only', 'no_event', 'setup_needed', 'server_error',
   'pv_bad_request', 'pv_need_reason', 'pv_not_found', 'pv_too_many', 'pv_audit_failed', 'pv_bad_person', 'pv_need_confirm', 'pv_stale', 'pv_too_big',
 ]);
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    const t = tidyError(e, 'privacy');
+    if (t && typeof t.message === 'string' && CODES.has(t.message)) throw t;
     try {
-      return await fn(arg);
-    } catch (e) {
-      const t = tidyError(e, 'privacy');
-      if (t && typeof t.message === 'string' && CODES.has(t.message)) throw t;
-      try {
-        console.error('privacy: ' + (e && e.stack ? e.stack : e));
-      } catch (x) {
-        // logging is best effort
-      }
-      throw new Error('server_error');
+      console.error('privacy: ' + (e && e.stack ? e.stack : e));
+    } catch (x) {
+      // logging is best effort
     }
-  });
+    throw new Error('server_error');
+  }
+};
 
 const VOLS = 'RDVolunteers';
 const PACERS = 'RDPacers';
@@ -105,7 +104,7 @@ const raceOut = (e) => ({ id: e._id, name: cleanText(e.name, 80), date: typeof e
 
 /* ---------- showing one detail ---------- */
 // One detail of one person: the phone number or the e-mail address, with a reason.
-export const pvReveal = webMethod(Permissions.Anyone, async (arg) => {
+export const pvReveal = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'reveal');
   const q = revealRequest(arg);
   const e = await getEvent(arg.ev);
@@ -123,12 +122,12 @@ export const pvReveal = webMethod(Permissions.Anyone, async (arg) => {
   if (!slot) throw new Error('pv_too_many');
   await record(a, revealAction(q.field), e.name, revealDetail(q.kind, q.id, q.reason));
   return { value, field: q.field, kind: q.kind, id: q.id, ms: SHOW_MS };
-});
+}));
 
 /* ---------- a file with the contact details ---------- */
 // One page (a thousand rows) of a CSV file of registrations, volunteers or pacers WITH phone numbers and e-mail addresses. Directors only.
 // Every page asked for is written in the audit trail (the kind, the rows and the reason, never a detail).
-export const pvExport = webMethod(Permissions.Anyone, async (arg) => {
+export const pvExport = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'export');
   const q = exportRequest(arg);
   const e = await getEvent(arg.ev);
@@ -136,11 +135,11 @@ export const pvExport = webMethod(Permissions.Anyone, async (arg) => {
   const page = exportPage(q.kind, list, q.from);
   await record(a, 'contacts exported', e.name, EXPORTS[q.kind].title + ': rows ' + (page.count ? q.from + 1 + '-' + (q.from + page.count) : 'none') + ' of ' + page.total + ' · ' + q.reason);
   return Object.assign({ name: exportName(e.name, q.kind) }, page);
-});
+}));
 
 /* ---------- the privacy screen ---------- */
 // The race, what a contact file would hold, and the trail of who looked (the newest hundred notes about contact details).
-export const pvList = webMethod(Permissions.Anyone, async (arg) => {
+export const pvList = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'log');
   const e = await getEvent(arg.ev);
   const counts = {};
@@ -169,7 +168,7 @@ export const pvList = webMethod(Permissions.Anyone, async (arg) => {
     files: Object.keys(EXPORTS).map((k) => ({ kind: k, title: EXPORTS[k].title, rows: counts[k] })),
     log,
   };
-});
+}));
 
 /* ---------- erasing a person ---------- */
 const nameKey = (v) => lc(T(v)).replace(/[^a-z0-9]/g, '');
@@ -232,15 +231,15 @@ async function dependents(x, unread) {
 }
 
 // Who would be erased: every row that is this person, masked, with a key for each. Nothing is changed.
-export const pvErasePlan = webMethod(Permissions.Anyone, async (arg) => {
+export const pvErasePlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await cauth(arg, 'erase');
   const keys = personKeys(arg);
   const { found, unread } = await findPeople(keys);
   return { items: found.slice(0, MAX_PLAN).map((x) => x.item), total: found.length, capped: found.length > MAX_PLAN, unread };
-});
+}));
 
 // Erases the rows the director ticked (each must be one the plan lists), after the note in the audit trail.
-export const pvErase = webMethod(Permissions.Anyone, async (arg) => {
+export const pvErase = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'erase');
   const keys = personKeys(arg);
   if (arg.confirm !== CONFIRM_WORD) throw new Error('pv_need_confirm');
@@ -268,4 +267,4 @@ export const pvErase = webMethod(Permissions.Anyone, async (arg) => {
     }
   }
   return { erased: counts, summary: summaryText(counts), unread };
-});
+}));

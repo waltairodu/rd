@@ -6,7 +6,7 @@
 //   desk                               only the desks and the race written on that login
 //   lead, viewer, coach, anything else refused ('not_allowed'): they have a session, but not for the desk.
 // Every method needs a session token. `enter` starts the desk for a person who is already logged in.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -14,14 +14,13 @@ import { kindOf, unameOf, deskValueOf, deskList, tidyError } from './rd-auth.js'
 import { maskPhone, maskEmail, isErased } from './rd-privacy.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'exposoft');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'exposoft');
+  }
+};
 
 const RUNNERS = 'Runners';
 const CONFIG = 'ExpoConfig';
@@ -238,7 +237,7 @@ async function needEvent(arg) {
   return cfg;
 }
 
-export const health = webMethod(Permissions.Anyone, async () => ({ ok: true }));
+export const health = webMethod(Permissions.Anyone, guarded(async () => ({ ok: true })));
 
 /* ---------- starting the desk ---------- */
 function me(a) {
@@ -257,7 +256,7 @@ function me(a) {
 
 // The person is already logged in to RaceOS; this starts their work at the desk. A login with one desk is put at that
 // desk at once. (A login with no race, while there is more than one race, is refused by auth() with 'no_race'.)
-export const enter = webMethod(Permissions.Anyone, async (arg) => {
+export const enter = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, false);
   let sess = a.sess;
   if (a.desks.length === 1 && !sess.desk) {
@@ -266,23 +265,23 @@ export const enter = webMethod(Permissions.Anyone, async (arg) => {
     await wixData.update(SESS, sess, SA);
   }
   return me({ role: a.role, user: a.user, lock: a.lock, sess });
-});
+}));
 
-export const whoami = webMethod(Permissions.Anyone, async (arg) => {
+export const whoami = webMethod(Permissions.Anyone, guarded(async (arg) => {
   return me(await auth(arg, false));
-});
+}));
 
-export const chooseDesk = webMethod(Permissions.Anyone, async (arg) => {
+export const chooseDesk = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, false);
   const want = String((arg && arg.desk) || '').trim();
   if (!a.desks.includes(want)) throw new Error('bad_desk');
   await claimDesk(a.username, want, a.sess.desk || '');
   await wixData.update(SESS, Object.assign({}, a.sess, { desk: want }), SA);
   return me({ role: a.role, user: a.user, lock: a.lock, sess: Object.assign({}, a.sess, { desk: want }) });
-});
+}));
 
 /* ---------- reading ---------- */
-export const loadPage = webMethod(Permissions.Anyone, async (arg) => {
+export const loadPage = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, false);
   const cfg = await needEvent(arg);
   const skip = Math.max(0, parseInt(arg && arg.skip, 10) || 0);
@@ -290,9 +289,9 @@ export const loadPage = webMethod(Permissions.Anyone, async (arg) => {
   const out = { runners: r.items.map(toRunner), done: r.items.length < PAGE };
   if (skip === 0) out.config = cfg;
   return out;
-});
+}));
 
-export const loadSince = webMethod(Permissions.Anyone, async (arg) => {
+export const loadSince = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, false);
   const cfg = await needEvent(arg);
   let q = wixData.query(RUNNERS).eq('event', cfg.id).ascending('_updatedDate').limit(PAGE);
@@ -300,7 +299,7 @@ export const loadSince = webMethod(Permissions.Anyone, async (arg) => {
   if (since && !isNaN(since.getTime())) q = q.ge('_updatedDate', new Date(since.getTime() - 1500));
   const r = await q.find(SA);
   return { runners: r.items.map(toRunner), more: r.items.length === PAGE, config: cfg };
-});
+}));
 
 /* ---------- hand-over ---------- */
 // Who is collecting (self or a friend) and the selfie that proves it.
@@ -315,7 +314,7 @@ function cleanPickup(p) {
   return { pickupBy: by, friendName: by === 'friend' ? friendName : '', friendPhone: by === 'friend' ? friendPhone : '', method: 'selfie', selfie };
 }
 
-export const getPickup = webMethod(Permissions.Anyone, async (arg) => {
+export const getPickup = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const staff = await auth(arg, false);
   const id = String((arg && arg.id) || '');
   if (staff.lock && !id.startsWith(staff.lock.id + '~')) throw new Error('not_found');
@@ -324,7 +323,7 @@ export const getPickup = webMethod(Permissions.Anyone, async (arg) => {
   const check = await wixData.get(CHECKS, id, SA).catch(() => null);
   const shirt = await wixData.get(CHECKS, id + '#shirt', SA).catch(() => null);
   return { pickup: shape(check), shirtPickup: shape(shirt) };
-});
+}));
 
 // What the runner's row shows as done, per item.
 const itemDone = (row, item) => !!(item === 'check' ? row.checkedInAt : item === 'bib' ? row.bibAt : row.shirtAt);
@@ -355,7 +354,7 @@ async function claimItem(it, item, desk, now) {
 }
 const releaseClaims = (it, items) => (items.length ? wixData.bulkRemove(CHECKS, items.map((i) => it._id + '#claim-' + i), SA).catch(() => null) : null);
 
-export const issue = webMethod(Permissions.Anyone, async (arg) => {
+export const issue = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const staff = await auth(arg, false);
   const it = await wixData.get(RUNNERS, String((arg && arg.id) || ''), SA);
   if (!it || (staff.lock && it.event !== staff.lock.id)) throw new Error('not_found');
@@ -436,9 +435,9 @@ export const issue = webMethod(Permissions.Anyone, async (arg) => {
     await releaseClaims(it, taken);
     throw e;
   }
-});
+}));
 
-export const revert = webMethod(Permissions.Anyone, async (arg) => {
+export const revert = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const staff = await auth(arg, false);
   const it = await wixData.get(RUNNERS, String((arg && arg.id) || ''), SA);
   if (!it || (staff.lock && it.event !== staff.lock.id)) throw new Error('not_found');
@@ -465,7 +464,7 @@ export const revert = webMethod(Permissions.Anyone, async (arg) => {
   // The hand-over is undone, so its claims go too (and the item can be handed over again at once).
   await releaseClaims(it, items);
   return { runner: toRunner(saved) };
-});
+}));
 
 /* ---------- runners ---------- */
 function blankRunner(c, example, ev) {
@@ -551,7 +550,7 @@ async function upsert(clean, example, ev, updateExisting) {
   return { added: toInsert.length, updated: toUpdate.length, skipped };
 }
 
-export const addRunner = webMethod(Permissions.Anyone, async (arg) => {
+export const addRunner = webMethod(Permissions.Anyone, guarded(async (arg) => {
   needDesk(await auth(arg, false), 'addRunner');
   const cfg = await needEvent(arg);
   const clean = cleanRows([arg || {}])[0];
@@ -559,16 +558,16 @@ export const addRunner = webMethod(Permissions.Anyone, async (arg) => {
   if (await wixData.get(RUNNERS, cfg.id + '~' + clean.id, SA)) throw new Error('duplicate');
   const saved = await wixData.insert(RUNNERS, blankRunner(clean, false, cfg.id), SA);
   return { runner: toRunner(saved) };
-});
+}));
 
-export const importRunners = webMethod(Permissions.Anyone, async (arg) => {
+export const importRunners = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, true);
   const cfg = await needEvent(arg);
   const rows = (Array.isArray(arg && arg.rows) ? arg.rows : []).slice(0, 200);
   return upsert(cleanRows(rows), !!(arg && arg.example), cfg.id);
-});
+}));
 
-export const removeSample = webMethod(Permissions.Anyone, async (arg) => {
+export const removeSample = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, true);
   const cfg = await needEvent(arg);
   let removed = 0;
@@ -579,7 +578,7 @@ export const removeSample = webMethod(Permissions.Anyone, async (arg) => {
     removed += r.items.length;
   }
   return { removed };
-});
+}));
 
 /* ---------- findmybib list ---------- */
 function mapSource(item) {
@@ -622,7 +621,7 @@ function sourceRow(item) {
   };
 }
 
-export const previewFindMyBib = webMethod(Permissions.Anyone, async (arg) => {
+export const previewFindMyBib = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, true);
   const SOURCE = (await needEvent(arg)).source;
   let total;
@@ -650,9 +649,9 @@ export const previewFindMyBib = webMethod(Permissions.Anyone, async (arg) => {
     }
   });
   return { total, scanned: r.items.length, withBib, fields, columns: Array.from(cols), sample };
-});
+}));
 
-export const syncFromFindMyBib = webMethod(Permissions.Anyone, async (arg) => {
+export const syncFromFindMyBib = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, true);
   const cfg = await needEvent(arg);
   const SOURCE = cfg.source;
@@ -667,7 +666,7 @@ export const syncFromFindMyBib = webMethod(Permissions.Anyone, async (arg) => {
   });
   const res = await upsert(cleanRows(rows), false, cfg.id, true);
   return { done: r.items.length < 200, next: skip + r.items.length, added: res.added, updated: res.updated, skipped };
-});
+}));
 
 /* ---------- races and lot ---------- */
 async function writeConfig(id, name, c) {
@@ -699,7 +698,7 @@ async function findSources() {
 }
 
 // Every Import... collection is a race. Its settings row (lot) is created on first sight.
-export const listEvents = webMethod(Permissions.Anyone, async (arg) => {
+export const listEvents = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const staff = await auth(arg, false);
   const found = await findSources();
   const have = await wixData.query(CONFIG).limit(100).find(SA);
@@ -722,9 +721,9 @@ export const listEvents = webMethod(Permissions.Anyone, async (arg) => {
   raceCache.list = null;
   const out = staff.lock ? races.filter((r) => r.id === staff.lock.id) : races;
   return out.sort((a, b) => a.name.localeCompare(b.name));
-});
+}));
 
-export const saveConfig = webMethod(Permissions.Anyone, async (arg) => {
+export const saveConfig = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, true);
   const cfg = await needEvent(arg);
   const lot = {};
@@ -749,4 +748,4 @@ export const saveConfig = webMethod(Permissions.Anyone, async (arg) => {
   }
   await writeConfig(cfg.id, name, { bibLot, shirtLot: lot, named });
   return readConfig(cfg.id);
-});
+}));

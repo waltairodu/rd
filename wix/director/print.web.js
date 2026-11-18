@@ -9,7 +9,7 @@
 // Papers are made here, on the server, from one library (rd-print.js): the screens only show the page they are given and print it.
 // A date of birth, a phone number and an e-mail address are never in any answer. A design is checked again every time it is used, so a
 // damaged or hand-written row can never put markup, a script or a strange address on a paper.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -19,14 +19,13 @@ import { SA, C, getEvent, loadRace, catsOf } from './rd-data.js';
 import { cleanBibTpl, cleanCertTpl, bibTplOf, certTplOf, renderBibs, renderCerts, spareBibs, certVars, flagsOf, cleanFlags, pageOf, CHUNK_BIBS, CHUNK_CERTS, PLACEHOLDERS, IMG_HOSTS } from './rd-print.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'print');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'print');
+  }
+};
 
 const nowIso = () => new Date().toISOString();
 
@@ -128,7 +127,7 @@ const finishers = (rowsOfBoard, cats) => {
 const SAMPLE_BIB = { bib: '123', name: 'Sample Runner', bibName: 'SAMPLE', cat: '' };
 const SAMPLE_ROW = { name: 'Sample Runner', bib: '123', cat: '', t: 345000, place: 3, gplace: 1, aplace: 1, gender: 'F', ageGroup: '30-39', status: 'fin' };
 
-export const prnOverview = webMethod(Permissions.Anyone, async (arg) => {
+export const prnOverview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await pauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const [d, bibRow, certRow, pubRow] = await Promise.all([loadRace(e), getRow(e._id, 'bib'), getRow(e._id, 'cert'), getRow(e._id, 'pub')]);
@@ -145,9 +144,9 @@ export const prnOverview = webMethod(Permissions.Anyone, async (arg) => {
     vars: PLACEHOLDERS,
     hosts: IMG_HOSTS.slice(),
   };
-});
+}));
 
-export const prnSaveTemplate = webMethod(Permissions.Anyone, async (arg) => {
+export const prnSaveTemplate = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await pauth(arg, 'director');
   const kind = kindOfArg(arg.kind);
   const e = await getEvent(arg.ev);
@@ -157,10 +156,10 @@ export const prnSaveTemplate = webMethod(Permissions.Anyone, async (arg) => {
   await put(C.PRINT, { _id: rowId(e._id, kind), event: e._id, kind, json: JSON.stringify(tpl), by: a.username, at: nowIso() });
   await audit(a, kind === 'bib' ? 'bib design saved' : 'certificate design saved', e.name, '');
   return { tpl };
-});
+}));
 
 // A paper made from a design that has not been saved yet (or the saved one), for the screen's preview.
-export const prnPreview = webMethod(Permissions.Anyone, async (arg) => {
+export const prnPreview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await pauth(arg, 'view');
   const kind = kindOfArg(arg.kind);
   const e = await getEvent(arg.ev);
@@ -194,10 +193,10 @@ export const prnPreview = webMethod(Permissions.Anyone, async (arg) => {
   const use = row || Object.assign({}, SAMPLE_ROW, { cat: d.cats[0] || '10 K' });
   const r = renderCerts(tpl, [certVars(use, race, d.race.cats)], race);
   return { head: r.head, body: r.body, sample: { bib: use.bib, name: use.name, fake: !row } };
-});
+}));
 
 // Bibs, one page of up to 60 at a time. The client joins head + every body + foot into one print-out.
-export const prnBibs = webMethod(Permissions.Anyone, async (arg) => {
+export const prnBibs = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await pauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const [d, saved] = await Promise.all([loadRace(e), getRow(e._id, 'bib')]);
@@ -226,10 +225,10 @@ export const prnBibs = webMethod(Permissions.Anyone, async (arg) => {
   const r = renderBibs(tpl, pg.items, race, d.cats);
   if (from === 0) await audit(a, 'bibs printed', e.name, (only ? 'bib ' + only : cat || 'all') + ': ' + pg.total);
   return { head: r.head, body: r.body, count: pg.items.length, from, next: pg.next, total: pg.total, skippedSpares: skipped };
-});
+}));
 
 // Certificates for the finishers, one page of up to 25 at a time.
-export const prnCerts = webMethod(Permissions.Anyone, async (arg) => {
+export const prnCerts = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await pauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const [d, saved] = await Promise.all([loadRace(e), getRow(e._id, 'cert')]);
@@ -248,16 +247,16 @@ export const prnCerts = webMethod(Permissions.Anyone, async (arg) => {
   const r = renderCerts(tpl, pg.items.map((x) => certVars(x, race, d.race.cats)), race);
   if (from === 0) await audit(a, 'certificates printed', e.name, (only ? 'bib ' + only : cat || 'all') + ': ' + pg.total);
   return { head: r.head, body: r.body, count: pg.items.length, from, next: pg.next, total: pg.total };
-});
+}));
 
-export const prnSavePublish = webMethod(Permissions.Anyone, async (arg) => {
+export const prnSavePublish = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await pauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const pub = cleanFlags(arg.pub);
   await put(C.PRINT, { _id: rowId(e._id, 'pub'), event: e._id, kind: 'pub', json: JSON.stringify(pub), by: a.username, at: nowIso() });
   await audit(a, 'runner page changed', e.name, 'start list ' + (pub.startList ? 'on' : 'off') + ', results ' + (pub.results ? 'on' : 'off') + ', certificates ' + (pub.certs ? 'on' : 'off'));
   return { pub };
-});
+}));
 
 /* ---------- collections ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });

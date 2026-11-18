@@ -9,7 +9,7 @@
 // A date of birth is read only to work out an age: no answer from here holds it. Phone numbers and e-mail addresses never come
 // through here at all. A result is corrected or voided with a reason, and the old values are kept. A request can be sent twice
 // (double click, bad network): each create carries a key, and the same key does nothing twice.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -17,14 +17,13 @@ import { kindOf, unameOf, tidyError } from './rd-auth.js';
 import { STATUSES, cleanText, lc, catKey, sOnly, isKey, P, parseJson, parseTime, fmtTime, normStatus, normGender, normDob, declaredAge, canonCat, cleanSettings, settingsOf, cleanWaves, wavesOf, autoAssign, startList, readResults, regInfo, formFields, bandList, board, computeAwards } from './rd-results.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'results');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'results');
+  }
+};
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -229,7 +228,7 @@ const countPer = (assigns, ids) => {
   return m;
 };
 
-export const resOverview = webMethod(Permissions.Anyone, async (arg) => {
+export const resOverview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const [regList, resRows, st, wv, assigns] = await Promise.all([rows(REGS, e._id), rows(RESULTS, e._id), getSettings(e._id), getWaves(e._id), rows(ASSIGN, e._id)]);
@@ -251,17 +250,17 @@ export const resOverview = webMethod(Permissions.Anyone, async (arg) => {
     counts: { regs: regList.length, paid: runners.length, withBib: regs.size, placed, unplaced: runners.length - placed },
     results: b.summary,
   };
-});
+}));
 
 /* ---------- setup ---------- */
-export const resFormFields = webMethod(Permissions.Anyone, async (arg) => {
+export const resFormFields = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const regList = await rows(REGS, e._id);
   return { fields: formFields(regList), count: regList.length };
-});
+}));
 
-export const resSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
+export const resSaveSettings = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   let st;
@@ -273,10 +272,10 @@ export const resSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
   await put(RSET, { _id: 'set~' + e._id, kind: 'settings', by: a.username, at: nowIso(), ref: '', json: JSON.stringify(st) });
   await audit(a, 'results settings saved', e.name, 'rank by ' + st.rankBy + ', age on ' + st.ageRule);
   return { settings: st };
-});
+}));
 
 /* ---------- waves and corrals ---------- */
-export const resSaveWaves = webMethod(Permissions.Anyone, async (arg) => {
+export const resSaveWaves = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const cur = await getWaves(e._id);
@@ -311,9 +310,9 @@ export const resSaveWaves = webMethod(Permissions.Anyone, async (arg) => {
   for (const c of chunks(fix)) await wixData.bulkUpdate(ASSIGN, c, SA);
   await audit(a, 'waves saved', e.name, clean.waves.length + ' waves, ' + drop.length + ' runners moved out');
   return { rev, moved: drop.length + fix.length };
-});
+}));
 
-export const resAssign = webMethod(Permissions.Anyone, async (arg) => {
+export const resAssign = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const mode = sOnly(arg.mode);
@@ -368,9 +367,9 @@ export const resAssign = webMethod(Permissions.Anyone, async (arg) => {
     await audit(a, 'runners placed in waves', e.name, mode + (redo ? ', redone' : '') + ': ' + placedN + ' placed, ' + unplacedN + ' without room');
     return { id: 'as~' + at, placed: placedN, unplaced: unplacedN, cats: per };
   });
-});
+}));
 
-export const resPlace = webMethod(Permissions.Anyone, async (arg) => {
+export const resPlace = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const reg = await getOf(REGS, arg.regId, e);
@@ -406,9 +405,9 @@ export const resPlace = webMethod(Permissions.Anyone, async (arg) => {
   }
   await audit(a, 'runner placed in a wave', info.bib || info.name, w.cat + ' ' + w.name + (corral ? ' ' + corral : ''));
   return { ok: true, wave: w.id, corral };
-});
+}));
 
-export const resStartList = webMethod(Permissions.Anyone, async (arg) => {
+export const resStartList = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await rauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const [regList, st, wv, assigns] = await Promise.all([rows(REGS, e._id), getSettings(e._id), getWaves(e._id), rows(ASSIGN, e._id)]);
@@ -421,10 +420,10 @@ export const resStartList = webMethod(Permissions.Anyone, async (arg) => {
     unassigned: sl.unassigned.map(pick),
     counts: { paid: runners.length, placed: runners.length - sl.unassigned.length, unplaced: sl.unassigned.length },
   };
-});
+}));
 
 /* ---------- results ---------- */
-export const resImport = webMethod(Permissions.Anyone, async (arg) => {
+export const resImport = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   if (typeof arg.text !== 'string') throw new Error('bad_text');
@@ -473,20 +472,20 @@ export const resImport = webMethod(Permissions.Anyone, async (arg) => {
     await audit(a, 'results imported', e.name, ins.length + ' new, ' + upd.length + ' replaced, ' + kept + ' kept, ' + read.errors.length + ' lines skipped');
     return { id: 'im~' + at, saved: ins.length, replaced: upd.length, kept, skipped: read.errors.length };
   });
-});
+}));
 
-export const resBoard = webMethod(Permissions.Anyone, async (arg) => {
+export const resBoard = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await rauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const { b, st, known } = await boardOf(e);
   return { rows: b.rows.map(rowOut), voided: b.voided.map(rowOut), summary: b.summary, bands: bandList(st.bands), rankBy: st.rankBy, cats: known };
-});
+}));
 
 const str = (v, code) => {
   if (typeof v !== 'string') throw new Error(code);
   return v.trim();
 };
-export const resSaveRow = webMethod(Permissions.Anyone, async (arg) => {
+export const resSaveRow = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const row = await getOf(RESULTS, arg.id, e);
@@ -548,9 +547,9 @@ export const resSaveRow = webMethod(Permissions.Anyone, async (arg) => {
   await wixData.update(RESULTS, next, SA);
   await audit(a, 'result corrected', 'bib ' + row.bib, changed.join(', ') + ': ' + reason);
   return { ok: true, changed };
-});
+}));
 
-export const resVoid = webMethod(Permissions.Anyone, async (arg) => {
+export const resVoid = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await rauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const row = await getOf(RESULTS, arg.id, e);
@@ -566,16 +565,16 @@ export const resVoid = webMethod(Permissions.Anyone, async (arg) => {
   await wixData.update(RESULTS, Object.assign({}, row, { void: 'yes', voidBy: a.username, voidAt: nowIso(), voidReason: reason }), SA);
   await audit(a, 'result voided', 'bib ' + row.bib, reason);
   return { ok: true };
-});
+}));
 
 /* ---------- awards ---------- */
-export const resAwards = webMethod(Permissions.Anyone, async (arg) => {
+export const resAwards = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await rauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const { b, st } = await boardOf(e);
   const aw = computeAwards(b.rows, st);
   return { awards: aw, bands: bandList(st.bands), summary: b.summary };
-});
+}));
 
 /* ---------- collections ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });

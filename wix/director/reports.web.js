@@ -10,7 +10,7 @@
 // person in a group and is never copied into a table (see rd-report.js). Saving a table as a CSV file is written to the audit trail
 // (who, which report, which table, how many rows) and nothing else is written anywhere. A source that cannot be read is named in the
 // answer, so a report never shows a zero for something that was not read.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { kindOf, unameOf, tidyError } from './rd-auth.js';
 import { cleanText, lc, board, parseJson } from './rd-results.js';
@@ -23,21 +23,20 @@ import { reportOf, allowedFor, regReport, raceReport, volReport, waiverReport, m
 // Every method below goes through this: an error this module does not know (a native error, or the text of a failed read) is logged
 // and answered with 'server_error' only, so no internal detail ever reaches the browser. These are the only codes that leave.
 const CODES = new Set(['not_logged_in', 'not_allowed', 'director_only', 'rp_bad_report', 'rp_bad_table', 'no_event', 'setup_needed', 'server_error']);
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    const t = tidyError(e, 'reports');
+    if (t && typeof t.message === 'string' && CODES.has(t.message)) throw t;
     try {
-      return await fn(arg);
-    } catch (e) {
-      const t = tidyError(e, 'reports');
-      if (t && typeof t.message === 'string' && CODES.has(t.message)) throw t;
-      try {
-        console.error('reports: ' + (e && e.stack ? e.stack : e));
-      } catch (x) {
-        // logging is best effort
-      }
-      throw new Error('server_error');
+      console.error('reports: ' + (e && e.stack ? e.stack : e));
+    } catch (x) {
+      // logging is best effort
     }
-  });
+    throw new Error('server_error');
+  }
+};
 
 const VOLS = 'RDVolunteers';
 const SHIFTS = 'RDShifts';
@@ -144,23 +143,23 @@ async function build(id, e) {
 
 /* ---------- the three methods ---------- */
 // The race and the reports this person may run.
-export const rpList = webMethod(Permissions.Anyone, async (arg) => {
+export const rpList = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg);
   const e = await getEvent(arg.ev);
   return { me: { role: a.role, name: a.name }, race: raceOut(e), reports: allowedFor(a.role).map((r) => ({ id: r.id, title: r.title, what: r.what })) };
-});
+}));
 
 // One report: its tables of counts.
-export const rpRun = webMethod(Permissions.Anyone, async (arg) => {
+export const rpRun = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg);
   const rep = reportFor(arg.report, a);
   const e = await getEvent(arg.ev);
   const built = await build(rep.id, e);
   return { report: { id: rep.id, title: rep.title, what: rep.what }, race: raceOut(e), made: nowIso(), tables: built.tables, unread: built.unread };
-});
+}));
 
 // One table of one report as a CSV file (a name for the file and its text). The save is written to the audit trail.
-export const rpCsv = webMethod(Permissions.Anyone, async (arg) => {
+export const rpCsv = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg);
   const rep = reportFor(arg.report, a);
   if (typeof arg.table !== 'string' || !arg.table || arg.table.length > 40) throw bad('rp_bad_table');
@@ -170,5 +169,5 @@ export const rpCsv = webMethod(Permissions.Anyone, async (arg) => {
   if (!t) throw bad('rp_bad_table');
   await audit(a, 'report saved as CSV', e._id, rep.id + ' / ' + t.id + ' · ' + t.rows.length + ' rows');
   return { name: csvName(e.name, rep.id, t.id), csv: tableCsv(t), rows: t.rows.length, unread: built.unread };
-});
+}));
 

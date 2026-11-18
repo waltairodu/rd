@@ -13,7 +13,7 @@
 //
 // The switches are read on every call (so turning one off takes effect at once). The heavy work of ranking the race is kept for 30
 // seconds per race, so a rush of runners looking at their results costs the database a few reads a minute, not one for each runner.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { tidyError } from './rd-auth.js';
 import { cleanText, parseJson, bibKey, findByBib } from './rd-results.js';
@@ -21,14 +21,13 @@ import { SA, C, all, loadRace } from './rd-data.js';
 import { publicIndex, searchPublic, flagsOf, anyOn, certTplOf, certVars, renderCerts, DOC_FOOT, MAX_FOUND } from './rd-print.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'runner');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'runner');
+  }
+};
 
 const flagsFor = async (evId) => {
   const row = await wixData.get(C.PRINT, 'pub~' + evId, SA).catch(() => null);
@@ -62,7 +61,7 @@ async function indexOf(e) {
 const raceOut = (race) => ({ id: race.id, name: race.name, date: race.date, venue: race.venue });
 
 // The races that show anything, newest first (twenty at most).
-export const pubRaces = webMethod(Permissions.Anyone, async () => {
+export const pubRaces = webMethod(Permissions.Anyone, guarded(async () => {
   let list = [];
   try {
     list = await all(() => wixData.query(C.PRINT).eq('kind', 'pub').ascending('_id'));
@@ -77,18 +76,18 @@ export const pubRaces = webMethod(Permissions.Anyone, async () => {
   }
   out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.name < b.name ? -1 : 1));
   return { races: out.slice(0, 20) };
-});
+}));
 
-export const pubFind = webMethod(Permissions.Anyone, async (arg) => {
+export const pubFind = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = arg && typeof arg === 'object' ? arg : {};
   if (typeof a.q !== 'string' || a.q.length > 200) throw new Error('bad_query');
   const { e, f } = await openRace(a.ev);
   const built = await indexOf(e);
   const found = searchPublic(built.idx, a.q, f, MAX_FOUND);
   return { race: raceOut(built.race), flags: { startList: f.startList, results: f.results, certs: f.certs }, note: f.note, items: found.items, more: found.more, tooShort: found.tooShort };
-});
+}));
 
-export const pubCert = webMethod(Permissions.Anyone, async (arg) => {
+export const pubCert = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = arg && typeof arg === 'object' ? arg : {};
   const bib = bibKey(a.bib);
   const { e } = await openRace(a.ev, (f) => f.results && f.certs);
@@ -101,4 +100,4 @@ export const pubCert = webMethod(Permissions.Anyone, async (arg) => {
   const race = { name: built.race.name, date: built.race.date, venue: built.race.venue };
   const r = renderCerts(tpl, [certVars(hit.row, race, built.race.cats)], race);
   return { name: hit.name, bib: hit.bib, html: r.head + r.body + DOC_FOOT };
-});
+}));

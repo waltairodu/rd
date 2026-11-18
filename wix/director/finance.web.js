@@ -10,7 +10,7 @@
 // deleted. An invoice, once raised, is never edited either (cancel it and raise a new one); numbers are never reused.
 // A request can be sent twice (double click, bad network): each create carries a key, and the same key does nothing twice.
 // Money is held in whole paise (rd-finance.js) so sums are exact.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -18,14 +18,13 @@ import { kindOf, unameOf, tidyError } from './rd-auth.js';
 import { MODES, INVOICE_KINDS, DEFAULT_ORG, cleanText, lc, holderKey, toPaise, rupees as R, inWords, istToday, addDays, validDate, fyOf, docId, docNumber, tailSeq, payId, cleanInvoiceLines, cleanClaimLines, normLedger, normInvoice, normOrder, normClaim, orgOut, invoiceState, orderState, claimState, cashBook, cashOut, regRevenue, summary, summaryOut, isKey, parseJson } from './rd-finance.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'finance');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'finance');
+  }
+};
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -268,7 +267,7 @@ function docNumbers(L) {
   return m;
 }
 
-export const finOverview = webMethod(Permissions.Anyone, async (arg) => {
+export const finOverview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const L = await loadAll(e._id);
@@ -277,14 +276,14 @@ export const finOverview = webMethod(Permissions.Anyone, async (arg) => {
   const cats = Array.isArray(j.cats) ? j.cats.filter((c) => c && typeof c === 'object') : [];
   const s = summary(L.inv, L.ord, L.clm, L.led, plan.filter((p) => p.kind === 'budget'), regRevenue(cats, regs), istToday());
   return { summary: summaryOut(s), me: { role: a.role, name: a.name } };
-});
+}));
 
 /* ---------- details printed on invoices ---------- */
-export const finSettings = webMethod(Permissions.Anyone, async (arg) => {
+export const finSettings = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await fauth(arg, 'director');
   return { org: await settingsOrg() };
-});
-export const finSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finSaveSettings = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const cur = await settingsOrg();
   const has = (k) => arg[k] !== undefined;
@@ -319,17 +318,17 @@ export const finSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
   else await wixData.insert(FSET, row, SA);
   await audit(a, 'finance details saved', 'settings', clean.name);
   return { org: clean };
-});
+}));
 
 /* ---------- invoices ---------- */
-export const finListInvoices = webMethod(Permissions.Anyone, async (arg) => {
+export const finListInvoices = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const L = await loadAll(e._id);
   const today = istToday();
   return { invoices: L.inv.map((i) => invOut(i, L.led, today)).sort((x, y) => String(y.id).localeCompare(String(x.id))), org: await settingsOrg() };
-});
-export const finRaiseInvoice = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finRaiseInvoice = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const today = istToday();
@@ -364,8 +363,8 @@ export const finRaiseInvoice = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'invoice raised', out.number, party + ' ' + L.total / 100);
   return withNumber(INVS, out);
-});
-export const finCancelInvoice = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finCancelInvoice = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const row = await getOf(INVS, arg.id, e);
@@ -377,7 +376,7 @@ export const finCancelInvoice = webMethod(Permissions.Anyone, async (arg) => {
   await wixData.update(INVS, Object.assign({}, row, { status: 'cancelled', cancelReason: reason, cancelledBy: a.username, cancelledAt: nowIso() }), SA);
   await audit(a, 'invoice cancelled', row.number, reason);
   return { ok: true };
-});
+}));
 
 /* ---------- what the screens send with a payment ---------- */
 function payFields(arg, today, minDate) {
@@ -391,7 +390,7 @@ function payFields(arg, today, minDate) {
 }
 const base = (a, e, f, o) => Object.assign({ event: e._id, type: 'expense', amount: '0', tds: '0', cat: '', party: '', mode: f.mode, date: f.date, ref: f.ref, note: f.note, phase: '', source: 'manual', sourceId: '', holder: f.holder, by: a.username, at: nowIso(), void: '', voidBy: '', voidAt: '', voidReason: '' }, o);
 
-export const finPayInvoice = webMethod(Permissions.Anyone, async (arg) => {
+export const finPayInvoice = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const row = await getOf(INVS, arg.id, e);
@@ -414,15 +413,15 @@ export const finPayInvoice = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'payment received', inv.number, (amount + tds) / 100 + ' ' + f.mode);
   return out;
-});
+}));
 /* ---------- orders: estimate, advance, actual ---------- */
-export const finListOrders = webMethod(Permissions.Anyone, async (arg) => {
+export const finListOrders = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const L = await loadAll(e._id);
   return { orders: L.ord.map((o) => ordOut(o, L.led)).sort((x, y) => String(y.id).localeCompare(String(x.id))) };
-});
-export const finSaveOrder = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finSaveOrder = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const today = istToday();
@@ -451,14 +450,14 @@ export const finSaveOrder = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'order raised', out.number, vendor + ' ' + estimate / 100);
   return withNumber(ORDS, out);
-});
+}));
 async function openOrder(arg, e) {
   const row = await getOf(ORDS, arg.id, e);
   const ord = normOrder(row);
   if (ord.status === 'cancelled') throw new Error('order_cancelled');
   return ord;
 }
-export const finAddBill = webMethod(Permissions.Anyone, async (arg) => {
+export const finAddBill = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const ord = await openOrder(arg, e);
@@ -477,8 +476,8 @@ export const finAddBill = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'bill added', ord.number, amount / 100);
   return out;
-});
-export const finPayOrder = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finPayOrder = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const ord = await openOrder(arg, e);
@@ -501,8 +500,8 @@ export const finPayOrder = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'order payment', ord.number, amount / 100 + ' ' + phase + ' ' + f.mode);
   return out;
-});
-export const finRefundOrder = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finRefundOrder = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const ord = await openOrder(arg, e);
@@ -522,8 +521,8 @@ export const finRefundOrder = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'refund received', ord.number, amount / 100 + ' ' + f.mode);
   return out;
-});
-export const finCancelOrder = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finCancelOrder = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const row = await getOf(ORDS, arg.id, e);
@@ -535,10 +534,10 @@ export const finCancelOrder = webMethod(Permissions.Anyone, async (arg) => {
   await wixData.update(ORDS, Object.assign({}, row, { status: 'cancelled', cancelReason: reason }), SA);
   await audit(a, 'order cancelled', row.number, reason);
   return { ok: true };
-});
+}));
 
 /* ---------- reimbursement claims ---------- */
-export const finListClaims = webMethod(Permissions.Anyone, async (arg) => {
+export const finListClaims = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'claims');
   const e = await getEvent(arg.ev);
   const [clm, led] = await Promise.all([rows(CLMS, e._id), rows(LED, e._id)]);
@@ -548,8 +547,8 @@ export const finListClaims = webMethod(Permissions.Anyone, async (arg) => {
   const mineIds = new Set(mine.map((c) => c.id));
   const own = a.role === 'director' ? L : L.filter((r) => r.source === 'claim' && mineIds.has(r.sourceId));
   return { claims: mine.map((c) => clmOut(c, own, a)).sort((x, y) => String(y.id).localeCompare(String(x.id))), role: a.role };
-});
-export const finSaveClaim = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finSaveClaim = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'claims');
   const e = await getEvent(arg.ev);
   const today = istToday();
@@ -571,8 +570,8 @@ export const finSaveClaim = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'claim raised', out.number, payee + ' ' + L.total / 100);
   return withNumber(CLMS, out);
-});
-export const finDecideClaim = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finDecideClaim = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const row = await getOf(CLMS, arg.id, e);
@@ -595,8 +594,8 @@ export const finDecideClaim = webMethod(Permissions.Anyone, async (arg) => {
   await wixData.update(CLMS, Object.assign({}, row, { status: decision === 'approve' ? 'approved' : 'rejected', approved: String(approved), decidedBy: a.username, decidedAt: nowIso(), decisionNote: note, selfApproved: decision === 'approve' && clm.by === a.username ? 'yes' : '' }), SA);
   await audit(a, 'claim ' + (decision === 'approve' ? 'approved' : 'rejected'), clm.number, decision === 'approve' ? approved / 100 + (clm.by === a.username ? ' (own claim)' : '') : note);
   return { ok: true };
-});
-export const finPayClaim = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finPayClaim = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const row = await getOf(CLMS, arg.id, e);
@@ -621,8 +620,8 @@ export const finPayClaim = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, 'claim paid', clm.number, (amount === null ? 'balance' : amount / 100) + ' ' + f.mode);
   return out;
-});
-export const finCancelClaim = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finCancelClaim = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'claims');
   const e = await getEvent(arg.ev);
   const row = await getOf(CLMS, arg.id, e);
@@ -635,10 +634,10 @@ export const finCancelClaim = webMethod(Permissions.Anyone, async (arg) => {
   await wixData.update(CLMS, Object.assign({}, row, { status: 'cancelled', approved: '0' }), SA);
   await audit(a, 'claim cancelled', row.number, '');
   return { ok: true };
-});
+}));
 
 /* ---------- cash ---------- */
-export const finCash = webMethod(Permissions.Anyone, async (arg) => {
+export const finCash = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const L = await loadAll(e._id);
@@ -646,8 +645,8 @@ export const finCash = webMethod(Permissions.Anyone, async (arg) => {
   const book = cashOut(cashBook(L.led));
   const moves = L.led.filter((r) => r.type === 'withdrawal' || r.type === 'deposit' || (r.mode === 'cash' && (r.type === 'expense' || r.type === 'income')));
   return { cash: book, entries: moves.sort((x, y) => byAtAsc(y, x)).slice(0, 500).map((r) => payOut(r, nos)) };
-});
-export const finAddCash = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const finAddCash = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const type = sOnly(arg.type);
@@ -664,20 +663,20 @@ export const finAddCash = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, type === 'withdrawal' ? 'cash withdrawn' : 'cash put back', holder, amount / 100);
   return out;
-});
+}));
 
 /* ---------- the ledger ---------- */
-export const finLedger = webMethod(Permissions.Anyone, async (arg) => {
+export const finLedger = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const L = await loadAll(e._id);
   const nos = docNumbers(L);
   const list = L.led.sort((x, y) => byAtAsc(y, x));
   return { rows: list.slice(0, 3000).map((r) => payOut(r, nos)), truncated: list.length > 3000, holders: cashBook(L.led).holders.map((h) => h.holder) };
-});
+}));
 // Income or an expense that does not belong to an invoice, an order or a claim (a small direct payment, a bank
 // charge, a donation, anything else).
-export const finAddEntry = webMethod(Permissions.Anyone, async (arg) => {
+export const finAddEntry = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const type = sOnly(arg.type);
@@ -695,9 +694,9 @@ export const finAddEntry = webMethod(Permissions.Anyone, async (arg) => {
   });
   if (!out.again) await audit(a, type === 'income' ? 'income entered' : 'expense entered', party, amount / 100 + ' ' + f.mode);
   return out;
-});
+}));
 // A mistake is voided, not deleted: it stays in the list struck through, with who voided it and why.
-export const finVoid = webMethod(Permissions.Anyone, async (arg) => {
+export const finVoid = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await fauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const reason = cleanText(arg.reason, 160);
@@ -725,7 +724,7 @@ export const finVoid = webMethod(Permissions.Anyone, async (arg) => {
   }
   await audit(a, 'entry voided', row.type + ' ' + (row.sourceId || row._id), reason);
   return { ok: true };
-});
+}));
 
 /* ---------- collections ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });

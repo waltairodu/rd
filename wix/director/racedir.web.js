@@ -14,7 +14,7 @@
 //   anything else is refused.
 // Passwords are stored hashed (rd-auth.js). A password typed by hand into the CMS still works and is hashed at the
 // first login. Every method except login, ensureSetup, openShifts, volunteerSignup and volunteerStatus needs a session token.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -25,14 +25,13 @@ import { SCOPES, LEGACY_TITLES, cleanScope, suggest, planRows as templateRows, f
 import { checkPassword, hashPassword, needsUpgrade, genPin, genPassword, newToken, kindOf as staffKind, DESKS, canonDesk, parseDesks, deskValueOf, tidyError, takeSlot, freeSlots, slotKey } from './rd-auth.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'racedir');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'racedir');
+  }
+};
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -189,7 +188,7 @@ async function dropAccess(username, exceptToken, keepDesk) {
   return gone.length;
 }
 
-export const health = webMethod(Permissions.Anyone, async () => ({ ok: true }));
+export const health = webMethod(Permissions.Anyone, guarded(async () => ({ ok: true })));
 
 // A password that is checked against when the username does not exist, so that a wrong username takes as long to
 // refuse as a wrong password (otherwise the response time would tell an attacker which usernames are real).
@@ -197,7 +196,7 @@ const DUMMY_HASH = 'h1$0123456789abcdef$0000000000000000000000000000000000000000
 const LOGIN_TRIES = 5;
 const LOGIN_WINDOW_MS = 10 * 60000;
 
-export const login = webMethod(Permissions.Anyone, async (arg) => {
+export const login = webMethod(Permissions.Anyone, guarded(async (arg) => {
   // Only plain text is accepted. An array or object in either field is a wrong login, never turned into text.
   const typed = !!arg && typeof arg.username === 'string' && typeof arg.password === 'string';
   const username = typed ? lc(arg.username) : '';
@@ -242,9 +241,9 @@ export const login = webMethod(Permissions.Anyone, async (arg) => {
   const sess = await wixData.insert(SESS, { token: newToken(), username: unameOf(u), desk: '', expires: new Date(Date.now() + SESSION_HOURS * 3600000).toISOString() }, SA);
   const role = roleOf(u);
   return Object.assign({ token: sess.token }, meOf({ role, can: CAN[role], name: String(u.name || unameOf(u)) }));
-});
+}));
 
-export const logout = webMethod(Permissions.Anyone, async (arg) => {
+export const logout = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const t = String((arg && arg.token) || '');
   if (t.length < 20) return { ok: true };
   const r = await wixData.query(SESS).eq('token', t).limit(5).find(SA);
@@ -252,9 +251,9 @@ export const logout = webMethod(Permissions.Anyone, async (arg) => {
   for (const x of r.items) if (x.desk) await releaseDeskPresence(x.username, x.desk);
   if (r.items.length) await wixData.bulkRemove(SESS, r.items.map((x) => x._id), SA);
   return { ok: true };
-});
+}));
 
-export const whoami = webMethod(Permissions.Anyone, async (arg) => meOf(await session(arg)));
+export const whoami = webMethod(Permissions.Anyone, guarded(async (arg) => meOf(await session(arg))));
 
 /* ---------- events ---------- */
 const DEFAULT_GROUPS = [
@@ -356,13 +355,13 @@ async function getEvent(ev, opts) {
   return it;
 }
 
-export const listEvents = webMethod(Permissions.Anyone, async (arg) => {
+export const listEvents = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   const list = await all(() => wixData.query(EVENTS).ascending('_id'));
   return { events: list.map(eventOut) };
-});
+}));
 
-export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
+export const saveEvent = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'manage');
   const has = (k) => arg[k] !== undefined;
   const old = arg.id ? await getEvent(arg.id) : null;
@@ -407,7 +406,7 @@ export const saveEvent = webMethod(Permissions.Anyone, async (arg) => {
   await wixData.bulkInsert(RUN, DEFAULT_RUN.map(([time, what, owner]) => ({ event: saved._id, time, what, owner, status: 'todo' })), SA);
   await seedPlan(saved._id, Object.keys(PLAN_DEFAULTS), saved);
   return { event: eventOut(saved), by: a.username };
-});
+}));
 
 /* ---------- shifts ---------- */
 async function shiftCounts(ev) {
@@ -437,14 +436,14 @@ function shiftOut(s, c) {
 }
 const shiftSort = (a, b) => (a.date + a.start + a.role).localeCompare(b.date + b.start + b.role);
 
-export const listShifts = webMethod(Permissions.Anyone, async (arg) => {
+export const listShifts = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   await getEvent(arg.ev);
   const c = await shiftCounts(arg.ev);
   return { shifts: (await rows(SHIFTS, arg.ev)).map((s) => shiftOut(s, c)).sort(shiftSort) };
-});
+}));
 
-export const saveShift = webMethod(Permissions.Anyone, async (arg) => {
+export const saveShift = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   await getEvent(arg.ev);
   const role = clean(arg.role, 60);
@@ -468,9 +467,9 @@ export const saveShift = webMethod(Permissions.Anyone, async (arg) => {
   }
   const saved = await wixData.insert(SHIFTS, body, SA);
   return { id: saved._id };
-});
+}));
 
-export const removeShift = webMethod(Permissions.Anyone, async (arg) => {
+export const removeShift = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await wixData.get(SHIFTS, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_shift');
@@ -479,7 +478,7 @@ export const removeShift = webMethod(Permissions.Anyone, async (arg) => {
   if (asg.length) await wixData.bulkRemove(ASSIGN, asg.map((x) => x._id), SA);
   await wixData.bulkRemove(SHIFTS, [old._id], SA);
   return { ok: true };
-});
+}));
 
 /* ---------- volunteers: public sign-up ---------- */
 async function rateGate(ev) {
@@ -491,7 +490,7 @@ async function rateGate(ev) {
 }
 
 // Public: open races, so the sign-up page can pick one when the link has no race in it.
-export const openEvents = webMethod(Permissions.Anyone, async () => {
+export const openEvents = webMethod(Permissions.Anyone, guarded(async () => {
   let list;
   try {
     list = await all(() => wixData.query(EVENTS).ascending('_id'));
@@ -499,10 +498,10 @@ export const openEvents = webMethod(Permissions.Anyone, async () => {
     throw new Error('setup_needed');
   }
   return { events: list.filter((x) => (x.status || 'open') === 'open').map((x) => ({ id: x._id, name: x.name, date: x.date || '' })) };
-});
+}));
 
 // Public: what a would-be volunteer sees. No names, no phone numbers.
-export const openShifts = webMethod(Permissions.Anyone, async (arg) => {
+export const openShifts = webMethod(Permissions.Anyone, guarded(async (arg) => {
   let it;
   try {
     it = await getEvent(arg && arg.ev, { openOnly: true });
@@ -514,10 +513,10 @@ export const openShifts = webMethod(Permissions.Anyone, async (arg) => {
   const shifts = (await rows(SHIFTS, it._id)).map((s) => shiftOut(s, c)).sort(shiftSort);
   const e = eventOut(it);
   return { event: { id: e.id, name: e.name, date: e.date, venue: e.venue }, waiver: waiverText(e.name), shifts: shifts.map((s) => ({ id: s.id, role: s.role, location: s.location, date: s.date, start: s.start, end: s.end, notes: s.notes, left: s.left })) };
-});
+}));
 const waiverText = (name) => 'I volunteer at ' + name + ' of my own choice. I will follow instructions from the organisers, I am fit to do my role, and I understand that the organisers (VTRA) are not liable for personal injury or loss to the extent the law allows.';
 
-export const volunteerSignup = webMethod(Permissions.Anyone, async (arg) => {
+export const volunteerSignup = webMethod(Permissions.Anyone, guarded(async (arg) => {
   if (!arg) throw new Error('bad_request');
   if (arg.website) return { ok: true, code: newCode(), shifts: [] }; // hidden field filled by a bot: pretend it worked
   const it = await getEvent(arg.ev, { openOnly: true });
@@ -557,10 +556,10 @@ export const volunteerSignup = webMethod(Permissions.Anyone, async (arg) => {
     throw e;
   }
   return { ok: true, code: vol.code, name, shifts: picked.map((s) => ({ role: s.role, location: s.location, date: s.date, start: s.start, end: s.end })) };
-});
+}));
 
 // Public: a volunteer checks their own status with the code and the phone number they signed up with.
-export const volunteerStatus = webMethod(Permissions.Anyone, async (arg) => {
+export const volunteerStatus = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const it = await getEvent(arg && arg.ev);
   const code = clean(arg && arg.code, 10).toUpperCase();
   const phone = phoneDigits(arg && arg.phone);
@@ -569,7 +568,7 @@ export const volunteerStatus = webMethod(Permissions.Anyone, async (arg) => {
   const shifts = await rows(SHIFTS, it._id);
   const asg = (await rows(ASSIGN, it._id)).filter((x) => x.volunteerId === v._id);
   return { name: v.name, status: v.status, shifts: asg.map((x) => { const s = shifts.find((y) => y._id === x.shiftId) || {}; return { role: s.role || '', location: s.location || '', date: s.date || '', start: s.start || '', end: s.end || '', status: x.status }; }) };
-});
+}));
 
 /* ---------- volunteers: staff side ---------- */
 function volOut(v, asg, shifts) {
@@ -593,14 +592,14 @@ function volOut(v, asg, shifts) {
   };
 }
 
-export const listVolunteers = webMethod(Permissions.Anyone, async (arg) => {
+export const listVolunteers = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   await getEvent(arg.ev);
   const [vols, asg, shifts] = await Promise.all([rows(VOLS, arg.ev), rows(ASSIGN, arg.ev), rows(SHIFTS, arg.ev)]);
   return { volunteers: vols.map((v) => volOut(v, asg, shifts)).sort((a, b) => a.name.localeCompare(b.name)) };
-});
+}));
 
-export const setVolunteerStatus = webMethod(Permissions.Anyone, async (arg) => {
+export const setVolunteerStatus = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const v = await wixData.get(VOLS, String(arg.id || ''), SA).catch(() => null);
   if (!v || v.event !== arg.ev) throw new Error('no_volunteer');
@@ -612,18 +611,18 @@ export const setVolunteerStatus = webMethod(Permissions.Anyone, async (arg) => {
   const next = st === 'approved' ? 'confirmed' : st === 'declined' ? 'declined' : 'pending';
   for (const x of asg) if (!x.checkedInAt && x.status !== next) await wixData.update(ASSIGN, Object.assign({}, x, { status: next }), SA);
   return { ok: true };
-});
+}));
 
-export const setVolunteerNote = webMethod(Permissions.Anyone, async (arg) => {
+export const setVolunteerNote = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const v = await wixData.get(VOLS, String(arg.id || ''), SA).catch(() => null);
   if (!v || v.event !== arg.ev) throw new Error('no_volunteer');
   await wixData.update(VOLS, Object.assign({}, v, { notes: clean(arg.notes, 300) }), SA);
   return { ok: true };
-});
+}));
 
 // Staff add a volunteer by hand (already approved).
-export const addVolunteer = webMethod(Permissions.Anyone, async (arg) => {
+export const addVolunteer = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const it = await getEvent(arg.ev);
   const name = clean(arg.name, 80);
@@ -633,9 +632,9 @@ export const addVolunteer = webMethod(Permissions.Anyone, async (arg) => {
   if ((await rows(VOLS, it._id)).some((v) => v.phone === phone)) throw new Error('already_signed_up');
   const v = await wixData.insert(VOLS, { event: it._id, name, phone, email: clean(arg.email, 120).toLowerCase(), club: clean(arg.club, 80), status: 'approved', code: newCode(), waiverAt: '', waiverVersion: '', createdAt: nowIso(), notes: 'added by staff' }, SA);
   return { id: v._id, code: v.code };
-});
+}));
 
-export const assignShift = webMethod(Permissions.Anyone, async (arg) => {
+export const assignShift = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const v = await wixData.get(VOLS, String(arg.volunteerId || ''), SA).catch(() => null);
   const s = await wixData.get(SHIFTS, String(arg.shiftId || ''), SA).catch(() => null);
@@ -658,19 +657,19 @@ export const assignShift = webMethod(Permissions.Anyone, async (arg) => {
     throw new Error('shift_full');
   }
   return { id: a._id };
-});
+}));
 
-export const unassignShift = webMethod(Permissions.Anyone, async (arg) => {
+export const unassignShift = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const a = await wixData.get(ASSIGN, String(arg.assignId || ''), SA).catch(() => null);
   if (!a || a.event !== arg.ev) throw new Error('no_assignment');
   if (a.checkedInAt) throw new Error('already_checked_in');
   await wixData.bulkRemove(ASSIGN, [a._id], SA);
   return { ok: true };
-});
+}));
 
 // Check-in and check-out by the volunteer's code (typed or scanned) or by id.
-export const volunteerCheck = webMethod(Permissions.Anyone, async (arg) => {
+export const volunteerCheck = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   await getEvent(arg.ev);
   const action = arg.action === 'out' ? 'out' : 'in';
@@ -711,16 +710,16 @@ export const volunteerCheck = webMethod(Permissions.Anyone, async (arg) => {
   const hrs = Math.max(0, Math.round(((Date.parse(out) - Date.parse(a.checkedInAt)) / 3600000) * 10) / 10);
   await wixData.update(ASSIGN, Object.assign({}, a, { checkedOutAt: out, hours: String(hrs) }), SA);
   return Object.assign({ ok: true, action, hours: hrs }, label);
-});
+}));
 
 /* ---------- race day: run of show ---------- */
-export const listRun = webMethod(Permissions.Anyone, async (arg) => {
+export const listRun = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   await getEvent(arg.ev);
   const list = (await rows(RUN, arg.ev)).map((x) => ({ id: x._id, time: x.time, what: x.what, owner: x.owner || '', status: x.status || 'todo' }));
   return { items: list.sort((a, b) => a.time.localeCompare(b.time) || a.what.localeCompare(b.what)) };
-});
-export const saveRunItem = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const saveRunItem = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   await getEvent(arg.ev);
   const time = clean(arg.time, 5);
@@ -736,25 +735,25 @@ export const saveRunItem = webMethod(Permissions.Anyone, async (arg) => {
     return { id: old._id };
   }
   return { id: (await wixData.insert(RUN, body, SA))._id };
-});
-export const removeRunItem = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const removeRunItem = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await wixData.get(RUN, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_item');
   await wixData.bulkRemove(RUN, [old._id], SA);
   return { ok: true };
-});
+}));
 
 /* ---------- race day: incident log ---------- */
 const KINDS = ['incident', 'medical', 'aid', 'weather', 'note'];
 const logOut = (x) => ({ id: x._id, at: x.at, kind: x.kind, place: x.place || '', text: x.text, severity: x.severity || 'low', status: x.status || 'open', by: x.by || '', closedAt: x.closedAt || '', resolution: x.resolution || '' });
-export const listLog = webMethod(Permissions.Anyone, async (arg) => {
+export const listLog = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   await getEvent(arg.ev);
   const list = (await rows(LOG, arg.ev)).map(logOut).sort((a, b) => b.at.localeCompare(a.at));
   return { items: arg.status ? list.filter((x) => x.status === arg.status) : list };
-});
-export const addLog = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const addLog = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'write');
   await getEvent(arg.ev);
   const kind = KINDS.includes(arg.kind) ? arg.kind : '';
@@ -764,8 +763,8 @@ export const addLog = webMethod(Permissions.Anyone, async (arg) => {
   const severity = ['low', 'medium', 'high'].includes(arg.severity) ? arg.severity : 'low';
   const x = await wixData.insert(LOG, { event: arg.ev, at: nowIso(), kind, place: clean(arg.place, 80), text, severity, status: kind === 'note' ? 'closed' : 'open', by: a.name, closedAt: kind === 'note' ? nowIso() : '', resolution: '' }, SA);
   return { id: x._id };
-});
-export const closeLog = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const closeLog = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const old = await wixData.get(LOG, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_item');
@@ -774,7 +773,7 @@ export const closeLog = webMethod(Permissions.Anyone, async (arg) => {
   if (resolution.length < 2) throw new Error('resolution_needed');
   await wixData.update(LOG, Object.assign({}, old, { status: 'closed', closedAt: nowIso(), resolution }), SA);
   return { ok: true };
-});
+}));
 
 /* ---------- pacers ---------- */
 function parseFinish(v) {
@@ -797,7 +796,7 @@ function paceRow(finish, distKm) {
 }
 const pacerOut = (x) => ({ id: x._id, name: x.name, phone: maskPhone(x.phone), group: x.group || '', status: x.status || 'applied', trial: x.trial || 'waiting', briefing: x.briefing === '1', kit: x.kit === '1', notes: x.notes || '' });
 
-export const listPacers = webMethod(Permissions.Anyone, async (arg) => {
+export const listPacers = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   const e = eventOut(await getEvent(arg.ev));
   const pacers = (await rows(PACERS, arg.ev)).map(pacerOut).sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
@@ -807,9 +806,9 @@ export const listPacers = webMethod(Permissions.Anyone, async (arg) => {
     return Object.assign({}, g, paceRow(g.finish, e.distanceKm), { have: mine.length, ready, short: Math.max(0, int(g.need) - mine.length) });
   });
   return { distanceKm: e.distanceKm, groups, pacers };
-});
+}));
 
-export const savePaceGroups = webMethod(Permissions.Anyone, async (arg) => {
+export const savePaceGroups = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const old = await getEvent(arg.ev);
   const list = Array.isArray(arg.groups) ? arg.groups : [];
@@ -837,9 +836,9 @@ export const savePaceGroups = webMethod(Permissions.Anyone, async (arg) => {
   j.distanceKm = dist;
   await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
   return { ok: true };
-});
+}));
 
-export const savePacer = webMethod(Permissions.Anyone, async (arg) => {
+export const savePacer = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const e = eventOut(await getEvent(arg.ev));
   const name = clean(arg.name, 80);
@@ -866,47 +865,47 @@ export const savePacer = webMethod(Permissions.Anyone, async (arg) => {
     return { id: old._id };
   }
   return { id: (await wixData.insert(PACERS, body, SA))._id };
-});
+}));
 
-export const removePacer = webMethod(Permissions.Anyone, async (arg) => {
+export const removePacer = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await wixData.get(PACERS, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_pacer');
   await wixData.bulkRemove(PACERS, [old._id], SA);
   return { ok: true };
-});
+}));
 
 /* ---------- safety checklist ---------- */
 const checkOut = (x) => ({ id: x._id, section: x.section, item: x.item, done: x.done === '1', doneBy: x.doneBy || '', doneAt: x.doneAt || '' });
-export const listChecklist = webMethod(Permissions.Anyone, async (arg) => {
+export const listChecklist = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   await getEvent(arg.ev);
   const list = (await rows(CHECK, arg.ev)).sort((a, b) => (a.section + (a.order || '') + a.item).localeCompare(b.section + (b.order || '') + b.item));
   return { items: list.map(checkOut) };
-});
-export const toggleCheck = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const toggleCheck = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'write');
   const old = await wixData.get(CHECK, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_item');
   const done = arg.done === true;
   await wixData.update(CHECK, Object.assign({}, old, done ? { done: '1', doneBy: a.name, doneAt: nowIso() } : { done: '', doneBy: '', doneAt: '' }), SA);
   return { ok: true };
-});
-export const addCheck = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const addCheck = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   await getEvent(arg.ev);
   const section = clean(arg.section, 40);
   const item = clean(arg.item, 200);
   if (section.length < 2 || item.length < 3) throw new Error('text_needed');
   return { id: (await wixData.insert(CHECK, { event: arg.ev, section, item, done: '', doneBy: '', doneAt: '', order: '999' }, SA))._id };
-});
-export const removeCheck = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const removeCheck = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await wixData.get(CHECK, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_item');
   await wixData.bulkRemove(CHECK, [old._id], SA);
   return { ok: true };
-});
+}));
 
 
 
@@ -924,7 +923,7 @@ function wixErr(e) {
   const m = String((e && e.message) || e);
   return new Error(/permission|forbidden|not installed|unauthor/i.test(m) ? 'wix_events_denied' : 'wix_events_unavailable');
 }
-export const listWixEvents = webMethod(Permissions.Anyone, async (arg) => {
+export const listWixEvents = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   let r;
   try {
@@ -935,8 +934,8 @@ export const listWixEvents = webMethod(Permissions.Anyone, async (arg) => {
   return {
     events: r.items.map((x) => ({ id: x._id, title: String(x.title || ''), start: dayOf(x.dateAndTimeSettings && x.dateAndTimeSettings.startDate), status: String(x.status || '') })),
   };
-});
-export const linkWixEvent = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const linkWixEvent = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await getEvent(arg.ev);
   const id = clean(arg.wixEventId, 64);
@@ -949,7 +948,7 @@ export const linkWixEvent = webMethod(Permissions.Anyone, async (arg) => {
   j.wixEventId = id;
   await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
   return { ok: true };
-});
+}));
 async function holders(wixEventId, cursor, limit, fields) {
   let q = elevate(guests.queryGuests)({ fields }).eq('eventId', wixEventId).eq('guestType', 'TICKET_HOLDER').limit(limit);
   if (cursor) q = q.skipTo(String(cursor));
@@ -963,7 +962,7 @@ async function holders(wixEventId, cursor, limit, fields) {
 const inputsOf = (g) => ((g.guestDetails && g.guestDetails.formResponse && g.guestDetails.formResponse.inputValues) || []).map((i) => ({ name: String(i.inputName || ''), value: String(i.value || (Array.isArray(i.values) ? i.values.join(', ') : '') || '') }));
 const pick = (inputs, name) => (name ? (inputs.find((i) => i.name === name) || { value: '' }).value : '');
 // Shows what the checkout form asks and what ticket names exist, so the mapping can be chosen.
-export const wixFormFields = webMethod(Permissions.Anyone, async (arg) => {
+export const wixFormFields = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const e = eventOut(await getEvent(arg.ev));
   if (!e.wixEventId) throw new Error('wix_event_not_linked');
@@ -982,9 +981,9 @@ export const wixFormFields = webMethod(Permissions.Anyone, async (arg) => {
     (g.tickets || []).slice(0, 1).forEach((t) => tickets.set(t.name, (tickets.get(t.name) || 0) + 1));
   });
   return { scanned: h.items.length, fields: Array.from(fields.values()), tickets: Array.from(tickets, ([name, count]) => ({ name, count })), map: e.wixMap };
-}
+})
 );
-export const saveWixMap = webMethod(Permissions.Anyone, async (arg) => {
+export const saveWixMap = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await getEvent(arg.ev);
   const m = arg.map || {};
@@ -998,8 +997,8 @@ export const saveWixMap = webMethod(Permissions.Anyone, async (arg) => {
   j.wixMap = map;
   await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
   return { ok: true, map };
-});
-export const importRegs = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const importRegs = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const e = eventOut(await getEvent(arg.ev));
   if (!e.wixEventId) throw new Error('wix_event_not_linked');
@@ -1056,9 +1055,9 @@ export const importRegs = webMethod(Permissions.Anyone, async (arg) => {
   if (add.length) await wixData.bulkInsert(REGS, add, SA);
   if (upd.length) await wixData.bulkUpdate(REGS, upd, SA);
   return { done: !h.next, next: h.next, added: add.length, updated: upd.length, skipped };
-});
+}));
 const last10 = (p) => phoneDigits(p).slice(-10);
-export const listRegs = webMethod(Permissions.Anyone, async (arg) => {
+export const listRegs = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   const e = eventOut(await getEvent(arg.ev));
   const regs = await rows(REGS, e.id).catch(() => []);
@@ -1080,7 +1079,7 @@ export const listRegs = webMethod(Permissions.Anyone, async (arg) => {
   });
   list.sort((a, b) => a.name.localeCompare(b.name));
   return { linked: !!e.wixEventId, wixEventId: e.wixEventId, map: e.wixMap, total: list.length, expoCount: expo ? expo.count : null, cats: Array.from(cats.values()).sort((a, b) => a.cat.localeCompare(b.cat)), rows: list.slice(0, 2000) };
-});
+}));
 
 /* ---------- qualification checks ---------- */
 // A rule is per category and has one or more ways to qualify (alternatives). An alternative is a minimum
@@ -1140,7 +1139,7 @@ async function qualData(e) {
   const [regs, qs] = await Promise.all([rows(REGS, e.id).catch(() => []), rows(QUALS, e.id).catch(() => [])]);
   return { regs, quals: new Map(qs.map((q) => [q.runnerId, q])) };
 }
-export const listQuals = webMethod(Permissions.Anyone, async (arg) => {
+export const listQuals = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   const e = eventOut(await getEvent(arg.ev));
   const d = await qualData(e);
@@ -1154,8 +1153,8 @@ export const listQuals = webMethod(Permissions.Anyone, async (arg) => {
     rows: list.slice(0, 2000),
     counts: { total: list.length, pending: n((x) => x.status === 'pending'), approved: n((x) => x.status === 'approved'), waived: n((x) => x.status === 'waived'), rejected: n((x) => x.status === 'rejected'), noclaim: n((x) => x.verdict === 'noclaim' && x.status === 'pending') },
   };
-});
-export const saveQualRules = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const saveQualRules = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await getEvent(arg.ev);
   const quals = cleanQuals(arg.rules);
@@ -1168,7 +1167,7 @@ export const saveQualRules = webMethod(Permissions.Anyone, async (arg) => {
   j.quals = quals;
   await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
   return { ok: true, count: quals.length };
-});
+}));
 async function qualTarget(arg) {
   const e = eventOut(await getEvent(arg.ev));
   const r = await wixData.get(REGS, String(arg.runnerId || ''), SA).catch(() => null);
@@ -1180,7 +1179,7 @@ async function qualTarget(arg) {
 }
 // Record what the runner says they ran (from the registration form, an email or a WhatsApp message).
 // Saving a new claim puts the decision back to pending, so an old approval never covers a new claim.
-export const saveQualClaim = webMethod(Permissions.Anyone, async (arg) => {
+export const saveQualClaim = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'write');
   const { e, r, q } = await qualTarget(arg);
   const km = arg.km === '' || arg.km === undefined ? 0 : Number(arg.km);
@@ -1194,8 +1193,8 @@ export const saveQualClaim = webMethod(Permissions.Anyone, async (arg) => {
   if (q) await wixData.update(QUALS, Object.assign({}, q, row), SA);
   else await wixData.insert(QUALS, row, SA);
   return { ok: true, row: qualOut(e, r, row) };
-});
-export const decideQual = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const decideQual = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const status = String((arg && arg.status) || '');
   // Waiving a rule is a director decision. Who is asking is checked before anything else is looked at.
   const a = await auth(arg, status === 'waived' ? 'manage' : 'write');
@@ -1208,7 +1207,7 @@ export const decideQual = webMethod(Permissions.Anyone, async (arg) => {
   if (q) await wixData.update(QUALS, row, SA);
   else await wixData.insert(QUALS, row, SA);
   return { ok: true, row: qualOut(e, r, row) };
-});
+}));
 
 /* ---------- command centre ---------- */
 const expoCache = new Map();
@@ -1223,7 +1222,7 @@ async function expoCounts(expoId) {
   return v;
 }
 
-export const overview = webMethod(Permissions.Anyone, async (arg) => {
+export const overview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   const it = await getEvent(arg.ev);
   const e = eventOut(it);
@@ -1268,7 +1267,7 @@ export const overview = webMethod(Permissions.Anyone, async (arg) => {
     plan,
     alerts,
   };
-});
+}));
 
 /* ---------- planning: budget, sponsors, supplies, approvals, ceremonies, tasks, contacts, documents, debrief ---------- */
 // One collection (RDPlan) holds every planning item. The "kind" column says what it is. Each kind has its own
@@ -1428,7 +1427,7 @@ function planAlerts(sum, e, role) {
 }
 
 const PLAN_FIELDS = ['title', 'cat', 'phase', 'status', 'owner', 'party', 'contact', 'due', 'time', 'amount', 'amount2', 'ref', 'link', 'notes'];
-export const listPlan = webMethod(Permissions.Anyone, async (arg) => {
+export const listPlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg); // who is asking is checked before anything else is looked at
   const kinds = (Array.isArray(arg.kinds) ? arg.kinds : [arg.kind]).map(kindOf);
   for (const k of kinds) await planAuth(arg, k, false);
@@ -1439,9 +1438,9 @@ export const listPlan = webMethod(Permissions.Anyone, async (arg) => {
   const out = {};
   for (const k of kinds) out[k] = all.filter((r) => r.kind === k).sort(planSort).map((r) => planOut(r, today));
   return { items: out, summary: planSummary(all, a.role, e), canMoney: a.role === 'director' };
-});
+}));
 
-export const savePlanItem = webMethod(Permissions.Anyone, async (arg) => {
+export const savePlanItem = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg); // who is asking is checked before anything else is looked at
   const kind = kindOf(arg.kind);
   const a = await planAuth(arg, kind, true);
@@ -1488,10 +1487,10 @@ export const savePlanItem = webMethod(Permissions.Anyone, async (arg) => {
   if (kind === 'budget' && !row.cat) row.cat = 'Other';
   const saved = old ? await wixData.update(PLAN, Object.assign({}, old, row), SA) : await wixData.insert(PLAN, row, SA);
   return { item: planOut(saved, istToday()) };
-});
+}));
 
 // Quick status change. Marking something paid, received or delivered fills the actual with the planned amount if empty.
-export const setPlanStatus = webMethod(Permissions.Anyone, async (arg) => {
+export const setPlanStatus = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg); // who is asking is checked before anything else is looked at
   const old = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_item');
@@ -1503,15 +1502,15 @@ export const setPlanStatus = webMethod(Permissions.Anyone, async (arg) => {
   if (['paid', 'received', 'delivered'].includes(status) && (old.amount2 === '' || old.amount2 === undefined) && old.amount) patch.amount2 = old.amount;
   const saved = await wixData.update(PLAN, Object.assign({}, old, patch), SA);
   return { item: planOut(saved, istToday()) };
-});
+}));
 
-export const removePlanItem = webMethod(Permissions.Anyone, async (arg) => {
+export const removePlanItem = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
   if (!old || old.event !== arg.ev) throw new Error('no_item');
   await wixData.bulkRemove(PLAN, [old._id], SA);
   return { ok: true };
-});
+}));
 
 /* starter lists: what a race director usually has to track. Loaded for a new race, and on demand for kinds that are empty. */
 const tk = (phase, cat, title) => ({ kind: 'task', phase, cat, title });
@@ -1617,12 +1616,12 @@ async function seedPlan(ev, kinds, evRow) {
   if (list.length) await wixData.bulkInsert(PLAN, list, SA);
   return made;
 }
-export const seedPlanLists = webMethod(Permissions.Anyone, async (arg) => {
+export const seedPlanLists = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   await getEvent(arg.ev);
   const kinds = (Array.isArray(arg.kinds) && arg.kinds.length ? arg.kinds : Object.keys(PLAN_DEFAULTS)).map(kindOf).filter((k) => PLAN_DEFAULTS[k]);
   return { added: await seedPlan(arg.ev, kinds) };
-});
+}));
 
 
 /* ---------- approvals template: race details, suggested approvals, application letters ---------- */
@@ -1809,14 +1808,14 @@ function cleanPicks(raw) {
 }
 
 // Race details for letters and the template. Leads can read them; only directors change them.
-export const eventInfo = webMethod(Permissions.Anyone, async (arg) => {
+export const eventInfo = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const it = await getEvent(arg.ev);
   return { event: eventOut(it), info: infoOf(it), scopes: SCOPES.map((s) => ({ key: s.key, label: s.label })) };
-});
+}));
 // Saves the race name, date and venue together with the details (edition, place, organiser, expected runners, times...).
 // Template lines whose dates were never edited by hand move with the new date or start time.
-export const saveEventInfo = webMethod(Permissions.Anyone, async (arg) => {
+export const saveEventInfo = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await getEvent(arg.ev);
   const has = (k) => arg[k] !== undefined;
@@ -1832,10 +1831,10 @@ export const saveEventInfo = webMethod(Permissions.Anyone, async (arg) => {
   const saved = await wixData.update(EVENTS, Object.assign({}, old, { name, date, venue, json: withInfo(old, next) }), SA);
   const moved = await followRace(old._id, { date: old.date || '', start: cur.startTime }, { date, start: next.startTime });
   return { event: eventOut(saved), info: infoOf(saved), moved };
-});
+}));
 
 // What the template suggests for this race, and which suggestions are already on the Approvals list.
-export const approvalTemplate = webMethod(Permissions.Anyone, async (arg) => {
+export const approvalTemplate = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const it = await getEvent(arg.ev);
   const e = eventOut(it);
@@ -1853,10 +1852,10 @@ export const approvalTemplate = webMethod(Permissions.Anyone, async (arg) => {
     starter: have.filter((r) => legacyOf(r) && untouchedLegacy(r)).length,
     started: byTpl.size > 0,
   };
-});
+}));
 // Adds the chosen suggestions to the Approvals list. It never overwrites a line that is already there:
 // lines from the template are skipped, starter lines nobody touched are replaced, and edited starter lines are linked to the template.
-export const applyApprovalTemplate = webMethod(Permissions.Anyone, async (arg) => {
+export const applyApprovalTemplate = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'manage');
   const it = await getEvent(arg.ev);
   const e = eventOut(it);
@@ -1905,9 +1904,9 @@ export const applyApprovalTemplate = webMethod(Permissions.Anyone, async (arg) =
   if (drop.length) await wixData.bulkRemove(PLAN, drop, SA);
   if (arg.scope !== undefined) await wixData.update(EVENTS, Object.assign({}, it, { json: withInfo(it, Object.assign({}, rawInfo(it), { scope })) }), SA);
   return res;
-});
+}));
 // The application letter for one permit, filled from the race details. Nothing is stored: the director edits the text and sends it.
-export const approvalLetter = webMethod(Permissions.Anyone, async (arg) => {
+export const approvalLetter = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const it = await getEvent(arg.ev);
   const row = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
@@ -1920,9 +1919,9 @@ export const approvalLetter = webMethod(Permissions.Anyone, async (arg) => {
   const p = permitByKey(row.tpl);
   const done = doneIdx(row);
   return { id: row._id, title: row.title, subject: L.subject, to: L.to, text: L.text, missing: L.missing, docs: L.docs.map((t, i) => ({ text: t, done: done.includes(i) })), tips: p ? p.tips : '', day };
-});
+}));
 // Ticks or unticks one document on the "what to attach" list of a permit.
-export const setApprovalDoc = webMethod(Permissions.Anyone, async (arg) => {
+export const setApprovalDoc = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'write');
   const row = await wixData.get(PLAN, String(arg.id || ''), SA).catch(() => null);
   if (!row || row.event !== arg.ev || row.kind !== 'approval') throw new Error('no_item');
@@ -1936,7 +1935,7 @@ export const setApprovalDoc = webMethod(Permissions.Anyone, async (arg) => {
   const list = [...set].filter((n) => n < p.docs.length).sort((x, y) => x - y);
   await wixData.update(PLAN, Object.assign({}, row, { docsDone: list.join(',') }), SA);
   return { id: row._id, done: list, total: p.docs.length };
-});
+}));
 
 /* ---------- categories, fees and the dashboard figures ---------- */
 function cleanCats(list) {
@@ -1953,7 +1952,7 @@ function cleanCats(list) {
     return { name, km: Math.round(km * 1000) / 1000, price: Math.round(price * 100) / 100, cap };
   });
 }
-export const saveCats = webMethod(Permissions.Anyone, async (arg) => {
+export const saveCats = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await getEvent(arg.ev);
   const cats = cleanCats(arg.cats);
@@ -1966,7 +1965,7 @@ export const saveCats = webMethod(Permissions.Anyone, async (arg) => {
   j.cats = cats;
   await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
   return { cats };
-});
+}));
 function catIndex(cats, name) {
   const k = catKey(name);
   let i = cats.findIndex((c) => catKey(c.name) === k);
@@ -2026,13 +2025,13 @@ function dashOut(e, regs, money) {
   };
 }
 const istShift = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
-export const dashboard = webMethod(Permissions.Anyone, async (arg) => {
+export const dashboard = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg);
   const e = eventOut(await getEvent(arg.ev));
   return dashOut(e, await rows(REGS, e.id).catch(() => []), a.role !== 'viewer');
-});
+}));
 // One card per race for the dashboard: when, where, how many registered, how many categories, takings.
-export const racesSummary = webMethod(Permissions.Anyone, async (arg) => {
+export const racesSummary = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg);
   const evs = (await all(() => wixData.query(EVENTS).ascending('_id'))).filter((x) => (x.status || 'open') !== 'archived').map(eventOut);
   const regsOf = await Promise.all(evs.map((e) => rows(REGS, e.id).catch(() => [])));
@@ -2044,7 +2043,7 @@ export const racesSummary = webMethod(Permissions.Anyone, async (arg) => {
   }
   out.sort((x, y) => String(x.date || '9999').localeCompare(String(y.date || '9999')));
   return { races: out };
-});
+}));
 
 /* ---------- BIB and Expo desk: bib numbers, sending runners to the Expo desk, live desk figures ---------- */
 // The Race Director owns the registration list and the bib plan. The Expo desk owns what happens at handover.
@@ -2100,10 +2099,10 @@ async function expoRaceList() {
   }
   return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
 }
-export const expoRaces = webMethod(Permissions.Anyone, async (arg) => {
+export const expoRaces = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   return { races: await expoRaceList() };
-});
+}));
 
 function cleanBibRanges(list) {
   if (!Array.isArray(list) || list.length > 20) throw new Error('bad_bibs');
@@ -2131,7 +2130,7 @@ function bibRangesOf(it) {
     return [];
   }
 }
-export const saveBibPlan = webMethod(Permissions.Anyone, async (arg) => {
+export const saveBibPlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const old = await getEvent(arg.ev);
   const bibs = cleanBibRanges(arg.bibs);
@@ -2144,14 +2143,14 @@ export const saveBibPlan = webMethod(Permissions.Anyone, async (arg) => {
   j.bibs = bibs;
   await wixData.update(EVENTS, Object.assign({}, old, { json: JSON.stringify(j) }), SA);
   return { bibs };
-});
+}));
 
 const rangeFor = (ranges, cat) => ranges.find((r) => sameCat(r.cat, cat)) || null;
 async function expoRunners(e) {
   return e.expoId ? await rows(RUNNERS, e.expoId).catch(() => []) : [];
 }
 // Gives the next free number in the category's range to every paid registration that has no bib yet. Never changes a bib.
-export const assignBibs = webMethod(Permissions.Anyone, async (arg) => {
+export const assignBibs = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const it = await getEvent(arg.ev);
   const e = eventOut(it);
@@ -2186,9 +2185,9 @@ export const assignBibs = webMethod(Permissions.Anyone, async (arg) => {
   }
   for (let i = 0; i < upd.length; i += 200) await wixData.bulkUpdate(REGS, upd.slice(i, i + 200), SA);
   return out;
-});
+}));
 // One exception: give a runner a particular number. Refused if taken, or if the runner is already in the Expo list.
-export const setBib = webMethod(Permissions.Anyone, async (arg) => {
+export const setBib = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const e = eventOut(await getEvent(arg.ev));
   const r = await wixData.get(REGS, String(arg.id || ''), SA).catch(() => null);
@@ -2208,10 +2207,10 @@ export const setBib = webMethod(Permissions.Anyone, async (arg) => {
   }
   await wixData.update(REGS, Object.assign({}, r, { bib }), SA);
   return { bib };
-});
+}));
 
 // Sends paid, numbered registrations to the Expo desk as new runners.
-export const sendToExpo = webMethod(Permissions.Anyone, async (arg) => {
+export const sendToExpo = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg, 'manage');
   const e = eventOut(await getEvent(arg.ev));
   if (!e.expoId) throw new Error('no_expo_link');
@@ -2266,7 +2265,7 @@ export const sendToExpo = webMethod(Permissions.Anyone, async (arg) => {
   out.conflicts = out.conflicts.slice(0, 20);
   expoCache.delete(e.expoId);
   return out;
-});
+}));
 
 function expoStats(e, regs, runners, cfg, ranges) {
   const cats = new Map();
@@ -2341,13 +2340,13 @@ function expoStats(e, regs, runners, cfg, ranges) {
   };
 }
 // Live figures from the Expo desk for this race. No phone numbers or e-mails; names are shortened ("Anil K.").
-export const expoSummary = webMethod(Permissions.Anyone, async (arg) => {
+export const expoSummary = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   const it = await getEvent(arg.ev);
   const e = eventOut(it);
   const [regs, runners, cfg] = await Promise.all([rows(REGS, e.id).catch(() => []), expoRunners(e), expoConfigOf(e.expoId)]);
   return expoStats(e, regs, runners, cfg, bibRangesOf(it));
-});
+}));
 // The few alerts the Expo side adds to the overview.
 async function expoAlerts(e, it) {
   if (!e.expoId || e.daysToGo === null || e.daysToGo > 30 || e.daysToGo < -1) return [];
@@ -2517,19 +2516,19 @@ async function aiBuild(a, arg) {
   return { s, fc, facts: aiFacts(s, fc) };
 }
 
-export const aiStatus = webMethod(Permissions.Anyone, async (arg) => {
+export const aiStatus = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   return { enabled: await aiEnabled() };
-});
+}));
 
-export const aiForecastNow = webMethod(Permissions.Anyone, async (arg) => {
+export const aiForecastNow = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg);
   const s = await aiSnapshot(a, arg);
   return { forecast: aiForecast(s), money: s.money };
-});
+}));
 
 // The daily briefing. Rule-based by default; with arg.write = true and a key, the model writes it up from the same facts.
-export const aiBriefing = webMethod(Permissions.Anyone, async (arg) => {
+export const aiBriefing = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg);
   const { s, fc, facts } = await aiBuild(a, arg);
   const out = { summary: aiBriefText(s, fc), priorities: aiPriorities(s, fc), forecast: fc, money: s.money, ai: false, text: '', enabled: await aiEnabled() };
@@ -2543,9 +2542,9 @@ export const aiBriefing = webMethod(Permissions.Anyone, async (arg) => {
     out.ai = true;
   }
   return out;
-});
+}));
 
-export const aiAsk = webMethod(Permissions.Anyone, async (arg) => {
+export const aiAsk = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg);
   const q = scrub(arg.q, 400);
   if (q.length < 3) throw new Error('question_needed');
@@ -2558,7 +2557,7 @@ export const aiAsk = webMethod(Permissions.Anyone, async (arg) => {
     450
   );
   return { answer, q };
-});
+}));
 
 const DRAFTS = {
   runner_update: { who: 'runners', label: 'Update to registered runners' },
@@ -2590,11 +2589,11 @@ function aiTemplate(kind, ch, s, fc, sp, notes, me) {
   if (ch === 'whatsapp') return { subject: '', body: (t[1].replace(/\n\n/g, '\n') + '\n- ' + me + ', VTRA').slice(0, 1200) };
   return { subject: t[0], body: t[1] + (kind === 'social_post' ? '' : sign) };
 }
-export const aiDraftKinds = webMethod(Permissions.Anyone, async (arg) => {
+export const aiDraftKinds = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await auth(arg);
   return { kinds: Object.keys(DRAFTS).map((k) => ({ id: k, label: DRAFTS[k].label, who: DRAFTS[k].who, needSponsor: !!DRAFTS[k].needSponsor })) };
-});
-export const aiDraft = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const aiDraft = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'write');
   const kind = String(arg.kind || '');
   const def = DRAFTS[kind];
@@ -2632,7 +2631,7 @@ export const aiDraft = webMethod(Permissions.Anyone, async (arg) => {
     } else subject = base.subject;
   }
   return { subject, body, ai: true, kind, channel: ch };
-});
+}));
 
 /* ---------- Team: who can log in, and what each login can do ---------- */
 // The Team screen is the only place logins are made. A password is never sent back: a new or reset login gets a
@@ -2678,16 +2677,16 @@ function teamOut(u, presence, races, me) {
 }
 const KIND_ORDER = { director: 0, lead: 1, viewer: 2, desk: 3, coach: 4, other: 5 };
 
-export const listTeam = webMethod(Permissions.Anyone, async (arg) => {
+export const listTeam = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'manage');
   const [staff, races, pres, notes] = await Promise.all([staffRows(), expoRaceList(), all(() => wixData.query(PRES).ascending('_id')).catch(() => []), all(() => wixData.query(AUDIT).ascending('_id')).catch(() => [])]);
   const presence = new Map(pres.map((p) => [lc(p.username || p._id), p]));
   const team = staff.map((u) => teamOut(u, presence, races, a.username)).sort((x, y) => KIND_ORDER[x.role] - KIND_ORDER[y.role] || x.username.localeCompare(y.username));
   const recent = notes.sort((x, y) => String(y.at).localeCompare(String(x.at))).slice(0, 15).map((n) => ({ at: n.at || '', by: n.by || '', action: n.action || '', target: n.target || '', detail: n.detail || '' }));
   return { team, races, desks: DESKS, roles: TEAM_KINDS, you: a.username, recent };
-});
+}));
 
-export const saveTeam = webMethod(Permissions.Anyone, async (arg) => {
+export const saveTeam = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'manage');
   // Only plain text is accepted for these two: an array or object is refused, not quietly turned into text.
   const username = typeof (arg && arg.username) === 'string' ? lc(arg.username) : '';
@@ -2764,9 +2763,9 @@ export const saveTeam = webMethod(Permissions.Anyone, async (arg) => {
   await audit(a, editing ? 'login changed' : 'login created', username, kind + (kind === 'desk' ? ': ' + desks + (race ? ' · ' + race : '') : '') + (pw && editing ? ' · password changed' : ''));
   const races = kind === 'desk' ? await expoRaceList() : [];
   return { member: teamOut(Object.assign({}, saved, race ? { race } : {}), new Map(), races, a.username), secret, warn };
-});
+}));
 
-export const resetTeamSecret = webMethod(Permissions.Anyone, async (arg) => {
+export const resetTeamSecret = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'manage');
   const username = lc(arg && arg.username);
   const old = (await staffRows()).find((r) => lc(unameOf(r)) === username);
@@ -2778,9 +2777,9 @@ export const resetTeamSecret = webMethod(Permissions.Anyone, async (arg) => {
   await dropAccess(String(unameOf(old)), self ? a.sess.token : '', self);
   await audit(a, 'password reset', String(unameOf(old)), staffKind(old));
   return { username: String(unameOf(old)), secret };
-});
+}));
 
-export const signOutTeam = webMethod(Permissions.Anyone, async (arg) => {
+export const signOutTeam = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'manage');
   const username = lc(arg && arg.username);
   const old = (await staffRows()).find((r) => lc(unameOf(r)) === username);
@@ -2789,9 +2788,9 @@ export const signOutTeam = webMethod(Permissions.Anyone, async (arg) => {
   const ended = await dropAccess(String(unameOf(old)), self ? a.sess.token : '', self);
   await audit(a, 'signed out', String(unameOf(old)), ended + ' session' + (ended === 1 ? '' : 's'));
   return { ok: true, ended };
-});
+}));
 
-export const removeTeam = webMethod(Permissions.Anyone, async (arg) => {
+export const removeTeam = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await auth(arg, 'manage');
   const username = lc(arg && arg.username);
   const old = (await staffRows()).find((r) => lc(unameOf(r)) === username);
@@ -2801,7 +2800,7 @@ export const removeTeam = webMethod(Permissions.Anyone, async (arg) => {
   await dropAccess(String(unameOf(old)), '', false);
   await audit(a, 'login removed', String(unameOf(old)), staffKind(old));
   return { ok: true };
-});
+}));
 
 /* ---------- one-time database setup ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });
@@ -2862,7 +2861,7 @@ async function ensureCollections() {
 // the first admin. Needs SETUP_KEY, and refuses further guesses for an hour after 10 wrong ones.
 const SETUP_TRIES_PER_HOUR = 10;
 const setupMisses = new Map();
-export const ensureSetup = webMethod(Permissions.Anyone, async (arg) => {
+export const ensureSetup = webMethod(Permissions.Anyone, guarded(async (arg) => {
   if (SETUP_KEY === 'change-this-key') throw new Error('Edit SETUP_KEY at the top of racedir.web.js first');
   // Ten tries an hour, however fast they are sent (slots, see takeSlot). Before the first setup the collection for the
   // slots does not exist yet, so then this server's own count is used.
@@ -2897,4 +2896,4 @@ export const ensureSetup = webMethod(Permissions.Anyone, async (arg) => {
     notes.push('admin ' + username + ' added');
   } else notes.push('logins already exist, none added');
   return { summary: notes.join(' · ') };
-});
+}));

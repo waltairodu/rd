@@ -12,7 +12,7 @@
 // address, no phone number and no message text. A batch is sent at most once to each person: the log row of a person is created before
 // the e-mail goes out (a row id can be made only once), so two people pressing Send together, or a call that is repeated, never send
 // twice.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -28,14 +28,13 @@ import {
 import { bookOf, runnerState, volunteerState } from './rd-waiver.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'comms');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'comms');
+  }
+};
 
 const COMMS = 'RDComms';
 const VOLS = 'RDVolunteers';
@@ -270,7 +269,7 @@ function missingOf(people, tpl) {
 const SAMPLE = { name: 'Sample Runner', bib: '123', bibName: 'SAMPLE', cat: '10 K', size: 'M', wave: 'Wave A', start: '05:30', corral: 'A', time: '1:45:30', place: '12th' };
 
 /* ---------- looking ---------- */
-export const cmOverview = webMethod(Permissions.Anyone, async (arg) => {
+export const cmOverview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const [cfg, link, tpls, bats, regs, vols] = await Promise.all([
@@ -313,10 +312,10 @@ export const cmOverview = webMethod(Permissions.Anyone, async (arg) => {
     cols: EXPORT_COLS.map((c) => ({ key: c, head: EXPORT_HEAD[c] })),
     limits: { recipients: MAX_RCP, templates: MAX_TEMPLATES, paragraphs: MAX_NVARS },
   };
-});
+}));
 
 // The message as one person would get it (the first person of the audience, or a made-up one), from a saved template or one being typed.
-export const cmPreview = webMethod(Permissions.Anyone, async (arg) => {
+export const cmPreview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await cauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const tpls = await templatesOf(e._id);
@@ -335,10 +334,10 @@ export const cmPreview = webMethod(Permissions.Anyone, async (arg) => {
   const chat = waText(buildMessage(tpl, vars, MAX_NVARS));
   const n = needsOf(tpl);
   return { subject: msg.subject, paras: msg.paras, joined: msg.joined, cut: msg.cut, nvars: cfg.nvars, whatsapp: chat.text, whatsappCut: chat.cut, noLink: n.link && !race.link, sample: { name: who ? who.name : person.name, bib: who ? who.bib || '' : '', fake: !who } };
-});
+}));
 
 // How many people an audience reaches and how: counts and a few names, never an address or a number.
-export const cmAudience = webMethod(Permissions.Anyone, async (arg) => {
+export const cmAudience = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await cauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const tpls = await templatesOf(e._id);
@@ -360,10 +359,10 @@ export const cmAudience = webMethod(Permissions.Anyone, async (arg) => {
     out.sentBefore = members.filter((p) => sent.has(p.id)).length;
   }
   return out;
-});
+}));
 
 /* ---------- changing: settings and templates (directors) ---------- */
-export const cmSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
+export const cmSaveSettings = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   if (['emailId', 'nvars', 'cc', 'link'].some((k) => arg[k] === undefined)) throw new Error('bad_settings');
@@ -373,9 +372,9 @@ export const cmSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
   await put(COMMS, { _id: ids.link(e._id), event: e._id, kind: 'rc', ref: '', sub: '', who: '', status: '', why: '', json: JSON.stringify({ link }), by: a.username, at: nowIso() });
   await audit(a, 'message settings saved', e.name, 'e-mail ' + (s.emailId ? 'set' : 'not set') + ', ' + s.nvars + ' paragraphs, race link ' + (link ? 'set' : 'not set'));
   return { settings: Object.assign({}, s, { link }) };
-});
+}));
 
-export const cmSaveTemplate = webMethod(Permissions.Anyone, async (arg) => {
+export const cmSaveTemplate = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   if (!okTplId(arg.id)) throw new Error('bad_template');
@@ -389,12 +388,12 @@ export const cmSaveTemplate = webMethod(Permissions.Anyone, async (arg) => {
   await put(COMMS, { _id: rowId, event: e._id, kind: 'tpl', ref: arg.id, sub: t.kind, who: '', status: '', why: '', json: JSON.stringify(t), by: a.username, at: nowIso() });
   await audit(a, t.archived ? 'message template archived' : 'message template saved', e.name, t.name);
   return { tpl: Object.assign({ id: arg.id, saved: true, starter }, t) };
-});
+}));
 
 /* ---------- a batch: who, what, how ---------- */
 // Freezes who a message goes to: the people are found now and their ids are kept (a few rows of up to 500 ids each); nothing else about
 // them is kept. Calling it again with the same key and the same choices gives the batch that is there.
-export const cmPrepare = webMethod(Permissions.Anyone, async (arg) => {
+export const cmPrepare = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const key = keyOf(arg.key);
@@ -430,7 +429,7 @@ export const cmPrepare = webMethod(Permissions.Anyone, async (arg) => {
   await put(COMMS, { _id: ids.bat(e._id, key), event: e._id, kind: 'bat', ref: key, sub: via, who: aud.who, status: '', why: '', json: JSON.stringify(info), by: a.username, at });
   await audit(a, via === 'email' ? 'e-mail batch prepared' : 'WhatsApp batch prepared', e.name, label + ': ' + reach.length + ' people, "' + tpl.name + '"');
   return { batch: key, total: reach.length, noContact: members.length - reach.length, via, label };
-});
+}));
 async function batchOf(e, key0) {
   const key = keyOf(key0);
   const row = await get(ids.bat(e._id, key));
@@ -490,7 +489,7 @@ async function deliver(p, bat, cfg, race) {
 
 // Sends the next people of a batch (up to 25, for as long as nine seconds allow) and says where to go on from. Safe to call again and
 // again, and from two screens: a person whose log row is there is never sent to a second time.
-export const cmSend = webMethod(Permissions.Anyone, async (arg) => {
+export const cmSend = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const t0 = Date.now(); // the nine seconds count from here: signing in and reading the people use some of them
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
@@ -554,10 +553,10 @@ export const cmSend = webMethod(Permissions.Anyone, async (arg) => {
   out.next = from + at < bat.total ? from + at : null;
   if (out.next === null) await audit(a, 'e-mail sending finished', e.name, bat.label + ': ' + bat.tpl.name);
   return out;
-});
+}));
 
 // How a batch went: counts by state, and the people it did not reach (name and bib only).
-export const cmBatch = webMethod(Permissions.Anyone, async (arg) => {
+export const cmBatch = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await cauth(arg, 'view');
   const e = await getEvent(arg.ev);
   const bat = await batchOf(e, arg.batch);
@@ -587,12 +586,12 @@ export const cmBatch = webMethod(Permissions.Anyone, async (arg) => {
     problems: shown.map((r) => ({ name: (folks.get(String(r.who)) || {}).name || '', bib: (folks.get(String(r.who)) || {}).bib || '', status: String(r.status), why: cleanText(r.why, 80) })),
     moreProblems: Math.max(0, bad.length - shown.length),
   };
-});
+}));
 
 /* ---------- WhatsApp, a file, a test ---------- */
 // A page of chats for a WhatsApp batch: the name and a ready link for each person. The links hold phone numbers, so each time a batch's
 // first page is asked for it is written in the audit trail (without any number).
-export const cmLinks = webMethod(Permissions.Anyone, async (arg) => {
+export const cmLinks = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const bat = await batchOf(e, arg.batch);
@@ -613,10 +612,10 @@ export const cmLinks = webMethod(Permissions.Anyone, async (arg) => {
     return { id, name: p.name, bib: p.bib || '', link: waLink(waNumber(p.phone, cfg.cc), text), done: done.has(id) };
   });
   return { from, next: from + list.length < bat.total ? from + list.length : null, total: bat.total, items };
-});
+}));
 
 // People of a WhatsApp batch marked as messaged (or as left out): one log row each, made once.
-export const cmMark = webMethod(Permissions.Anyone, async (arg) => {
+export const cmMark = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const bat = await batchOf(e, arg.batch);
@@ -636,11 +635,11 @@ export const cmMark = webMethod(Permissions.Anyone, async (arg) => {
     }
   }
   return out;
-});
+}));
 
 // The audience as a CSV file, a page of up to 1000 rows at a time (the heading only on the first). It holds contact details, so it is for
 // directors and each time the first page is asked for it is written in the audit trail (the columns, never the details).
-export const cmExport = webMethod(Permissions.Anyone, async (arg) => {
+export const cmExport = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const tpls = await templatesOf(e._id);
@@ -653,11 +652,11 @@ export const cmExport = webMethod(Permissions.Anyone, async (arg) => {
   const body = part.map((p) => cols.map((c) => cell(p, c)));
   if (from === 0) await audit(a, 'audience exported', e.name, audLabel(aud, (tpls.find((t) => t.id === aud.notSent) || {}).name) + ': ' + members.length + ' rows, columns ' + cols.join(', '));
   return { csv: from === 0 ? toCsv(cols.map((c) => EXPORT_HEAD[c]), body) : csvLines(body), count: part.length, from, next: from + part.length < members.length ? from + part.length : null, total: members.length };
-});
+}));
 
 // One e-mail to an address the director types, to see how the real thing looks and to check the Wix e-mail is set up. At most five an
 // hour; it says what Wix answered (the reason is safe to show) instead of failing.
-export const cmTest = webMethod(Permissions.Anyone, async (arg) => {
+export const cmTest = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const to = cleanEmail(arg.to);
@@ -691,7 +690,7 @@ export const cmTest = webMethod(Permissions.Anyone, async (arg) => {
   }
   await audit(a, 'test e-mail', e.name, result.sent ? 'sent' : 'not sent: ' + result.why);
   return result;
-});
+}));
 
 /* ---------- collections ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });

@@ -9,7 +9,7 @@
 //
 // Athletes log in with mobile number + a PIN (salted hash, never stored plain). Staff use the same ExpoStaff logins as
 // the Director (made on RaceOS's Team screen): role  admin or director (everything), coach (only their own athletes).
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -17,14 +17,13 @@ import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
 import { checkPassword, hashPassword, needsUpgrade, newToken, kindOf, tidyError, takeSlot, freeSlots, slotKey } from './rd-auth.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'training');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'training');
+  }
+};
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -230,7 +229,7 @@ async function patchStaff(u, patch) {
 }
 // Checked against when the username does not exist, so a wrong username takes as long to refuse as a wrong password.
 const DUMMY_HASH = 'h1$0123456789abcdef$0000000000000000000000000000000000000000000000000000000000000000';
-export const tLogin = webMethod(Permissions.Anyone, async (arg) => {
+export const tLogin = webMethod(Permissions.Anyone, guarded(async (arg) => {
   // Only plain text is accepted. An array or object in either field is a wrong login, never turned into text.
   const typed = !!arg && typeof arg.username === 'string' && typeof arg.password === 'string';
   const username = typed ? lc(arg.username) : '';
@@ -268,18 +267,18 @@ export const tLogin = webMethod(Permissions.Anyone, async (arg) => {
   await ensureCollections();
   const sess = await wixData.insert(SESS, { token: newToken(), username: unameOf(u), desk: '', expires: new Date(Date.now() + STAFF_HOURS * 3600000).toISOString() }, SA);
   return { token: sess.token, role, name: String(u.name || unameOf(u)) };
-});
-export const tLogout = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const tLogout = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const t = String((arg && arg.token) || '');
   if (t.length < 20) return { ok: true };
   const r = await wixData.query(SESS).eq('token', t).limit(5).find(SA);
   if (r.items.length) await wixData.bulkRemove(SESS, r.items.map((x) => x._id), SA);
   return { ok: true };
-});
-export const tWhoami = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const tWhoami = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   return { role: a.role, name: a.name };
-});
+}));
 
 /* ---------- plan builder (used for the starter plans) ---------- */
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -336,36 +335,36 @@ async function readSettings() {
   return { freeWeeks: int(j.freeWeeks, 8) || 8, coachedPrice: clean(j.coachedPrice === undefined ? '0' : j.coachedPrice, 40), coachedBlurb: clean(j.coachedBlurb, 300) };
 }
 const priceText = (s) => (/^0*(\.0+)?$/.test(s.coachedPrice) || s.coachedPrice === '' ? 'Free for now' : s.coachedPrice);
-export const getTrainSettings = webMethod(Permissions.Anyone, async () => {
+export const getTrainSettings = webMethod(Permissions.Anyone, guarded(async () => {
   const s = await readSettings();
   return Object.assign({}, s, { coachedPriceText: priceText(s) });
-});
-export const saveTrainSettings = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const saveTrainSettings = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg, 'manage');
   const weeks = int(arg.freeWeeks, 8);
   if (weeks < 1 || weeks > 52) throw new Error('bad_weeks');
   const j = { freeWeeks: weeks, coachedPrice: clean(arg.coachedPrice, 40) || '0', coachedBlurb: clean(arg.coachedBlurb, 300) };
   await wixData.save(PLANS, { _id: SETTINGS_ID, name: 'settings', goal: '', weeks: '0', level: '', blurb: JSON.stringify(j), status: 'hidden', days: '0' }, SA);
   return Object.assign({}, await readSettings(), { coachedPriceText: priceText(j) });
-});
+}));
 const livePlans = async () => (await all(() => wixData.query(PLANS).ascending('_id'))).filter((p) => p._id !== SETTINGS_ID);
 // Public: the plans an athlete can start for free.
-export const openPlans = webMethod(Permissions.Anyone, async () => {
+export const openPlans = webMethod(Permissions.Anyone, guarded(async () => {
   const list = (await livePlans().catch(() => [])).filter((p) => (p.status || 'live') === 'live');
   const s = await readSettings().catch(() => ({ freeWeeks: 8, coachedPrice: '0', coachedBlurb: '' }));
   return { plans: list.map(planOut), settings: Object.assign({}, s, { coachedPriceText: priceText(s) }) };
-});
-export const listPlans = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const listPlans = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg);
   return { plans: (await livePlans()).map(planOut) };
-});
-export const getPlan = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const getPlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg);
   const p = await wixData.get(PLANS, String(arg.id || ''), SA).catch(() => null);
   if (!p || p._id === SETTINGS_ID) throw new Error('no_plan');
   const w = (await all(() => wixData.query(WORK).eq('plan', p._id).ascending('_id'))).map(workOut).sort((a, b) => a.week - b.week || a.day - b.day);
   return { plan: planOut(p), workouts: w };
-});
+}));
 function cleanWorkouts(list, weeks) {
   if (!Array.isArray(list) || !list.length || list.length > 400) throw new Error('bad_workouts');
   const seen = new Set();
@@ -383,7 +382,7 @@ function cleanWorkouts(list, weeks) {
     return { week, day, type, title, km, minutes, notes: text(x.notes, 400) };
   });
 }
-export const savePlan = webMethod(Permissions.Anyone, async (arg) => {
+export const savePlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg, 'manage');
   const name = clean(arg.name, 80);
   const weeks = int(arg.weeks);
@@ -401,8 +400,8 @@ export const savePlan = webMethod(Permissions.Anyone, async (arg) => {
     await wixData.bulkInsert(WORK, work.map((x) => Object.assign({ plan: saved._id }, x, { km: String(x.km), minutes: String(x.minutes), week: String(x.week), day: String(x.day) })), SA);
   }
   return { plan: planOut(saved) };
-});
-export const removePlan = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const removePlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg, 'manage');
   const p = await wixData.get(PLANS, String(arg.id || ''), SA).catch(() => null);
   if (!p || p._id === SETTINGS_ID) throw new Error('no_plan');
@@ -412,7 +411,7 @@ export const removePlan = webMethod(Permissions.Anyone, async (arg) => {
   if (prev.length) await wixData.bulkRemove(WORK, prev.map((x) => x._id), SA);
   await wixData.bulkRemove(PLANS, [p._id], SA);
   return { ok: true };
-});
+}));
 
 /* ---------- athletes ---------- */
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
@@ -448,7 +447,7 @@ async function aauth(arg) {
   return a;
 }
 const athOut = (a) => ({ id: a._id, name: a.name, phone: a.phone, level: a.level || '', goal: a.goal || '', goalDate: a.goalDate || '' });
-export const athleteSignup = webMethod(Permissions.Anyone, async (arg) => {
+export const athleteSignup = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await ensureCollections();
   if (arg && arg.website) return { ok: true }; // hidden field: only bots fill it
   const name = clean(arg && arg.name, 80);
@@ -471,8 +470,8 @@ export const athleteSignup = webMethod(Permissions.Anyone, async (arg) => {
     throw new Error('already_signed_up');
   }
   return { token: await newAthleteToken(a), athlete: athOut(a) };
-});
-export const athleteLogin = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const athleteLogin = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const phone = phoneDigits(arg && arg.phone);
   const pin = String((arg && arg.pin) || '');
   let a;
@@ -500,15 +499,15 @@ export const athleteLogin = webMethod(Permissions.Anyone, async (arg) => {
   await freeSlots(wixData, RATE, gate, LOGIN_TRIES, LOGIN_WINDOW_MS, SA);
   if (a.failCount !== '0' || a.lockUntil) await wixData.update(ATH, Object.assign({}, a, { failCount: '0', lockUntil: '' }), SA);
   return { token: await newAthleteToken(a), athlete: athOut(a) };
-});
-export const athleteLogout = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const athleteLogout = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const t = String((arg && arg.token) || '');
   if (t.length < 20) return { ok: true };
   const r = await wixData.query(ATOK).eq('token', t).limit(5).find(SA);
   if (r.items.length) await wixData.bulkRemove(ATOK, r.items.map((x) => x._id), SA);
   return { ok: true };
-});
-export const changePin = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const changePin = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   // The old PIN is asked for, so a session token alone cannot change it: tries at it are limited like the login.
   const gate = slotKey('ath', a.phone);
@@ -525,7 +524,7 @@ export const changePin = webMethod(Permissions.Anyone, async (arg) => {
   const salt = newToken().slice(0, 16);
   await wixData.update(ATH, Object.assign({}, a, { salt, pinHash: hashPin(String(arg.newPin), salt) }), SA);
   return { ok: true };
-});
+}));
 
 /* ---------- enrolments and sessions ---------- */
 const enrOut = (e) => ({ id: e._id, athleteId: e.athlete, plan: e.plan, planName: e.planName, start: e.start, kind: e.kind, coach: e.coachName || '', coachStatus: e.coachStatus || '', reqNote: e.reqNote || '', status: e.status });
@@ -552,7 +551,7 @@ function stats(sessions, today) {
   };
 }
 const unreadFor = (msgs, who) => msgs.filter((m) => m.from !== who && m.read !== '1').length;
-export const enrollPlan = webMethod(Permissions.Anyone, async (arg) => {
+export const enrollPlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const plan = await wixData.get(PLANS, String(arg.planId || ''), SA).catch(() => null);
   if (!plan || plan._id === SETTINGS_ID || (plan.status || 'live') !== 'live') throw new Error('no_plan');
@@ -566,15 +565,15 @@ export const enrollPlan = webMethod(Permissions.Anyone, async (arg) => {
   const enr = await wixData.insert(ENR, { athlete: a._id, plan: plan._id, planName: plan.name, start, kind: 'free', coach: '', coachName: '', coachStatus: '', reqNote: '', status: 'active', createdAt: nowIso() }, SA);
   await wixData.bulkInsert(SESN, work.map((w) => ({ enroll: enr._id, athlete: a._id, date: addDays(start, (w.week - 1) * 7 + (w.day - 1)), week: String(w.week), type: w.type, title: w.title, km: String(w.km), minutes: String(w.minutes), notes: w.notes, status: 'planned', aKm: '', aMin: '', rpe: '', aNote: '', feedback: '', feedbackBy: '', feedbackAt: '', source: 'plan' })), SA);
   return { enrollment: enrOut(enr) };
-});
-export const endPlan = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const endPlan = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur) throw new Error('no_enroll');
   await wixData.update(ENR, Object.assign({}, cur, { status: 'ended', endedAt: nowIso() }), SA);
   return { ok: true };
-});
-export const myHome = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const myHome = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const today = todayIst();
   const cur = await activeEnr(a._id);
@@ -593,15 +592,15 @@ export const myHome = webMethod(Permissions.Anyone, async (arg) => {
     unread: unreadFor(msgs, 'athlete'),
     daysLeft: sessions.length ? Math.max(0, Math.round((Date.parse(sessions[sessions.length - 1].date) - Date.parse(today)) / 86400000)) : 0,
   });
-});
-export const mySessions = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const mySessions = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur) return { sessions: [] };
   return { sessions: (await sessionsOf(cur._id)).map(sesOut), coached: cur.coachStatus === 'active' };
-});
+}));
 const RPE = (v) => (v === '' || v === undefined || v === null ? '' : String(Math.min(10, Math.max(1, int(v)))));
-export const logSession = webMethod(Permissions.Anyone, async (arg) => {
+export const logSession = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const s = await wixData.get(SESN, String(arg.id || ''), SA).catch(() => null);
   if (!s || s.athlete !== a._id) throw new Error('no_session');
@@ -613,9 +612,9 @@ export const logSession = webMethod(Permissions.Anyone, async (arg) => {
   if ((aKm !== '' && (aKm < 0 || aKm > 300)) || (aMin !== '' && (aMin < 0 || aMin > 1500))) throw new Error('bad_numbers');
   const next = Object.assign({}, s, status === 'planned' ? { status, aKm: '', aMin: '', rpe: '', aNote: '' } : { status, aKm: aKm === '' ? '' : String(aKm), aMin: aMin === '' ? '' : String(aMin), rpe: RPE(arg.rpe), aNote: text(arg.note, 500) });
   return { session: sesOut(await wixData.update(SESN, next, SA)) };
-});
+}));
 // An athlete may add their own extra run to the schedule.
-export const addMySession = webMethod(Permissions.Anyone, async (arg) => {
+export const addMySession = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur) throw new Error('no_enroll');
@@ -627,22 +626,22 @@ export const addMySession = webMethod(Permissions.Anyone, async (arg) => {
   const title = clean(arg.title, 80) || 'My run';
   const row = { enroll: cur._id, athlete: a._id, date, week: '0', type, title, km: String(km), minutes: String(minutes), notes: '', status: 'planned', aKm: '', aMin: '', rpe: '', aNote: '', feedback: '', feedbackBy: '', feedbackAt: '', source: 'self' };
   return { session: sesOut(await wixData.insert(SESN, row, SA)) };
-});
-export const requestCoaching = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const requestCoaching = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur) throw new Error('no_enroll');
   if (cur.coachStatus === 'active') throw new Error('already_coached');
   await wixData.update(ENR, Object.assign({}, cur, { coachStatus: 'requested', reqNote: text(arg.note, 300) }), SA);
   return { ok: true };
-});
-export const cancelCoachingRequest = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const cancelCoachingRequest = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur || cur.coachStatus !== 'requested') throw new Error('no_request');
   await wixData.update(ENR, Object.assign({}, cur, { coachStatus: '', reqNote: '' }), SA);
   return { ok: true };
-});
+}));
 
 /* ---------- messages (coached only) ---------- */
 const msgOut = (m) => ({ id: m._id, from: m.from, name: m.name, text: m.text, at: m.at });
@@ -651,15 +650,15 @@ async function markRead(list, reader) {
   const mine = list.filter((m) => m.from !== reader && m.read !== '1');
   if (mine.length) await wixData.bulkUpdate(MSG, mine.map((m) => Object.assign({}, m, { read: '1' })), SA);
 }
-export const myMessages = webMethod(Permissions.Anyone, async (arg) => {
+export const myMessages = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur || cur.coachStatus !== 'active') throw new Error('no_coach');
   const list = await thread(cur._id);
   await markRead(list, 'athlete');
   return { messages: list.map(msgOut), coach: cur.coachName };
-});
-export const sendMyMessage = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const sendMyMessage = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur || cur.coachStatus !== 'active') throw new Error('no_coach');
@@ -667,7 +666,7 @@ export const sendMyMessage = webMethod(Permissions.Anyone, async (arg) => {
   if (!t) throw new Error('text_needed');
   const m = await wixData.insert(MSG, { enroll: cur._id, from: 'athlete', name: a.name, text: t, at: nowIso(), read: '' }, SA);
   return { message: msgOut(m) };
-});
+}));
 
 /* ---------- coach and director ---------- */
 async function staffEnroll(a, id) {
@@ -677,11 +676,11 @@ async function staffEnroll(a, id) {
   return e;
 }
 const coachedActive = (e) => e.coachStatus === 'active' && e.status === 'active';
-export const listCoaches = webMethod(Permissions.Anyone, async (arg) => {
+export const listCoaches = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg, 'manage');
   return { coaches: (await staffRows()).filter((u) => roleOf(u) !== 'none').map((u) => ({ username: String(unameOf(u)), name: String(u.name || unameOf(u)), role: roleOf(u) })) };
-});
-export const listAthletes = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const listAthletes = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   const today = todayIst();
   let enrs = (await all(() => wixData.query(ENR).ascending('_id'))).filter((e) => e.status === 'active');
@@ -700,8 +699,8 @@ export const listAthletes = webMethod(Permissions.Anyone, async (arg) => {
   });
   rows.sort((x, y) => (y.coachStatus === 'requested') - (x.coachStatus === 'requested') || y.unread - x.unread || x.name.localeCompare(y.name));
   return { athletes: rows, totals: { athletes: aths.length, active: enrs.length, requests: rows.filter((r) => r.coachStatus === 'requested').length } };
-});
-export const athleteDetail = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const athleteDetail = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   const e = await staffEnroll(a, arg.enroll);
   const ath = await wixData.get(ATH, e.athlete, SA).catch(() => null);
@@ -709,8 +708,8 @@ export const athleteDetail = webMethod(Permissions.Anyone, async (arg) => {
   const msgs = e.coachStatus === 'active' ? await thread(e._id) : [];
   if (e.coachStatus === 'active') await markRead(msgs, 'coach');
   return { enrollment: enrOut(e), athlete: ath ? athOut(ath) : null, sessions: sessions.map(sesOut), messages: msgs.map(msgOut), stats: stats(sessions, todayIst()), canCoach: coachedActive(e) };
-});
-export const assignCoach = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const assignCoach = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg, 'manage');
   const e = await wixData.get(ENR, String(arg.enroll || ''), SA).catch(() => null);
   if (!e || e.status !== 'active') throw new Error('no_enroll');
@@ -718,24 +717,24 @@ export const assignCoach = webMethod(Permissions.Anyone, async (arg) => {
   if (!u) throw new Error('no_coach_user');
   await wixData.update(ENR, Object.assign({}, e, { kind: 'coached', coach: String(unameOf(u)), coachName: String(u.name || unameOf(u)), coachStatus: 'active' }), SA);
   return { ok: true };
-});
+}));
 // Back to a free plan: the coach and the messages stop (old messages are kept but no longer shown).
-export const stopCoaching = webMethod(Permissions.Anyone, async (arg) => {
+export const stopCoaching = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg, 'manage');
   const e = await wixData.get(ENR, String(arg.enroll || ''), SA).catch(() => null);
   if (!e) throw new Error('no_enroll');
   await wixData.update(ENR, Object.assign({}, e, { kind: 'free', coach: '', coachName: '', coachStatus: '', reqNote: '' }), SA);
   return { ok: true };
-});
-export const declineCoaching = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const declineCoaching = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await sauth(arg, 'manage');
   const e = await wixData.get(ENR, String(arg.enroll || ''), SA).catch(() => null);
   if (!e || e.coachStatus !== 'requested') throw new Error('no_request');
   await wixData.update(ENR, Object.assign({}, e, { coachStatus: '', reqNote: '' }), SA);
   return { ok: true };
-});
+}));
 // The coach changes the schedule of a coached athlete. Free plans are fixed.
-export const coachSaveSession = webMethod(Permissions.Anyone, async (arg) => {
+export const coachSaveSession = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   const e = await staffEnroll(a, arg.enroll);
   if (!coachedActive(e)) throw new Error('not_coached');
@@ -752,8 +751,8 @@ export const coachSaveSession = webMethod(Permissions.Anyone, async (arg) => {
   if (old) return { session: sesOut(await wixData.update(SESN, Object.assign({}, old, row, { source: old.source === 'self' ? 'self' : 'coach' }), SA)) };
   const ins = await wixData.insert(SESN, Object.assign({ enroll: e._id, athlete: e.athlete, week: '0', status: 'planned', aKm: '', aMin: '', rpe: '', aNote: '', feedback: '', feedbackBy: '', feedbackAt: '', source: 'coach' }, row), SA);
   return { session: sesOut(ins) };
-});
-export const coachRemoveSession = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const coachRemoveSession = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   const e = await staffEnroll(a, arg.enroll);
   if (!coachedActive(e)) throw new Error('not_coached');
@@ -762,8 +761,8 @@ export const coachRemoveSession = webMethod(Permissions.Anyone, async (arg) => {
   if (s.status === 'done') throw new Error('already_done');
   await wixData.bulkRemove(SESN, [s._id], SA);
   return { ok: true };
-});
-export const coachFeedback = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const coachFeedback = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   const e = await staffEnroll(a, arg.enroll);
   if (!coachedActive(e)) throw new Error('not_coached');
@@ -771,8 +770,8 @@ export const coachFeedback = webMethod(Permissions.Anyone, async (arg) => {
   if (!s || s.enroll !== e._id) throw new Error('no_session');
   const t = text(arg.text, 600);
   return { session: sesOut(await wixData.update(SESN, Object.assign({}, s, { feedback: t, feedbackBy: t ? a.name : '', feedbackAt: t ? nowIso() : '' }), SA)) };
-});
-export const coachMessage = webMethod(Permissions.Anyone, async (arg) => {
+}));
+export const coachMessage = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   const e = await staffEnroll(a, arg.enroll);
   if (!coachedActive(e)) throw new Error('not_coached');
@@ -780,7 +779,7 @@ export const coachMessage = webMethod(Permissions.Anyone, async (arg) => {
   if (!t) throw new Error('text_needed');
   const m = await wixData.insert(MSG, { enroll: e._id, from: 'coach', name: a.name, text: t, at: nowIso(), read: '' }, SA);
   return { message: msgOut(m) };
-});
+}));
 
 /* ---------- one-time setup ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });
@@ -840,14 +839,14 @@ async function aiGateT(who) {
   await wixData.save(RATE, { _id: key, n: String(n + 1) }, SA);
 }
 // For the athlete themselves: their own weeks and flags, no AI.
-export const myInsight = webMethod(Permissions.Anyone, async (arg) => {
+export const myInsight = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await aauth(arg);
   const cur = await activeEnr(a._id);
   if (!cur) return { insight: null };
   return { insight: insightOf(await sessionsOf(cur._id), todayIst(), a) };
-});
+}));
 // For the coach (own athletes) and directors (anyone). arg.write = true adds AI wording and a draft note to the athlete.
-export const coachInsight = webMethod(Permissions.Anyone, async (arg) => {
+export const coachInsight = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await sauth(arg);
   const e = await staffEnroll(a, arg.enroll);
   const ath = await wixData.get(ATH, e.athlete, SA).catch(() => null);
@@ -869,7 +868,7 @@ export const coachInsight = webMethod(Permissions.Anyone, async (arg) => {
     out.ai = true;
   }
   return out;
-});
+}));
 
 const LOCKED = { read: 'ADMIN', insert: 'ADMIN', update: 'ADMIN', remove: 'ADMIN' };
 function collectionDefs() {
@@ -931,7 +930,7 @@ async function ensureCollections() {
 }
 // Creates the Training collections and the three starter plans. Needs SETUP_KEY.
 const setupMisses = new Map();
-export const ensureTrainSetup = webMethod(Permissions.Anyone, async (arg) => {
+export const ensureTrainSetup = webMethod(Permissions.Anyone, guarded(async (arg) => {
   if (SETUP_KEY === 'change-this-key') throw new Error('Edit SETUP_KEY at the top of training.web.js first');
   // Ten tries an hour, however fast they are sent. Before the first setup the collection for the slots may not exist
   // yet, so then this server's own count is used.
@@ -959,5 +958,5 @@ export const ensureTrainSetup = webMethod(Permissions.Anyone, async (arg) => {
   }
   checked = true;
   return { summary: (notes.length ? notes.join('; ') : 'All collections already exist') + '. Starter plans added: ' + seeded };
-});
-export const trainHealth = webMethod(Permissions.Anyone, async () => ({ ok: true }));
+}));
+export const trainHealth = webMethod(Permissions.Anyone, guarded(async () => ({ ok: true })));

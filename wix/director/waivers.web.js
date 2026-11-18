@@ -12,7 +12,7 @@
 // be made only once, so two people recording the same paper together, or a call that is repeated, never make two. The collection holds
 // ids, versions and the short note staff typed; it holds no phone number, e-mail address or date of birth. A paper carries a name, a bib
 // and a category, and nothing else.
-import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';
+import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
@@ -28,14 +28,13 @@ import {
 } from './rd-waiver.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const webMethod = (permission, fn) =>
-  wixWebMethod(permission, async (arg) => {
-    try {
-      return await fn(arg);
-    } catch (e) {
-      throw tidyError(e, 'waivers');
-    }
-  });
+const guarded = (fn) => async (arg) => {
+  try {
+    return await fn(arg);
+  } catch (e) {
+    throw tidyError(e, 'waivers');
+  }
+};
 
 const WAIV = C.WAIV;
 const VOLS = 'RDVolunteers';
@@ -170,7 +169,7 @@ function waiverFor(who, book, e) {
 const recordOf = (s) => ({ id: s.id, ver: s.ver, how: s.how, note: s.note, by: s.by, at: s.at, void: s.void });
 
 /* ---------- looking ---------- */
-export const wvOverview = webMethod(Permissions.Anyone, async (arg) => {
+export const wvOverview = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'staff');
   const e = await getEvent(arg.ev);
   const [regs, vols, book] = await Promise.all([rows(C.REGS, e._id), safeRows(VOLS, e._id), bookFor(e._id)]);
@@ -192,10 +191,10 @@ export const wvOverview = webMethod(Permissions.Anyone, async (arg) => {
     words: PLACEHOLDERS,
     limits: { title: MAX_TITLE, text: MAX_TEXT, minText: MIN_TEXT, versions: MAX_VERSIONS, note: MAX_NOTE, ids: MAX_IDS, accept: MAX_ACCEPT, question: MAX_QUESTION, answer: MAX_ANSWER, copies: MAX_COPIES, page: LIST_PAGE },
   };
-});
+}));
 
 // One saved version of the text, or the latest when none is named.
-export const wvText = webMethod(Permissions.Anyone, async (arg) => {
+export const wvText = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await cauth(arg, 'staff');
   const e = await getEvent(arg.ev);
   const book = await bookFor(e._id);
@@ -207,10 +206,10 @@ export const wvText = webMethod(Permissions.Anyone, async (arg) => {
   const v = book.versions.find((x) => x.ver === want);
   if (!v) throw bad(book.versions.length ? 'wv_no_item' : 'wv_none');
   return { ver: v.ver, title: v.title, text: v.text, by: v.by, at: v.at };
-});
+}));
 
 // A page of people with where each stands: a name, a bib, a category and a state, nothing else of the registration.
-export const wvList = webMethod(Permissions.Anyone, async (arg) => {
+export const wvList = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await cauth(arg, 'staff');
   const e = await getEvent(arg.ev);
   const who = whoOf(arg.who);
@@ -221,10 +220,10 @@ export const wvList = webMethod(Permissions.Anyone, async (arg) => {
   const cat = catOf(arg.cat, who, pp.cats);
   const pg = pageOf(listOf(subOf(who), pp.people, book, { filter, cat, q }), from, LIST_PAGE);
   return { who, from, next: pg.next, total: pg.total, items: pg.items };
-});
+}));
 
 // The records of one person, the voided ones marked.
-export const wvRecords = webMethod(Permissions.Anyone, async (arg) => {
+export const wvRecords = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await cauth(arg, 'staff');
   const e = await getEvent(arg.ev);
   const who = whoOf(arg.who);
@@ -233,12 +232,12 @@ export const wvRecords = webMethod(Permissions.Anyone, async (arg) => {
   const book = await bookFor(e._id);
   const sub = subOf(who);
   return { person: personLine(sub, r, book), records: sigsOf(book, sub, r._id).map(recordOf) };
-});
+}));
 
 /* ---------- the papers ---------- */
 // Papers to print, a page at a time (the head only on the first). mode 'forms': a page for each person (or blank pages);
 // mode 'list': one sign-in list with the waiver on top. scope: 'todo' (those who still need to sign), 'all', 'one' (a person) or 'blank'.
-export const wvSheet = webMethod(Permissions.Anyone, async (arg) => {
+export const wvSheet = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'staff');
   const e = await getEvent(arg.ev);
   const who = whoOf(arg.who);
@@ -273,13 +272,13 @@ export const wvSheet = webMethod(Permissions.Anyone, async (arg) => {
   const body = !pg.items.length ? '' : mode === 'forms' ? renderForms(wv, race, pg.items, who) : renderList(wv, race, pg.items, who, from === 0);
   if (from === 0) await audit(a, 'waiver papers printed', e.name, who + ' ' + mode + ' ' + scope + ': ' + pg.total);
   return { head, body, count: pg.items.length, from, next: pg.next, total: pg.total, ver: wv.ver };
-});
+}));
 
 /* ---------- papers signed on the day ---------- */
 // Records that people signed a paper waiver. Recording somebody who has already signed this version (or a newer one) changes nothing.
 // People who are not in this race, or who a waiver is not asked of, are counted and left out. If the time budget runs out the people not
 // yet done are handed back ('left') to be sent again.
-export const wvRecord = webMethod(Permissions.Anyone, async (arg) => {
+export const wvRecord = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'staff');
   const e = await getEvent(arg.ev);
   const who = whoOf(arg.who);
@@ -347,12 +346,12 @@ export const wvRecord = webMethod(Permissions.Anyone, async (arg) => {
   out.left = out.left.concat(failed);
   if (out.recorded) await audit(a, 'waiver papers recorded', e.name, who + ' version ' + ver + ': ' + out.recorded + ' recorded' + (note ? ', note given' : ''));
   return out;
-});
+}));
 
 /* ---------- changing: the text, the question, a mistake (directors) ---------- */
 // Saves the text as the next version. base is the version the screen was showing (0 when there was none): if somebody has saved since,
 // nothing is saved and the screen must be refreshed first.
-export const wvSaveText = webMethod(Permissions.Anyone, async (arg) => {
+export const wvSaveText = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const wv = cleanWaiver({ title: arg.title, text: arg.text });
@@ -370,11 +369,11 @@ export const wvSaveText = webMethod(Permissions.Anyone, async (arg) => {
   }
   await audit(a, 'waiver text saved', e.name, 'version ' + n + ', ' + wv.text.length + ' characters');
   return { ver: n, title: wv.title, text: wv.text };
-});
+}));
 
 // Which question of the registration form is the waiver, which answers count as signed, which version that question showed, and the
 // lowest version that still counts.
-export const wvSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
+export const wvSaveSettings = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   if (SET_KEYS.some((k) => arg[k] === undefined)) throw bad('wv_bad_settings');
@@ -383,10 +382,10 @@ export const wvSaveSettings = webMethod(Permissions.Anyone, async (arg) => {
   await put(WAIV, Object.assign({ _id: ids.set(e._id) }, row(e, 'set', '', '', '', '', JSON.stringify(s), a)));
   await audit(a, 'waiver settings saved', e.name, (s.question ? 'question set' : 'no question') + ', ' + s.accept.length + ' answers, form shows version ' + s.formVersion + ', version ' + s.minVersion + ' or newer counts');
   return { settings: s };
-});
+}));
 
 // Marks a record as a mistake. The record stays, with who voided it and why.
-export const wvVoid = webMethod(Permissions.Anyone, async (arg) => {
+export const wvVoid = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const a = await cauth(arg, 'director');
   const e = await getEvent(arg.ev);
   const id = idOf(arg.id);
@@ -402,7 +401,7 @@ export const wvVoid = webMethod(Permissions.Anyone, async (arg) => {
   }
   await audit(a, 'waiver record voided', e.name, rec.sub + ' record, reason given');
   return { voided: true };
-});
+}));
 
 /* ---------- collections ---------- */
 const textField = (key) => ({ key, displayName: key, type: 'TEXT' });
