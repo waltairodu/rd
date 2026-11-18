@@ -10,6 +10,12 @@ import * as WV from './waivers.test.mjs';
 import * as RP from './reports.test.mjs';
 import * as PV from './privacy.test.mjs';
 import * as PUB from './runner.test.mjs';
+// The director page code names every backend module it imports (rd, expo, train, fin, res, prn, comms, wv, rp, pv), the other page codes use rd, tr or pub.
+// A test hands over the few it cares about; the rest are empty, as a module is when none of its methods reached the site.
+const NAMES = ['rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'wv', 'rp', 'pv', 'pub'];
+const build = (code, mods, $w, wixLocation, con) => new Function('$w', 'wixLocation', ...NAMES, 'console', code)($w, wixLocation, ...NAMES.map((k) => mods[k] || {}), con);
+// The page code tells a method it does not list or a module it cannot find as "code|what" (the part after the bar is for the person reading the screen).
+const codeOf = (e) => String(e == null ? '' : e).split('|')[0];
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log('  FAIL', m); } };
 const files = [['director/director-page-code.js', '#dirFrame'], ['director/volunteer-page-code.js', '#volFrame'], ['training/athlete-page-code.js', '#trainFrame'], ['training/coach-page-code.js', '#coachFrame'], ['director/runner-page-code.js', '#runFrame']];
@@ -27,8 +33,7 @@ for (const [f, id] of files) {
     $w.onReady = (fn) => { ready = fn; };
     const wixLocation = { query: {} };
     const con = { error: (m) => errs.push(m) };
-    const g = new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'pub', 'console', src + '\n; return 0;');
-    g($w, wixLocation, {}, {}, {}, {}, {}, {}, con);
+    build(src + '\n; return 0;', {}, $w, wixLocation, con);
     let threw = false;
     try { ready(); } catch (e) { threw = true; }
     ok(!threw, f + ' [' + mode + ']: onReady does not throw');
@@ -54,7 +59,7 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const rd = { overview: async () => ({ fine: 1 }) };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'console', src)($w, { query: {} }, rd, {}, {}, {}, {}, console);
+  build(src, { rd: rd }, $w, { query: {} }, console);
   ready();
   await handler({ data: { kind: 'call', id: 1, method: 'overview', arg: {} } });
   await handler({ data: { kind: 'call', id: 2, method: 'notListedAnywhere', arg: {} } });
@@ -62,9 +67,9 @@ for (const [f, id] of files) {
   await handler({ data: { kind: 'call', id: 4, method: 'x', mod: 'train', arg: {} } });
   const by = (id) => posts.find((p) => p.id === id) || {};
   ok(by(1).ok === true, 'listed method works');
-  ok(by(2).ok === false && by(2).error === 'page_code_old', 'unlisted method: error, not silence');
-  ok(by(3).ok === false && by(3).error === 'backend_old', 'listed method missing in the backend: backend_old');
-  ok(by(4).ok === false && by(4).error === 'page_code_old', 'unlisted training method: error');
+  ok(by(2).ok === false && codeOf(by(2).error) === 'page_code_old', 'unlisted method: error, not silence');
+  ok(by(3).ok === false && codeOf(by(3).error) === 'backend_old', 'listed method missing in the backend: backend_old');
+  ok(by(4).ok === false && codeOf(by(4).error) === 'page_code_old', 'unlisted training method: error');
 }
 
 // The Expo desk has no login of its own: the page code lists no login, logout or setup for it, and passes the token it is given.
@@ -74,23 +79,23 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const expo = { enter: async (a) => { seen.push(a); return { desk: 'x' }; }, login: async () => ({ token: 'leak' }), logout: async () => ({}), ensureSetup: async () => ({}), issue: async () => ({}) };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'console', src)($w, { query: {} }, {}, expo, {}, {}, {}, console);
+  build(src, { expo: expo }, $w, { query: {} }, console);
   ready();
   const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod: mod || 'expo', arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
   const r1 = await call(1, 'enter', 'expo', { token: 'T'.repeat(30) });
   ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30), 'Expo branch: enter is relayed with the token it was given');
   for (const [id, m] of [[2, 'login'], [3, 'logout'], [4, 'ensureSetup']]) {
     const r = await call(id, m, 'expo');
-    ok(r.ok === false && r.error === 'page_code_old', 'Expo branch: ' + m + ' is not relayed (no Expo login, logout or setup)');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Expo branch: ' + m + ' is not relayed (no Expo login, logout or setup)');
   }
   ok((await call(5, 'ping', 'expo')).result && (await call(5, 'ping', 'expo')).result.pong === true, 'Expo branch: ping answers');
   const r6 = await call(6, 'whoami', 'expo');
-  ok(r6.ok === false && r6.error === 'backend_old', 'Expo branch: a listed method missing in the backend says backend_old, not a crash');
+  ok(r6.ok === false && codeOf(r6.error) === 'backend_old', 'Expo branch: a listed method missing in the backend says backend_old, not a crash');
   const r7 = await call(7, 'issue', 'expo', {});
   ok(r7.ok === true, 'Expo branch: issue is relayed');
   for (const [id, m] of [[8, '__proto__'], [9, 'constructor'], [10, 'toString'], [11, 'hasOwnProperty']]) {
     const r = await call(id, m, 'expo');
-    ok(r.ok === false && r.error === 'page_code_old', 'Expo branch: "' + m + '" is refused, not looked up on the module');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Expo branch: "' + m + '" is refused, not looked up on the module');
   }
   const r12 = await call(12, ['enter'], 'expo');
   ok(r12.ok === false, 'Expo branch: a method that is not a string is refused');
@@ -105,23 +110,23 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const fin = { finOverview: async (a) => { seen.push(a); return { fine: 1 }; }, login: async () => ({ token: 'leak' }), finRaiseInvoice: async () => { throw new Error('bad_lines'); } };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, fin, console);
+  build(src, { rd: { dashboard: async () => ({ rd: 1 }) }, fin: fin }, $w, { query: {} }, console);
   ready();
   const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
   const r1 = await call(1, 'finOverview', 'fin', { token: 'T'.repeat(30), ev: 'e1' });
   ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Finance branch: finOverview is relayed with the token and race it was given');
   const r2 = await call(2, 'finListInvoices', 'fin');
-  ok(r2.ok === false && r2.error === 'backend_old', 'Finance branch: a listed method missing in the backend says backend_old, not a crash');
+  ok(r2.ok === false && codeOf(r2.error) === 'backend_old', 'Finance branch: a listed method missing in the backend says backend_old, not a crash');
   const r3 = await call(3, 'finRaiseInvoice', 'fin');
   ok(r3.ok === false && r3.error === 'bad_lines', 'Finance branch: an error from the backend is passed on as its plain code');
   for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'finnish']]) {
     const r = await call(id, m, 'fin');
-    ok(r.ok === false && r.error === 'page_code_old', 'Finance branch: "' + m + '" is refused (only Finance methods go through)');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Finance branch: "' + m + '" is refused (only Finance methods go through)');
   }
   const r12 = await call(12, ['finOverview'], 'fin');
   ok(r12.ok === false, 'Finance branch: a method that is not a string is refused');
   const r13 = await call(13, 'finOverview', 'rd');
-  ok(r13.ok === false && r13.error === 'page_code_old', 'a Finance method sent without the Finance tag is not relayed through the RaceOS branch');
+  ok(r13.ok === false && codeOf(r13.error) === 'page_code_old', 'a Finance method sent without the Finance tag is not relayed through the RaceOS branch');
 }
 
 // The Print branch of the director page code: relays only the six print methods, with the token it is given.
@@ -131,25 +136,25 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const prn = { prnOverview: async (a) => { seen.push(a); return { fine: 1 }; }, prnBibs: async () => { throw new Error('bad_bib'); }, login: async () => ({ token: 'leak' }) };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, prn, console);
+  build(src, { rd: { dashboard: async () => ({ rd: 1 }) }, prn: prn }, $w, { query: {} }, console);
   ready();
   const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
   const r1 = await call(1, 'prnOverview', 'prn', { token: 'T'.repeat(30), ev: 'e1' });
   ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Print branch: prnOverview is relayed with the token and race it was given');
   const r2 = await call(2, 'prnCerts', 'prn');
-  ok(r2.ok === false && r2.error === 'backend_old', 'Print branch: a listed method missing in the backend says backend_old, not a crash');
+  ok(r2.ok === false && codeOf(r2.error) === 'backend_old', 'Print branch: a listed method missing in the backend says backend_old, not a crash');
   const r3 = await call(3, 'prnBibs', 'prn');
   ok(r3.ok === false && r3.error === 'bad_bib', 'Print branch: an error from the backend is passed on as its plain code');
   for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'prn'], [12, 'prnBibs '], [13, 'PRNBIBS'], [14, 'resBoard'], [15, 'pubFind']]) {
     const r = await call(id, m, 'prn');
-    ok(r.ok === false && r.error === 'page_code_old', 'Print branch: "' + m + '" is refused (only the six print methods go through)');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Print branch: "' + m + '" is refused (only the six print methods go through)');
   }
   const r16 = await call(16, ['prnOverview'], 'prn');
   ok(r16.ok === false, 'Print branch: a method that is not a string is refused');
   const r17 = await call(17, 'prnOverview', 'rd');
-  ok(r17.ok === false && r17.error === 'page_code_old', 'a print method sent without the print tag is not relayed through the RaceOS branch');
+  ok(r17.ok === false && codeOf(r17.error) === 'page_code_old', 'a print method sent without the print tag is not relayed through the RaceOS branch');
   const r18 = await call(18, 'prnOverview', 'fin');
-  ok(r18.ok === false && r18.error === 'page_code_old', 'a print method sent with the Finance tag is not relayed through the Finance branch');
+  ok(r18.ok === false && codeOf(r18.error) === 'page_code_old', 'a print method sent with the Finance tag is not relayed through the Finance branch');
   const r19 = await call(19, 'prnOverview', 'prn', null);
   ok(r19.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Print branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
 }
@@ -161,29 +166,29 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const comms = { cmOverview: async (a) => { seen.push(a); return { fine: 1 }; }, cmSend: async () => { throw new Error('no_batch'); }, login: async () => ({ token: 'leak' }) };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, comms, console);
+  build(src, { rd: { dashboard: async () => ({ rd: 1 }) }, comms: comms }, $w, { query: {} }, console);
   ready();
   const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
   const r1 = await call(1, 'cmOverview', 'comms', { token: 'T'.repeat(30), ev: 'e1' });
   ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Messages branch: cmOverview is relayed with the token and race it was given');
   const r2 = await call(2, 'cmExport', 'comms');
-  ok(r2.ok === false && r2.error === 'backend_old', 'Messages branch: a listed method missing in the backend says backend_old, not a crash');
+  ok(r2.ok === false && codeOf(r2.error) === 'backend_old', 'Messages branch: a listed method missing in the backend says backend_old, not a crash');
   const r3 = await call(3, 'cmSend', 'comms');
   ok(r3.ok === false && r3.error === 'no_batch', 'Messages branch: an error from the backend is passed on as its plain code');
   for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'comms'], [12, 'cmSend '], [13, 'CMSEND'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'cmSendAll'], [18, 'cm']]) {
     const r = await call(id, m, 'comms');
-    ok(r.ok === false && r.error === 'page_code_old', 'Messages branch: "' + m + '" is refused (only the twelve Messages methods go through)');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Messages branch: "' + m + '" is refused (only the twelve Messages methods go through)');
   }
   const r19 = await call(19, ['cmOverview'], 'comms');
   ok(r19.ok === false, 'Messages branch: a method that is not a string is refused');
   const r20 = await call(20, 'cmOverview', 'rd');
-  ok(r20.ok === false && r20.error === 'page_code_old', 'a Messages method sent without the Messages tag is not relayed through the RaceOS branch');
+  ok(r20.ok === false && codeOf(r20.error) === 'page_code_old', 'a Messages method sent without the Messages tag is not relayed through the RaceOS branch');
   const r21 = await call(21, 'cmOverview', 'prn');
-  ok(r21.ok === false && r21.error === 'page_code_old', 'a Messages method sent with the Print tag is not relayed through the Print branch');
+  ok(r21.ok === false && codeOf(r21.error) === 'page_code_old', 'a Messages method sent with the Print tag is not relayed through the Print branch');
   const r22 = await call(22, 'cmOverview', 'comms', null);
   ok(r22.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Messages branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
   const r23 = await call(23, 'prnOverview', 'comms');
-  ok(r23.ok === false && r23.error === 'page_code_old', 'a Print method sent with the Messages tag is refused');
+  ok(r23.ok === false && codeOf(r23.error) === 'page_code_old', 'a Print method sent with the Messages tag is refused');
 }
 
 // The Waivers branch of the director page code: relays only the nine Waivers methods, with the token it is given.
@@ -193,29 +198,29 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const waiv = { wvOverview: async (a) => { seen.push(a); return { fine: 1 }; }, wvSaveText: async () => { throw new Error('wv_stale'); }, login: async () => ({ token: 'leak' }) };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'wv', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, {}, waiv, console);
+  build(src, { rd: { dashboard: async () => ({ rd: 1 }) }, wv: waiv }, $w, { query: {} }, console);
   ready();
   const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
   const r1 = await call(1, 'wvOverview', 'wv', { token: 'T'.repeat(30), ev: 'e1' });
   ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Waivers branch: wvOverview is relayed with the token and race it was given');
   const r2 = await call(2, 'wvVoid', 'wv');
-  ok(r2.ok === false && r2.error === 'backend_old', 'Waivers branch: a listed method missing in the backend says backend_old, not a crash');
+  ok(r2.ok === false && codeOf(r2.error) === 'backend_old', 'Waivers branch: a listed method missing in the backend says backend_old, not a crash');
   const r3 = await call(3, 'wvSaveText', 'wv');
   ok(r3.ok === false && r3.error === 'wv_stale', 'Waivers branch: an error from the backend is passed on as its plain code');
   for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'wv'], [12, 'wvSaveText '], [13, 'WVSAVETEXT'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'wvSaveAll'], [18, 'cmOverview'], [19, 'cmSend'], [20, 'wvDelete'], [21, 'wvRemove']]) {
     const r = await call(id, m, 'wv');
-    ok(r.ok === false && r.error === 'page_code_old', 'Waivers branch: "' + m + '" is refused (only the nine Waivers methods go through)');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Waivers branch: "' + m + '" is refused (only the nine Waivers methods go through)');
   }
   const r22 = await call(22, ['wvOverview'], 'wv');
   ok(r22.ok === false, 'Waivers branch: a method that is not a string is refused');
   for (const [id, mod] of [[23, 'rd'], [24, 'comms'], [25, 'prn'], [26, 'fin'], [27, 'res'], [28, 'expo'], [29, 'train'], [30, 'WV'], [31, ' wv'], [32, 'waivers']]) {
     const r = await call(id, 'wvOverview', mod);
-    ok(r.ok === false && r.error === 'page_code_old', 'a Waivers method sent with the "' + mod + '" tag is not relayed through that branch');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'a Waivers method sent with the "' + mod + '" tag is not relayed through that branch');
   }
   const r33 = await call(33, 'wvOverview', 'wv', null);
   ok(r33.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Waivers branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
   const r34 = await call(34, 'cmOverview', 'wv');
-  ok(r34.ok === false && r34.error === 'page_code_old', 'a Messages method sent with the Waivers tag is refused');
+  ok(r34.ok === false && codeOf(r34.error) === 'page_code_old', 'a Messages method sent with the Waivers tag is refused');
   const r35 = await call(35, 'wvOverview', 'wv', { token: 'T'.repeat(30), ev: 'e1', method: 'wvVoid', mod: 'comms' });
   ok(r35.ok === true && seen[2] && seen[2].method === 'wvVoid' && seen.length === 3, 'Waivers branch: a method or tag hidden inside the argument changes nothing (the call still goes to the method it names)');
 }
@@ -227,29 +232,29 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const repo = { rpList: async (a) => { seen.push(a); return { fine: 1 }; }, rpRun: async () => { throw new Error('rp_bad_report'); }, login: async () => ({ token: 'leak' }) };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'wv', 'rp', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, {}, {}, repo, console);
+  build(src, { rd: { dashboard: async () => ({ rd: 1 }) }, rp: repo }, $w, { query: {} }, console);
   ready();
   const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
   const r1 = await call(1, 'rpList', 'rp', { token: 'T'.repeat(30), ev: 'e1' });
   ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Reports branch: rpList is relayed with the token and race it was given');
   const r2 = await call(2, 'rpCsv', 'rp');
-  ok(r2.ok === false && r2.error === 'backend_old', 'Reports branch: a listed method missing in the backend says backend_old, not a crash');
+  ok(r2.ok === false && codeOf(r2.error) === 'backend_old', 'Reports branch: a listed method missing in the backend says backend_old, not a crash');
   const r3 = await call(3, 'rpRun', 'rp');
   ok(r3.ok === false && r3.error === 'rp_bad_report', 'Reports branch: an error from the backend is passed on as its plain code');
   for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'rp'], [12, 'rpRun '], [13, 'RPRUN'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'rpRunAll'], [18, 'wvOverview'], [19, 'cmSend'], [20, 'rpDelete'], [21, 'rpMoney'], [22, 'rpCsv2']]) {
     const r = await call(id, m, 'rp');
-    ok(r.ok === false && r.error === 'page_code_old', 'Reports branch: "' + m + '" is refused (only the three Reports methods go through)');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Reports branch: "' + m + '" is refused (only the three Reports methods go through)');
   }
   const r23 = await call(23, ['rpList'], 'rp');
   ok(r23.ok === false, 'Reports branch: a method that is not a string is refused');
   for (const [id, mod] of [[24, 'rd'], [25, 'comms'], [26, 'prn'], [27, 'fin'], [28, 'res'], [29, 'expo'], [30, 'train'], [31, 'wv'], [32, 'RP'], [33, ' rp'], [34, 'reports']]) {
     const r = await call(id, 'rpList', mod);
-    ok(r.ok === false && r.error === 'page_code_old', 'a Reports method sent with the "' + mod + '" tag is not relayed through that branch');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'a Reports method sent with the "' + mod + '" tag is not relayed through that branch');
   }
   const r35 = await call(35, 'rpList', 'rp', null);
   ok(r35.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Reports branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
   const r36 = await call(36, 'wvOverview', 'rp');
-  ok(r36.ok === false && r36.error === 'page_code_old', 'a Waivers method sent with the Reports tag is refused');
+  ok(r36.ok === false && codeOf(r36.error) === 'page_code_old', 'a Waivers method sent with the Reports tag is refused');
   const r37 = await call(37, 'rpList', 'rp', { token: 'T'.repeat(30), ev: 'e1', method: 'rpRun', mod: 'comms' });
   ok(r37.ok === true && seen[2] && seen[2].method === 'rpRun' && seen.length === 3, 'Reports branch: a method or tag hidden inside the argument changes nothing (the call still goes to the method it names)');
   const r38 = await call(38, 'rpList', 'rp', { token: 'T'.repeat(30), ev: 'e1', report: 'money' });
@@ -263,24 +268,24 @@ for (const [f, id] of files) {
   const comp = { onMessage: (fn) => { handler = fn; }, postMessage: (m) => posts.push(m) };
   const $w = (sel) => (sel === '#dirFrame' ? comp : {}); $w.onReady = (fn) => { ready = fn; };
   const repo = { pvList: async (a) => { seen.push(a); return { fine: 1 }; }, pvErase: async () => { throw new Error('pv_stale'); }, login: async () => ({ token: 'leak' }), rpList: async () => ({ wrong: 1 }) };
-  new Function('$w', 'wixLocation', 'rd', 'expo', 'train', 'tr', 'fin', 'res', 'prn', 'comms', 'wv', 'rp', 'pv', 'console', src)($w, { query: {} }, { dashboard: async () => ({ rd: 1 }) }, {}, {}, {}, {}, {}, {}, {}, {}, {}, repo, console);
+  build(src, { rd: { dashboard: async () => ({ rd: 1 }) }, pv: repo }, $w, { query: {} }, console);
   ready();
   const call = async (id, method, mod, arg) => { await handler({ data: { kind: 'call', id, method, mod, arg: arg || {} } }); return posts.find((p) => p.id === id) || {}; };
   const r1 = await call(1, 'pvList', 'pv', { token: 'T'.repeat(30), ev: 'e1' });
   ok(r1.ok === true && seen[0] && seen[0].token === 'T'.repeat(30) && seen[0].ev === 'e1', 'Privacy branch: pvList is relayed with the token and race it was given');
   const r2 = await call(2, 'pvExport', 'pv');
-  ok(r2.ok === false && r2.error === 'backend_old', 'Privacy branch: a listed method missing in the backend says backend_old, not a crash');
+  ok(r2.ok === false && codeOf(r2.error) === 'backend_old', 'Privacy branch: a listed method missing in the backend says backend_old, not a crash');
   const r3 = await call(3, 'pvErase', 'pv');
   ok(r3.ok === false && r3.error === 'pv_stale', 'Privacy branch: an error from the backend is passed on as its plain code');
   for (const [id, m] of [[4, 'login'], [5, 'dashboard'], [6, 'listTeam'], [7, '__proto__'], [8, 'constructor'], [9, 'toString'], [10, 'hasOwnProperty'], [11, 'pv'], [12, 'pvList '], [13, 'PVLIST'], [14, 'prnBibs'], [15, 'finOverview'], [16, 'pubFind'], [17, 'pvEraseAll'], [18, 'wvOverview'], [19, 'cmSend'], [20, 'pvDelete'], [21, 'rpList'], [22, 'pvreveal'], [23, 'pvRevealAll'], [24, 'listRegs'], [25, 'listVolunteers']]) {
     const r = await call(id, m, 'pv');
-    ok(r.ok === false && r.error === 'page_code_old', 'Privacy branch: "' + m + '" is refused (only the five Privacy methods go through)');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Privacy branch: "' + m + '" is refused (only the five Privacy methods go through)');
   }
   const r26 = await call(26, ['pvList'], 'pv');
   ok(r26.ok === false, 'Privacy branch: a method that is not a string is refused');
   for (const [id, mod] of [[27, 'rd'], [28, 'comms'], [29, 'prn'], [30, 'fin'], [31, 'res'], [32, 'expo'], [33, 'train'], [34, 'wv'], [35, 'rp'], [36, 'PV'], [37, ' pv'], [38, 'privacy']]) {
     const r = await call(id, 'pvList', mod);
-    ok(r.ok === false && r.error === 'page_code_old', 'a Privacy method sent with the "' + mod + '" tag is not relayed through that branch');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'a Privacy method sent with the "' + mod + '" tag is not relayed through that branch');
   }
   const r39 = await call(39, 'pvList', 'pv', null);
   ok(r39.ok === true && seen[1] && Object.keys(seen[1]).length === 0, 'Privacy branch: a call with no argument reaches the backend as an empty object (the backend then says not_logged_in)');
@@ -291,7 +296,7 @@ for (const [f, id] of files) {
   const r42 = await call(42, 'pvList', 'pv', 'text');
   ok(r42.ok === true && seen[4] === 'text', 'Privacy branch: a plain text argument is passed on as it is (the backend answers not_logged_in to anything that is not an object with a token - checked in the backend suite)');
   const r43 = await call(43, 'rpList', 'pv');
-  ok(r43.ok === false && r43.error === 'page_code_old', 'a Reports method sent with the Privacy tag is refused');
+  ok(r43.ok === false && codeOf(r43.error) === 'page_code_old', 'a Reports method sent with the Privacy tag is refused');
 }
 
 // The public runner page code: three read-only public methods and nothing else; the race comes from the link.
@@ -324,11 +329,11 @@ for (const [f, id] of files) {
   ok(r3.ok === false && r3.error === 'no_certificate', 'Runner page code: an error from the server is passed on as its plain code');
   const P2 = build({}, { pubRaces: pub.pubRaces });
   const r4 = await P2.call(4, 'pubFind', {});
-  ok(r4.ok === false && r4.error === 'backend_old', 'Runner page code: a listed method missing in the backend says backend_old, not a crash');
+  ok(r4.ok === false && codeOf(r4.error) === 'backend_old', 'Runner page code: a listed method missing in the backend says backend_old, not a crash');
   const before = seen.length;
   for (const [id, m] of [[10, 'prnBibs'], [11, 'login'], [12, 'resBoard'], [13, 'listRegs'], [14, '__proto__'], [15, 'constructor'], [16, 'toString'], [17, 'hasOwnProperty'], [18, 'pubFind '], [19, 'PUBFIND'], [20, ''], [21, 'pub'], [22, 'pubFind\n'], [23, 'pubFind\u0000']]) {
     const r = await P.call(id, m, { token: 'x'.repeat(30) });
-    ok(r.ok === false && r.error === 'page_code_old', 'Runner page code: "' + String(m).replace(/\W/g, '?') + '" is refused, never run');
+    ok(r.ok === false && codeOf(r.error) === 'page_code_old', 'Runner page code: "' + String(m).replace(/\W/g, '?') + '" is refused, never run');
   }
   for (const [id, m] of [[30, ['pubFind']], [31, { toString: () => 'pubFind' }], [32, 5], [33, null], [34, undefined]]) {
     const r = await P.call(id, m, {});
@@ -337,7 +342,7 @@ for (const [f, id] of files) {
   ok(seen.length === before, 'Runner page code: none of the refused calls reached the server');
   // a staff tag does not open anything on this page
   const r5 = await P.call(40, 'prnBibs', {}, { mod: 'prn' });
-  ok(r5.ok === false && r5.error === 'page_code_old', 'Runner page code: the print tag opens nothing on the public page');
+  ok(r5.ok === false && codeOf(r5.error) === 'page_code_old', 'Runner page code: the print tag opens nothing on the public page');
   const r6 = await P.call(41, 'pubFind', { ev: 'RACE1', q: 'asha' }, { mod: 'fin' });
   ok(r6.ok === true, 'Runner page code: a stray tag on a public method is harmless (it still only reaches the public method)');
   // messages that are not calls

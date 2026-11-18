@@ -18,7 +18,6 @@ import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
-import { wixEventsV2, guests } from 'wix-events.v2';
 import { aiEnabled, askClaude, scrub, GROUND_RULES } from './ai-core.js';
 import { BULLET, maskPhone, maskEmail, maskSample, isErased } from './rd-privacy.js';
 import { SCOPES, LEGACY_TITLES, cleanScope, suggest, planRows as templateRows, follow, itemByKey, permitByKey, renderLetter, editionLabel } from './rd-approvals.js';
@@ -32,6 +31,11 @@ const guarded = (fn) => async (arg) => {
     throw tidyError(e, 'racedir');
   }
 };
+
+// The Wix Events module is opened only when a Registrations screen asks for it, never when this file loads. If this site
+// cannot open it (the app is missing, Wix has a problem), only the Wix Events import answers "wix_events_unavailable";
+// the login and every other screen keep working.
+const eventsApi = () => import('wix-events.v2');
 
 const STAFF = 'ExpoStaff';
 const SESS = 'ExpoSessions';
@@ -927,6 +931,7 @@ export const listWixEvents = webMethod(Permissions.Anyone, guarded(async (arg) =
   await auth(arg, 'manage');
   let r;
   try {
+    const { wixEventsV2 } = await eventsApi();
     r = await elevate(wixEventsV2.queryEvents)().limit(100).find();
   } catch (e) {
     throw wixErr(e);
@@ -950,9 +955,10 @@ export const linkWixEvent = webMethod(Permissions.Anyone, guarded(async (arg) =>
   return { ok: true };
 }));
 async function holders(wixEventId, cursor, limit, fields) {
-  let q = elevate(guests.queryGuests)({ fields }).eq('eventId', wixEventId).eq('guestType', 'TICKET_HOLDER').limit(limit);
-  if (cursor) q = q.skipTo(String(cursor));
   try {
+    const { guests } = await eventsApi();
+    let q = elevate(guests.queryGuests)({ fields }).eq('eventId', wixEventId).eq('guestType', 'TICKET_HOLDER').limit(limit);
+    if (cursor) q = q.skipTo(String(cursor));
     const r = await q.find();
     return { items: r.items, next: (r.cursors && r.cursors.next) || '' };
   } catch (e) {

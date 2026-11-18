@@ -1186,6 +1186,17 @@ ok(trDefs.length === expected(trText) && trDefs.length >= 7, 'S7 Training setup 
 const locked = (d) => d.permissions && ['read', 'insert', 'update', 'remove'].every((k) => d.permissions[k] === 'ADMIN');
 ok(rdDefs.every(locked), 'S7 every RaceOS collection can be read, added to, changed and emptied only by the site admin (never by a visitor, who could otherwise read logins and sessions)');
 ok(trDefs.every(locked), 'S7 every Training collection likewise (athlete PIN hashes, tokens, messages)');
+// Every backend module reaches Wix through Wix's own webMethod (imported from 'wix-web-module', never a copy of it), and every method is wrapped once in `guarded`,
+// which turns an unexpected error into "server_error" (Reports and Privacy let only a known code out as well)
+const plainGuard = (id) => new RegExp("const guarded = \\(fn\\) => async \\(arg\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*throw tidyError\\(e, '" + id + "'\\);\\s*\\}\\s*\\};");
+const codeGuard = (id) => new RegExp("const guarded = \\(fn\\) => async \\(arg\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*const t = tidyError\\(e, '" + id + "'\\);\\s*if \\(t && typeof t\\.message === 'string' && CODES\\.has\\(t\\.message\\)\\) throw t;[\\s\\S]*?throw new Error\\('server_error'\\);\\s*\\}\\s*\\};");
+const everyExportGuarded = (text) => {
+  const all = [...text.matchAll(/^export const \w+ = /gm)].length;
+  const good = [...text.matchAll(/^export const \w+ = webMethod\(Permissions\.Anyone, guarded\(async \((?:arg)?\) =>/gm)].length;
+  return all > 0 && all === good;
+};
+const ownWebMethod = (text) => /^import \{ Permissions, webMethod \} from 'wix-web-module';$/m.test(text) && !/wixWebMethod|const webMethod\b|function webMethod\b/.test(text);
+const answersThroughGuard = (text, guard) => guard.test(text) && everyExportGuarded(text) && ownWebMethod(text);
 const finText = src('wix/director/finance.web.js');
 ok(finDefs.length === expected(finText) && finDefs.length === 5 && finDefs.every(locked), 'S7 Finance makes its ' + finDefs.length + ' collections on first use, each readable, changeable and emptied only by the site admin (invoices, orders, claims, the ledger and the details printed on invoices are never open to a visitor)');
 eq(finDefs.map((d) => d._id).sort(), FIN_COLS.slice().sort(), 'S7 and they are exactly invoices, orders, claims, the ledger and the Finance settings');
@@ -1338,7 +1349,7 @@ ok(![...athList, ...coachList, ...(listOf('wix/director/volunteer-page-code.js',
 {
   const pc = src(DP);
   ok(/import \* as fin from 'backend\/finance\.web';/.test(pc) && /msg\.mod === 'fin'/.test(pc) && /FIN_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Finance and refuses a Finance call that is not on its list');
-  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*throw tidyError\(e, 'finance'\);/.test(finText), 'S8 every Finance method answers through the wrapper that turns an unexpected error into "server_error"');
+  ok(answersThroughGuard(finText, plainGuard('finance')), 'S8 every Finance method answers through the wrapper that turns an unexpected error into "server_error"');
   const lines = finText.split('\n');
   const callsOf = (re) => lines.map((l, i) => [l, i + 1]).filter(([l]) => re.test(l));
   const noSA = callsOf(/wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/).filter(([l]) => !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
@@ -1364,7 +1375,7 @@ ok(![...athList, ...coachList, ...(listOf('wix/director/volunteer-page-code.js',
 {
   const pc = src(DP);
   ok(/import \* as res from 'backend\/results\.web';/.test(pc) && /msg\.mod === 'res'/.test(pc) && /RES_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Results and refuses a Results call that is not on its list');
-  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*throw tidyError\(e, 'results'\);/.test(resText), 'S8 every Results method answers through the wrapper that turns an unexpected error into "server_error"');
+  ok(answersThroughGuard(resText, plainGuard('results')), 'S8 every Results method answers through the wrapper that turns an unexpected error into "server_error"');
   const lines = resText.split('\n');
   const callsOf = (re) => lines.map((l, i) => [l, i + 1]).filter(([l]) => re.test(l));
   const noSA = callsOf(/wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/).filter(([l]) => !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
@@ -1400,8 +1411,7 @@ ok(![...ALLOWED, ...EXPO_ALLOWED, ...TRAIN_ALLOWED, ...FIN_ALLOWED, ...RES_ALLOW
   eq([...rp.matchAll(/^import .* from '([^']+)';/gm)].map((m) => m[1]).sort(), ['backend/runner.web', 'wix-location'], 'S8 the runner page code imports only the address bar and the public runner module (nothing of RaceOS, Finance, Results or Print)');
   ok(/ALLOWED\.indexOf\(msg\.method\) < 0\)/.test(rp) && !/token|login|password|session/i.test(code(rp)), 'S8 it refuses a method that is not on its list, and holds nothing about logins, tokens or sessions');
   ok(!/token|password|login|session/i.test(code(src('wix/director/runner-embed.html'))), 'S8 the public runner screen has no login, token or session in it');
-  const wrapper = (id) => new RegExp("const webMethod = \\(permission, fn\\) =>\\s*wixWebMethod\\(permission, async \\(arg\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*throw tidyError\\(e, '" + id + "'\\);");
-  ok(wrapper('print').test(printText) && wrapper('runner').test(runnerText), 'S8 every Print method and every public runner method answers through the wrapper that turns an unexpected error into "server_error"');
+  ok(answersThroughGuard(printText, plainGuard('print')) && answersThroughGuard(runnerText, plainGuard('runner')), 'S8 every Print method and every public runner method answers through the wrapper that turns an unexpected error into "server_error"');
   // Print: every read and write of its locked collections passes suppressAuth, and nothing is ever deleted
   const pl = printText.split('\n');
   const noSA = pl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
@@ -1426,7 +1436,7 @@ ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^cm[A-Z]/.te
 {
   const pc = src(DP);
   ok(/import \* as comms from 'backend\/comms\.web';/.test(pc) && /msg\.mod === 'comms'/.test(pc) && /COMMS_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Messages and refuses a Messages call that is not on its list');
-  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*throw tidyError\(e, 'comms'\);/.test(commsText), 'S8 every Messages method answers through the wrapper that turns an unexpected error into "server_error"');
+  ok(answersThroughGuard(commsText, plainGuard('comms')), 'S8 every Messages method answers through the wrapper that turns an unexpected error into "server_error"');
   const cl = commsText.split('\n');
   const noSA = cl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
   ok(!noSA.length, 'S8 every Messages read and write of its locked collection passes suppressAuth (the collection is admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
@@ -1454,7 +1464,7 @@ ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^wv[A-Z]/.te
 {
   const pc = src(DP);
   ok(/import \* as wv from 'backend\/waivers\.web';/.test(pc) && /msg\.mod === 'wv'/.test(pc) && /WV_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Waivers and refuses a Waivers call that is not on its list');
-  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*throw tidyError\(e, 'waivers'\);/.test(waivText), 'S8 every Waivers method answers through the wrapper that turns an unexpected error into "server_error"');
+  ok(answersThroughGuard(waivText, plainGuard('waivers')), 'S8 every Waivers method answers through the wrapper that turns an unexpected error into "server_error"');
   const wl = waivText.split('\n');
   const noSA = wl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
   ok(!noSA.length, 'S8 every Waivers read and write of its locked collection passes suppressAuth (the collection is admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
@@ -1484,7 +1494,7 @@ ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^pv[A-Z]/.te
   const pvText = src('wix/director/privacy.web.js');
   const pvCode = code(pvText);
   ok(/import \* as pv from 'backend\/privacy\.web';/.test(pc) && /msg\.mod === 'pv'/.test(pc) && /PV_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Privacy and refuses a Privacy call that is not on its list');
-  ok(/const webMethod = \(permission, fn\) =>\s*wixWebMethod\(permission, async \(arg\) => \{\s*try \{\s*return await fn\(arg\);\s*\} catch \(e\) \{\s*const t = tidyError\(e, 'privacy'\);\s*if \(t && typeof t\.message === 'string' && CODES\.has\(t\.message\)\) throw t;/.test(pvText) && /throw new Error\('server_error'\);\s*\}\s*\}\);/.test(pvText), 'S8 every Privacy method answers through the wrapper that lets only a known code out and turns anything else into "server_error"');
+  ok(answersThroughGuard(pvText, codeGuard('privacy')), 'S8 every Privacy method answers through the wrapper that lets only a known code out and turns anything else into "server_error"');
   const pl = pvText.split('\n');
   const noSA = pl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
   ok(!noSA.length, 'S8 every Privacy read and write of a locked collection passes suppressAuth (the collections are admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));
