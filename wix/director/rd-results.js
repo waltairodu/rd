@@ -866,3 +866,4 @@ export function readResults(text, ctx) {
   });
   return out;
 }
+// END rd-results.js

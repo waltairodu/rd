@@ -69,3 +69,4 @@ export async function askClaude(system, user, maxTokens) {
   if (!text) throw new Error('ai_failed');
   return text;
 }
+// END ai-core.js

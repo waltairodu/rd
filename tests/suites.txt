@@ -36,3 +36,7 @@ unit unit-privacy.mjs
 integration privacy.mjs
 integration privacy-ui.mjs
 pentest pentest-privacy.mjs
+
+# Pack fix: backend files that do not load (Wix Events opened only when asked for; the page names the file to look at)
+integration events-lazy.mjs
+integration diagnose-ui.mjs

@@ -607,3 +607,4 @@ async function ensureCollections() {
   }
   checked = true;
 }
+// END results.web.js

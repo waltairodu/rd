@@ -749,3 +749,4 @@ export const saveConfig = webMethod(Permissions.Anyone, guarded(async (arg) => {
   await writeConfig(cfg.id, name, { bibLot, shirtLot: lot, named });
   return readConfig(cfg.id);
 }));
+// END exposoft.web.js

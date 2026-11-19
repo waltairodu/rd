@@ -960,3 +960,4 @@ export const ensureTrainSetup = webMethod(Permissions.Anyone, guarded(async (arg
   return { summary: (notes.length ? notes.join('; ') : 'All collections already exist') + '. Starter plans added: ' + seeded };
 }));
 export const trainHealth = webMethod(Permissions.Anyone, guarded(async () => ({ ok: true })));
+// END training.web.js

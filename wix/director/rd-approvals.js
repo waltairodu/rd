@@ -654,3 +654,4 @@ export function renderLetter(row, event, info, opts) {
   }
   return { subject, to: addr.join(', '), text: lines.join('\n'), docs, missing };
 }
+// END rd-approvals.js

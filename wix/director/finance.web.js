@@ -759,3 +759,4 @@ async function ensureCollections() {
   }
   checked = true;
 }
+// END finance.web.js

@@ -122,9 +122,9 @@ function backendCheck() {
   else if (culprits.length) parts.push('check that these files exist with exactly these names: ' + culprits.join(', '));
   empty.filter((r) => unproven(r).length === 0).forEach((r) => parts.push('every file ' + r.file + ' imports is there, so paste ' + r.file + ' again, then save and publish'));
   empty.slice(0, 3).forEach((r) => parts.push(r.file + ' has none of its ' + r.want + ' methods'));
-  if (empty.length > 3) parts.push(empty.length - 3 + ' more modules have none of their methods');
+  if (empty.length > 3) parts.push(empty.length - 3 + (empty.length === 4 ? ' more module has none of its methods' : ' more modules have none of their methods'));
   old.slice(0, 2).forEach((r) => parts.push(r.file + ' has ' + r.have + ' of ' + r.want + ' methods (missing ' + r.missing.slice(0, 4).join(', ') + (r.missing.length > 4 ? ', ...' : '') + ')'));
-  if (old.length > 2) parts.push(old.length - 2 + ' more modules are older copies');
+  if (old.length > 2) parts.push(old.length - 2 + (old.length === 3 ? ' more module is an older copy' : ' more modules are older copies'));
   if (!parts.length) parts.push('every backend module answers, so paste the newest backend files and publish');
   return parts.join('; ').slice(0, 420);
 }

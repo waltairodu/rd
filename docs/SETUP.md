@@ -4,7 +4,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 
 ## A. The files and where each one goes
 
-**Backend files** (code sidebar > Backend). The first eleven are web modules (`.web.js`); the other eleven are plain files: create them with **+ > Add a .js file** and give them exactly these names.
+**Backend files** (code sidebar > Backend). The first eleven are web modules (`.web.js`); the other eleven are plain files: create them with **+ > Add a .js file** and give them exactly these names. **All 22 files below are needed: none is optional.** A web module that imports a file which is missing does not load at all, and the page then says "The backend file is out of date" (see "If a page shows an error" below). The last line of every file reads `// END` and the file's own name: if you do not see it when you press Ctrl+End, the paste was cut.
 
 | File in this pack | Name in Wix | Notes |
 |---|---|---|
@@ -20,7 +20,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 | 1-backend/reports.web.js | reports.web.js | **New.** Reports: six reports of counts and totals for a race and a CSV file of any table (staff only; Money is for directors). Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/privacy.web.js | privacy.web.js | **New.** Privacy: shows one hidden phone number or e-mail address with a reason (directors and leads), the contact files, who looked, and erasing a person (directors). Add it **before** you paste the new /rd page code, because that code imports it |
 | 1-backend/rd-auth.js | **rd-auth.js** | Passwords, PINs, roles. Every `.web.js` file imports it |
-| 1-backend/ai-core.js | **ai-core.js** | Optional AI helper (works without a key) |
+| 1-backend/ai-core.js | **ai-core.js** | **Required, even if you never use the AI features.** `racedir.web.js` and `training.web.js` import it, and neither loads without it. The AI itself stays off until you add a key (see "AI features") |
 | 1-backend/rd-approvals.js | **rd-approvals.js** | Approvals library and the letter writer |
 | 1-backend/rd-finance.js | **rd-finance.js** | Finance rules and money arithmetic. `finance.web.js` imports it |
 | 1-backend/rd-results.js | **rd-results.js** | Results rules: times, age groups, waves, awards. `results.web.js` imports it |
@@ -61,7 +61,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
    Changing a login's role, desk, race or password signs that person out at once. **Sign out** and **Remove** are on the same screen.
 7. **Expo desk set-up** (/rd > BIB & Expo, as director): type the bib lot and the T-shirt lot per size (the Stock tab), then Setup tab > **Sync from findmybib**. Press **Check data** first and send me the Columns line if category or size shows as not found.
 8. **Create the race** (/rd > Settings): name, date, venue, distance. Fill the Expo race only if you use the Expo desk for it.
-9. **Registrations** (/rd > Registrations): Load my Wix events, pick the event, Link. Open Form fields, choose the T-shirt size, bib name and phone fields, Save. Press Import / refresh.
+9. **Registrations** (/rd > Registrations): Load my Wix events, pick the event, Link. Open Form fields, choose the T-shirt size, bib name and phone fields, Save. Press Import / refresh. RaceOS opens the Wix Events connection only when this screen asks for it, never when the backend file loads. If Wix Events cannot be reached the screen says "Wix Events did not answer" (or "refused access"), and every other screen keeps working.
 10. **Qualification** (/rd > Qualification): one rule per line, for example `110 K | Marathon under 6 hrs, or any 50 km+ | 42.195@6:00; 50@`.
 11. **Volunteers** (/rd > Volunteers): add shifts (roles are suggested), then Copy link and share it.
 12. **Coaching** (/coach): log in with a director or coach login (made on the Team screen). The first login creates the Training collections and three starter 8-week plans. Check Settings. Then open /train on a phone and sign up as a test athlete.
@@ -119,6 +119,43 @@ What that means:
 - The **test race** of your rehearsal: every row with its `event`, in every collection.
 
 Keep the race's own record: `RDRegs`, `RDResults`, `RDWaveAssign`, `RDWaivers` (the signed waivers), `RDLedger`, `RDInvoices`, `RDOrders` (the accounts) and `RDAudit` (the record of who looked at or exported personal details). If you do reach the limit, Wix deletes nothing: free some space or upgrade and carry on.
+
+## If a page shows an error
+
+Right after you paste new files, nearly every error has one of five causes. Go through these checks in this order; most problems end at check 1 or 2.
+
+1. **All 22 backend files exist, with exactly these names.** None is optional. The eleven web modules: `racedir.web.js`, `exposoft.web.js`, `training.web.js`, `finance.web.js`, `results.web.js`, `print.web.js`, `runner.web.js`, `comms.web.js`, `waivers.web.js`, `reports.web.js`, `privacy.web.js`. The eleven plain files: `rd-auth.js`, `ai-core.js`, `rd-approvals.js`, `rd-finance.js`, `rd-results.js`, `rd-print.js`, `rd-data.js`, `rd-comms.js`, `rd-waiver.js`, `rd-report.js`, `rd-privacy.js`. Spelling counts: `rd-auth.js`, not `rd_auth.js`, `rd-auth` or `rd-auth (1).js`. `ai-core.js` is needed **even if you never use the AI features**: `racedir.web.js` and `training.web.js` import it.
+2. **Every file was pasted whole.** Click inside the file and press Ctrl+End (Cmd+Down on a Mac). The last line must read `// END` followed by the file's own name, for example `// END racedir.web.js`. If it does not, the paste was cut: press Ctrl+A, delete, and paste the file again.
+3. **No import line at the top of a web module is underlined in red.** An underlined import names a file that Wix cannot find: create it, or correct its name (check 1).
+4. **Save, publish, and test at the real address.** After any change to a backend file or a page code: **Save**, then **Publish**. Then open the page at its real address, for example `https://www.vtra.run/rd`, not an address that ends in `?rc=test-site` (that is the preview, and it can still show the previous files).
+5. **The right page code is on the right page.** Each page has its own embed, element ID and page code (table in section A). **Do not make the volunteer page by duplicating /rd**: the copy carries the Director page code, and the volunteer screen then says "This page is not set up correctly yet". Add a new page, paste `volunteer-embed.html` into an HTML element, give the element the ID `volFrame`, and paste the volunteer `page-code.js`. The same goes for /train, /coach and /runner.
+
+### What the page says, and what to do
+
+| The page says | What it means | What to do |
+|---|---|---|
+| "The backend file is out of date. Paste the latest backend files, then publish." with a sentence in brackets | The page asked a backend file for a method that is not there: the file is missing, empty, cut, misnamed or from an older pack. The brackets say which file looks wrong. | Read the table below, then checks 1, 2 and 4. |
+| "This page's code is out of date. Paste the latest page-code.js for this page, then publish." with "(does not list ...)" in brackets | The page code on this page does not know that method: it is older than the embed, or it is the page code of another page. | Paste the `page-code.js` that belongs to this page (table in section A). Save, publish. |
+| "No answer from the server in time." | Nothing answered within 30 seconds. Usually the page code is not on this page (or not published), the HTML element has the wrong ID, or a backend file is missing. | Checks 5, 1 and 4. |
+| "Something went wrong (server_error)" | The backend file ran and met a fault it did not expect. | Wix dashboard > Developer Tools > Logging Tools > Wix Logs > Open. Pick the live site, level Error, and look at the newest lines: the Source file column names the file. |
+| "Wix Events did not answer" or "Wix Events refused access" | Only the Registrations screen opens Wix Events. Wix did not answer, or the Events app is not installed on this site. | Check that Wix Events is installed. Every other screen is not affected. |
+| (volunteer, athlete, coach or runner page) "This page is not set up correctly yet. Please tell the organiser." or "This page is being updated" | The same two problems as the first two rows, said in plain words for the public. The page never shows the technical sentence. | Do the checks above for that page. |
+
+### When the sentence in brackets says...
+
+The Director page (/rd) works out which file to look at: a web module that answers with at least some of its methods was read in full, so every file it imports is there. The brackets are cut at 420 characters, with the advice first.
+
+| In brackets | What it means | What to do |
+|---|---|---|
+| `most likely missing or misnamed: rd-privacy.js` | Several web modules do not load, and they all import this one file, which no working module imports. | Look for the file in the Backend list. Create it, or correct its name, paste it, Save, Publish. |
+| `check that these files exist with exactly these names: rd-finance.js, rd-privacy.js` | The same, for more than one file. | Check each one. |
+| `every file racedir.web.js imports is there, so paste racedir.web.js again, then save and publish` | The helper files are fine; the web module itself is empty, cut or from an older pack. | Check 2. Press Ctrl+A, delete, paste the file again, Save, Publish. |
+| `finance.web.js has none of its 23 methods` | That web module does not load. | Do what the advice before it says. |
+| `finance.web.js has 17 of 23 methods (missing finVoid, ...)` | That web module is an older copy. | Paste the new `finance.web.js`, Save, Publish. |
+| `3 more modules have none of their methods` or `1 more module is an older copy` | The sentence names at most three empty and two old modules. | Fix the ones named, publish, and look again: this often clears the rest. |
+| `every backend module answers, so paste the newest backend files and publish` | Every web module has methods, but not the one the page just asked for. | Replace all eleven web modules with the ones in this pack. Save, Publish. |
+
+The pages for volunteers, athletes, coaches and runners never show these sentences. If one of them says "not set up correctly", open /rd: the sentence there is the one to follow.
 
 ## Expo desk rules (enforced on the server; the screen only mirrors them)
 
@@ -439,7 +476,7 @@ The authorities, documents and lead times are a sound starting point, not legal 
 ## AI features (optional, work without a key)
 Without a key, Ask RaceOS shows a rule-based daily briefing, forecasts (registrations, volunteers, budget) and template drafts. The coach and athlete screens show planned against actual with flags. With a key, the same facts are written up by Claude: the briefing, Ask RaceOS, drafts for runners, volunteers and sponsors, and coach suggestions with a draft note to the athlete.
 
-1. Backend: make sure `ai-core.js` exists next to `racedir.web.js` and `training.web.js` (file name exactly `ai-core.js`).
+1. Backend: `ai-core.js` is one of the 22 files every site needs (file name exactly `ai-core.js`), whether or not you use the AI. Nothing else to add here.
 2. Wix dashboard > Developer Tools > Secrets Manager > add a secret named `ANTHROPIC_API_KEY` with your key. Optional: `ANTHROPIC_MODEL` to choose a model (default `claude-sonnet-5-5`).
 3. Publish. Open /rd > Ask RaceOS: it should say "AI connected".
 

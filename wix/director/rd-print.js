@@ -513,3 +513,4 @@ export function searchPublic(idx, q, f, limit) {
   hits.sort((a, c) => (a.key.startsWith(k) ? 0 : 1) - (c.key.startsWith(k) ? 0 : 1) || (a.key < c.key ? -1 : a.key > c.key ? 1 : bibCmp(a.bib, c.bib)));
   return { items: hits.slice(0, lim).map((n) => publicView(idx.byBib.get(n.bib), f)), more: hits.length > lim, tooShort: false };
 }
+// END rd-print.js

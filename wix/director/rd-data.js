@@ -91,3 +91,4 @@ export async function loadRace(e) {
   const am = new Map(assigns.map((x) => [x.regId, { wave: String(x.wave || ''), corral: String(x.corral || '') }]));
   return { race, st, infos, board: b, waves: wv.waves, assigns: am, cats: knownCats(race, regList) };
 }
+// END rd-data.js

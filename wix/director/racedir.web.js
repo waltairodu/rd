@@ -2903,3 +2903,4 @@ export const ensureSetup = webMethod(Permissions.Anyone, guarded(async (arg) => 
   } else notes.push('logins already exist, none added');
   return { summary: notes.join(' · ') };
 }));
+// END racedir.web.js

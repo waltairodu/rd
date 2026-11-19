@@ -1495,6 +1495,13 @@ ok(![...athList, ...coachList, ...volList, ...runList].some((n) => /^pv[A-Z]/.te
   const pvCode = code(pvText);
   ok(/import \* as pv from 'backend\/privacy\.web';/.test(pc) && /msg\.mod === 'pv'/.test(pc) && /PV_ALLOWED\.indexOf\(msg\.method\) < 0\) return refuse\(msg\)/.test(pc), 'S8 the page code imports Privacy and refuses a Privacy call that is not on its list');
   ok(answersThroughGuard(pvText, codeGuard('privacy')), 'S8 every Privacy method answers through the wrapper that lets only a known code out and turns anything else into "server_error"');
+  // the three big modules and Reports go through the same wrapper
+  ok(answersThroughGuard(rdText, plainGuard('racedir')), 'S8 every RaceOS method answers through the wrapper that turns an unexpected error into "server_error"');
+  ok(answersThroughGuard(src('wix/expo/exposoft.web.js'), plainGuard('exposoft')), 'S8 every Expo desk method answers through the same wrapper');
+  ok(answersThroughGuard(trText, plainGuard('training')), 'S8 every Training method answers through the same wrapper');
+  ok(answersThroughGuard(src('wix/director/reports.web.js'), codeGuard('reports')), 'S8 every Reports method answers through the wrapper that lets only a known code out and turns anything else into "server_error"');
+  // nothing in any web module opens the Wix Events module while the file loads (a static import of it is what stopped a file from loading): see tests/events-lazy.mjs
+  ok(![rdText, trText, src('wix/expo/exposoft.web.js'), finText, resText, printText, runnerText, commsText, waivText, pvText, src('wix/director/reports.web.js')].some((t) => /^\s*import\b[^;]*['"]wix-events/m.test(t)), 'S8 no backend module imports Wix Events at the top of the file');
   const pl = pvText.split('\n');
   const noSA = pl.map((l, i) => [l, i + 1]).filter(([l]) => /wixData\.(insert|update|save|get|bulkRemove|bulkInsert|bulkUpdate)\(/.test(l) && !/SA\)/.test(l)).map(([l, i]) => i + ': ' + l.trim().slice(0, 60));
   ok(!noSA.length, 'S8 every Privacy read and write of a locked collection passes suppressAuth (the collections are admin-only, so without it the live site would refuse)' + (noSA.length ? ' [' + noSA + ']' : ''));

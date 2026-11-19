@@ -27,7 +27,7 @@ print-ui.mjs 178
 runner-ui.mjs 99
 comms.mjs 533
 comms-ui.mjs 267
-security.mjs 574
+security.mjs 579
 director.mjs 212
 plan.mjs 98
 dash.mjs 38
@@ -58,3 +58,5 @@ unit-privacy.mjs 400
 pentest-privacy.mjs 529
 privacy.mjs 387
 privacy-ui.mjs 241
+events-lazy.mjs 29
+diagnose-ui.mjs 295

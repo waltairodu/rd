@@ -223,3 +223,4 @@ export function erasedRow(kind, row) {
   if (!row || typeof row !== 'object' || !Object.prototype.hasOwnProperty.call(PATCH, kind)) return row;
   return Object.assign({}, row, PATCH[kind]);
 }
+// END rd-privacy.js

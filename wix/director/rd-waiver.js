@@ -386,3 +386,4 @@ export function renderList(wv, race, rows, who, first) {
   return '<section>' + top + '<table><thead><tr>' + th + '</tr></thead><tbody>' + tr + '</tbody></table></section>';
 }
 export { pageOf };
+// END rd-waiver.js

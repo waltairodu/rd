@@ -718,3 +718,4 @@ async function ensureCollections() {
   }
   checked = true;
 }
+// END comms.web.js

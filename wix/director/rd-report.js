@@ -296,3 +296,4 @@ export function tableCsv(t) {
 const slug = (s) => T(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 // A file name that is plain letters, digits and dashes whatever the race is called.
 export const csvName = (race, report, table) => [slug(race), slug(report), slug(table)].filter(Boolean).join('-') + '.csv';
+// END rd-report.js

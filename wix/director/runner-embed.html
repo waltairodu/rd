@@ -58,7 +58,8 @@ input:focus{outline:2px solid var(--primary);border-color:var(--primary)}
 var $=function(s,r){return (r||document).querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 var ERR={not_published:'That race is not showing anything on this page. Please check the link.',bad_query:'Please type your bib number, or at least three letters of your name.',no_certificate:'There is no certificate for that bib.',timeout:'There was no answer in time. Please try again.',page_code_old:'This page is being updated. Please try again in a few minutes.',backend_old:'This page is being updated. Please try again in a few minutes.'};
-var msg=function(e){return ERR[e]||'Something went wrong. Please try again in a moment.'};
+/* A page code that does not belong to this page answers "code|details"; only the code is used here, so a visitor never sees technical words. */
+var msg=function(e){e=String(e==null?'':e).split('|')[0];return Object.prototype.hasOwnProperty.call(ERR,e)?ERR[e]:'Something went wrong. Please try again in a moment.'};
 var STATUS={dnf:'Did not finish',dns:'Did not start',dsq:'Disqualified'};
 var S={ev:'',races:null,info:null,q:'',res:null,err:'',busy:false,cert:null,certErr:''};
 var pending={},seq=0;

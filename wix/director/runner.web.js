@@ -101,3 +101,4 @@ export const pubCert = webMethod(Permissions.Anyone, guarded(async (arg) => {
   const r = renderCerts(tpl, [certVars(hit.row, race, built.race.cats)], race);
   return { name: hit.name, bib: hit.bib, html: r.head + r.body + DOC_FOOT };
 }));
+// END runner.web.js

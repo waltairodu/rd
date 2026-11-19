@@ -35,7 +35,15 @@ $w.onReady(function () {
       frame.postMessage({ kind: 'init' });
       return;
     }
-    if (msg.kind !== 'call' || ALLOWED.indexOf(msg.method) < 0) return;
+    if (msg.kind !== 'call') return;
+    if (ALLOWED.indexOf(msg.method) < 0) {
+      frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'page_code_old' });
+      return;
+    }
+    if (typeof tr[msg.method] !== 'function') {
+      frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: 'backend_old' });
+      return;
+    }
     try {
       const result = await tr[msg.method](msg.arg || {});
       frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });

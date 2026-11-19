@@ -285,3 +285,4 @@ export function freeSlots(db, col, prefix, max, ms, opts, now) {
 }
 // A short fixed-length name for an account in a slot prefix (whatever odd characters its username has).
 export const slotKey = (kind, name) => kind + '~' + sha256(String(name || '').trim().toLowerCase()).slice(0, 24);
+// END rd-auth.js

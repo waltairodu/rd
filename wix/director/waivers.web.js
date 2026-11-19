@@ -429,3 +429,4 @@ async function ensureCollections() {
   }
   checked = true;
 }
+// END waivers.web.js
