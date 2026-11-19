@@ -5,7 +5,7 @@ Use this when /rd says "The backend file is out of date" or "No answer from the 
 
 **What changed**
 - Every web module now calls Wix's own `webMethod` directly. Before, each file wrapped it in a small helper of its own, which is not the form Wix documents.
-- `racedir.web.js` opens the Wix Events module only when the Registrations screen asks for it, never when the file loads. Before, that import sat at the top of the file, and a file with an import that fails does not load at all, so every method looked missing.
+- `racedir.web.js` opens the Wix Events module only when the Registrations screen asks for it, never when the file loads. Before, that import sat at the top of the file; when an import at the top of a file fails, the whole file does not load and every method in it looks missing.
 - /rd says which file to look at: a sentence in brackets after "The backend file is out of date" names the backend file that is missing, empty, cut or older. The volunteer, athlete, coach and runner pages say it in plain words.
 - The last line of each of the 22 backend files is `// END` and the file's name. Press Ctrl+End after pasting: if you do not see it, the paste was cut.
 - SETUP.md has a new section, **If a page shows an error**, with six checks, the last one on Wix's own build report (Wix scans every code file when you publish and lists what it cannot read). `ai-core.js` is needed even if you never use the AI features.
@@ -29,7 +29,7 @@ For each page: the HTML element (**Enter Code**: select everything, paste the em
 **Do not make the volunteer page by duplicating /rd.** A copy carries the Director page code, and the volunteer screen then cannot work. If your volunteer page is a copy of /rd, add a new page instead, with the volunteer embed in an HTML element whose ID is `volFrame`.
 
 ## 3. Save, publish, and test at the real address
-1. Click **Save**, then **Publish**. If a pop-up says errors were found in the code, choose **View build.log**, not "Proceed with publishing": a file with an error is left out and then looks empty. The report names the file (SETUP.md, "If a page shows an error", check 6). You can open it after any publish: Developer Tools > Latest build > `build.log`.
+1. Click **Save**, then **Publish**. If a pop-up says errors were found in the code, choose **View build.log**, not "Proceed with publishing": a file with an error can end up left out and then looks empty. The report names the file (SETUP.md, "If a page shows an error", check 6). You can open it after any publish: Developer Tools > Latest build > `build.log`.
 2. Open https://www.vtra.run/rd (not an address that ends in `?rc=test-site`, which is the preview) and log in as a director. The Dashboard opens.
 3. **Registrations**: Load my Wix events lists your Wix events. If Wix Events cannot be reached this screen alone says "Wix Events did not answer"; everything else keeps working.
 4. Open the volunteer page at its real address: the races are listed.
