@@ -141,7 +141,16 @@ ok(A.genPassword(3).length === 8 && A.genPassword(500).length === 32, 'password 
 const ch = {};
 pws.forEach((p) => [...p].forEach((c) => (ch[c] = (ch[c] || 0) + 1)));
 const chv = Object.values(ch);
-ok(chv.length === 54 && Math.max(...chv) < Math.min(...chv) * 1.35, 'all 54 password characters are used about equally (max/min ' + (Math.max(...chv) / Math.min(...chv)).toFixed(2) + ')');
+// Chi-square over the 54 characters (53 degrees of freedom): a fair generator averages 53 and passes the limit of 120 all but about once in ten million runs
+// (the old "max/min < 1.35" rule failed by luck now and then). A generator that favours some characters is far above it.
+const chTotal = chv.reduce((a, b) => a + b, 0);
+const chi2 = chv.reduce((a, c) => a + (c - chTotal / 54) ** 2 / (chTotal / 54), 0);
+ok(chv.length === 54 && chi2 < 120, 'all 54 password characters are used about equally (chi-square ' + chi2.toFixed(0) + '; a fair generator averages 53, the limit is 120)');
+// ...and the limit is tight enough: a byte taken modulo 54 (256 = 4 x 54 + 40, so 40 characters come up one time in five more often) scores far above it even before any luck
+const modBias = Array.from({ length: 54 }, (_, i) => (i < 40 ? 5 : 4));
+const modTotal = modBias.reduce((a, b) => a + b, 0);
+const modChi2 = modBias.reduce((a, w) => a + (w / modTotal - 1 / 54) ** 2 / (1 / 54), 0) * chTotal;
+ok(modChi2 > 120, 'the limit notices a byte-modulo-54 generator (its score is at least ' + modChi2.toFixed(0) + ' for this many characters)');
 
 /* ---------- which role a staff row has ---------- */
 const kindCases = [

@@ -608,9 +608,9 @@ ok(V1.calls.every((c) => c.mod !== 'rp'), 'U1 and the viewer\'s page never calle
   // a report that times out
   FAIL.set('rpRun', { code: 'timeout' });
   click(w, act(d, 'rp-refresh'));
-  await until(() => /No answer from the server\. Try again\./.test(content(d)));
+  await until(() => /No answer from the server in time\. Try again\./.test(content(d)));
   await settle();
-  ok(/No answer from the server\. Try again\./.test(content(d)) && cards(d).length === 0, 'U9 a call that runs out of time says so, and shows no table');
+  ok(/No answer from the server in time\. Try again\./.test(content(d)) && cards(d).length === 0, 'U9 a call that runs out of time says so, and shows no table');
   click(w, act(d, 'retry'));
   await until(() => cards(d).length > 0);
   await settle();

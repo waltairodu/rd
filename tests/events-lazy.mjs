@@ -77,4 +77,42 @@ ok(Array.isArray(list.events) && list.events.length === 1 && list.events[0].id =
 global.__EV.fail = true;
 eq(await err(D.listWixEvents({ token: boss.token })), 'wix_events_unavailable', 'E5 a fault while asking Wix Events is "wix_events_unavailable" too');
 global.__EV.fail = false;
+
+// ---- E6: the guide's own replacement (SETUP.md, check 6) is a form that works: a plain import of the Events module
+// It is taken from the guide itself, so a wrong word there fails here. With the module openable the file works as before;
+// with the module not openable the file does not load at all, which is why the lazy form is the default and the plain one is a fallback.
+{
+  const guide = fs.readFileSync(path.join(root, 'docs/SETUP.md'), 'utf8');
+  const sec = (guide.split(/^## If a page shows an error\s*$/m)[1] || '').split(/^## /m)[0];
+  const oldLine = (sec.match(/replace the line `(const eventsApi = \(\) => import\('wix-events\.v2'\);)`/) || [])[1] || '';
+  const block = ((sec.match(/```js\n([\s\S]*?)```/) || [])[1] || '').trim().split('\n').map((l) => l.trim()).join('\n');
+  const built = fs.readFileSync(path.join(root, 'tests/racedir.test.mjs'), 'utf8');
+  ok(oldLine !== '' && built.includes(oldLine) && block.split('\n').length === 2, 'E6 the guide names the line to replace and gives two lines to put in its place');
+  const variant = (name) => {
+    fs.writeFileSync(path.join(root, 'tests', name), built.replace(oldLine, block));
+    return './' + name;
+  };
+  try {
+    Atomics.store(flag, 0, 0);
+    const P = await import(variant('racedir-plain-ok.test.mjs'));
+    ok(typeof P.login === 'function', 'E6 the file loads with the plain import when the Events module opens');
+    const pb = await P.login({ username: 'boss', password: 'pw-boss' });
+    const pl = await P.listWixEvents({ token: pb.token });
+    ok(Array.isArray(pl.events) && pl.events.length === 1 && pl.events[0].id === 'w1', 'E6 the Wix events are listed with the plain import');
+    global.__EV.fail = true;
+    eq(await err(P.listWixEvents({ token: pb.token })), 'wix_events_unavailable', 'E6 a fault while asking Wix Events is still "wix_events_unavailable"');
+    global.__EV.fail = false;
+    Atomics.store(flag, 0, 1);
+    let loaded = true;
+    try {
+      await import(variant('racedir-plain-bad.test.mjs'));
+    } catch (e) {
+      loaded = false;
+    }
+    ok(loaded === false, 'E6 with the plain import, an Events module that cannot be opened stops the whole file from loading (why the lazy form is the default)');
+  } finally {
+    Atomics.store(flag, 0, 0);
+    for (const f of ['racedir-plain-ok.test.mjs', 'racedir-plain-bad.test.mjs']) fs.rmSync(path.join(root, 'tests', f), { force: true });
+  }
+}
 done();

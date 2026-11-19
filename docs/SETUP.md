@@ -48,7 +48,7 @@ RaceOS is one site: **one login for everything**. The Expo desk (bibs, T-shirts,
 1. **Prepare the site.** Wix Dev Mode on. Wix Events installed (it already is, for your tickets). A Wix Premium plan that allows enough database items for your race (section C below: **read it before race day**, it decides which plan you need).
 2. **Backend.** Add all the backend files above (the plain files first). In `racedir.web.js` change `const SETUP_KEY = 'change-this-key'` to your own secret. Do the same in `training.web.js` if you ever want to run its manual setup (it refuses to run while the key is the placeholder).
 3. **Pages.** Create /rd, /volunteer, /train, /coach and /runner (permissions **Anyone**: the logins are checked by the backend). On each: Add Elements > Embed Code > Embed HTML > Code, paste the embed file; make the element full width and about 1200 px tall; set its ID (Properties panel); paste the page code. Wix has no size limit on HTML embeds, so the large /rd page is fine.
-4. **Publish** the site. Everything works on the published site only.
+4. **Publish** the site. Everything works on the published site only. If a pop-up says errors were found in the code, choose **View build.log** instead of publishing anyway: it names the file (check 6 under "If a page shows an error").
 5. **First login at /rd.** Open "First-time setup (owner only)" on the login screen and enter the setup key plus a new admin username and password. This creates every collection (the Expo desk's too) locked to the site admin, and the first admin login. It does nothing to logins that already exist. Check that the new collections appear in the **live** CMS data.
    - *You used the old Expo desk?* Its logins keep working: staff type the same username and password at /rd. A password that was typed by hand into the CMS is replaced by a hash the first time that person logs in.
    - *Collections that already exist* (made by the old Expo setup) are not changed. Add these text columns by hand if they are missing: `Runners`: `bibName`; `ExpoStaff`: `desks`, `race`, `name`, `failCount`, `lockUntil`.
@@ -122,21 +122,29 @@ Keep the race's own record: `RDRegs`, `RDResults`, `RDWaveAssign`, `RDWaivers` (
 
 ## If a page shows an error
 
-Right after you paste new files, nearly every error has one of five causes. Go through these checks in this order; most problems end at check 1 or 2.
+Right after you paste new files, nearly every error has one of six causes. Go through these checks in this order; most problems end at check 1, 2 or 6.
 
 1. **All 22 backend files exist, with exactly these names.** None is optional. The eleven web modules: `racedir.web.js`, `exposoft.web.js`, `training.web.js`, `finance.web.js`, `results.web.js`, `print.web.js`, `runner.web.js`, `comms.web.js`, `waivers.web.js`, `reports.web.js`, `privacy.web.js`. The eleven plain files: `rd-auth.js`, `ai-core.js`, `rd-approvals.js`, `rd-finance.js`, `rd-results.js`, `rd-print.js`, `rd-data.js`, `rd-comms.js`, `rd-waiver.js`, `rd-report.js`, `rd-privacy.js`. Spelling counts: `rd-auth.js`, not `rd_auth.js`, `rd-auth` or `rd-auth (1).js`. `ai-core.js` is needed **even if you never use the AI features**: `racedir.web.js` and `training.web.js` import it.
 2. **Every file was pasted whole.** Click inside the file and press Ctrl+End (Cmd+Down on a Mac). The last line must read `// END` followed by the file's own name, for example `// END racedir.web.js`. If it does not, the paste was cut: press Ctrl+A, delete, and paste the file again.
 3. **No import line at the top of a web module is underlined in red.** An underlined import names a file that Wix cannot find: create it, or correct its name (check 1).
 4. **Save, publish, and test at the real address.** After any change to a backend file or a page code: **Save**, then **Publish**. Then open the page at its real address, for example `https://www.vtra.run/rd`, not an address that ends in `?rc=test-site` (that is the preview, and it can still show the previous files).
 5. **The right page code is on the right page.** Each page has its own embed, element ID and page code (table in section A). **Do not make the volunteer page by duplicating /rd**: the copy carries the Director page code, and the volunteer screen then says "This page is not set up correctly yet". Add a new page, paste `volunteer-embed.html` into an HTML element, give the element the ID `volFrame`, and paste the volunteer `page-code.js`. The same goes for /train, /coach and /runner.
+6. **Wix's own build report has no error.** Each time you click **Publish**, Wix reads every code file. If a pop-up says errors were found in the code, choose **View build.log** and do not choose "Proceed with publishing": a file that has an error is left out, and every method in it then looks missing, which is exactly what the red "The backend file is out of date" sentence says. You can open the report after any publish: with Dev Mode on, click **Developer Tools** at the left of the Editor, then **Latest build**, then `build.log`. A line that names one of the 22 files says what to fix; most often it is a file that this file imports and cannot find (check 1). If it names `racedir.web.js` and complains about `import(` or about `wix-events.v2`, replace the line `const eventsApi = () => import('wix-events.v2');` near the top of `racedir.web.js` with these two lines, then Save and Publish:
+
+   ```js
+   import * as wixEventsModule from 'wix-events.v2';
+   const eventsApi = async () => wixEventsModule;
+   ```
+
+   That form opens Wix Events when the file loads, so the Wix Events app must then be installed on the site; use it only if the report asks for it.
 
 ### What the page says, and what to do
 
 | The page says | What it means | What to do |
 |---|---|---|
-| "The backend file is out of date. Paste the latest backend files, then publish." with a sentence in brackets | The page asked a backend file for a method that is not there: the file is missing, empty, cut, misnamed or from an older pack. The brackets say which file looks wrong. | Read the table below, then checks 1, 2 and 4. |
+| "The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6." with a sentence in brackets | The page asked a backend file for a method that is not there: the file is missing, empty, cut, misnamed or from an older pack. The brackets say which file looks wrong. | Read the table below, then checks 1, 2, 4 and 6. |
 | "This page's code is out of date. Paste the latest page-code.js for this page, then publish." with "(does not list ...)" in brackets | The page code on this page does not know that method: it is older than the embed, or it is the page code of another page. | Paste the `page-code.js` that belongs to this page (table in section A). Save, publish. |
-| "No answer from the server in time." | Nothing answered within 30 seconds. Usually the page code is not on this page (or not published), the HTML element has the wrong ID, or a backend file is missing. | Checks 5, 1 and 4. |
+| "No answer from the server in time." | Nothing answered within 30 seconds. Usually the page code is not on this page (or not published), the HTML element has the wrong ID, or a backend file is missing. | Checks 5, 1, 4 and 6. |
 | "Something went wrong (server_error)" | The backend file ran and met a fault it did not expect. | Wix dashboard > Developer Tools > Logging Tools > Wix Logs > Open. Pick the live site, level Error, and look at the newest lines: the Source file column names the file. |
 | "Wix Events did not answer" or "Wix Events refused access" | Only the Registrations screen opens Wix Events. Wix did not answer, or the Events app is not installed on this site. | Check that Wix Events is installed. Every other screen is not affected. |
 | (volunteer, athlete, coach or runner page) "This page is not set up correctly yet. Please tell the organiser." or "This page is being updated" | The same two problems as the first two rows, said in plain words for the public. The page never shows the technical sentence. | Do the checks above for that page. |

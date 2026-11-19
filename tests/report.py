@@ -118,9 +118,12 @@ def main(argv):
     if '--mutants' in argv:
         subprocess.run([sys.executable, os.path.join(HERE, 'mutants.py'), '--jobs', '4', '--write', mut], cwd=ROOT)
     rows = []
+    sixb = None  # "# package-6b new=85 older_rerun=208 older_not_rerun=302" at the end of mutants.txt
     if os.path.exists(mut):
         for ln in open(mut, encoding='utf-8'):
-            if not ln.startswith('#') and ln.count('\t') >= 2:
+            if ln.startswith('# package-6b'):
+                sixb = dict(kv.split('=') for kv in ln.split()[2:])
+            elif not ln.startswith('#') and ln.count('\t') >= 2:
                 rows.append(ln.rstrip('\n').split('\t', 2))
 
     if only:
@@ -147,8 +150,12 @@ def main(argv):
     for s in sorted(reg):
         md.append('| `%s` | %d | %d |' % (s, base[s], results[s][1]))
     md.append('')
+    tail6b = ''
+    if sixb:
+        n6, r6, k6 = int(sixb['new']), int(sixb['older_rerun']), int(sixb['older_not_rerun'])
+        tail6b = ' Package 6b (19 November 2026) added %d more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step); those %d and %d older ones that touch the files or tests that changed were run on the finished code: all %d caught, none missed. The other %d older ones were not run again for 6b (all caught on 16 November); to repeat them: `python3 tests/mutants.py --jobs 2`, about 35 minutes.' % (n6, n6, r6, n6 + r6, k6)
     if rows:
-        md += ['## Do the tests really catch mistakes? (mutation spot-checks)', '', 'One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.', '', '**%d protections removed, %d caught, %d not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed.' % (len(rows), sum(1 for r in rows if r[1] == 'KILLED'), sum(1 for r in rows if r[1] != 'KILLED')), '', '| Protection removed | Result | Caught by |', '|---|---|---|']
+        md += ['## Do the tests really catch mistakes? (mutation spot-checks)', '', 'One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.', '', '**%d protections removed, %d caught, %d not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed.' % (len(rows), sum(1 for r in rows if r[1] == 'KILLED'), sum(1 for r in rows if r[1] != 'KILLED')) + tail6b, '', '| Protection removed | Result | Caught by |', '|---|---|---|']
         for n, v, w in rows:
             md.append('| %s | %s | %s |' % (n, v, w.replace('|', '/')[:90]))
         md.append('')

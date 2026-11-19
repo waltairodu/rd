@@ -763,7 +763,7 @@ const noteEl = (d) => q(d, '#wvRecForm [name="note"]');
   await confirmRec(A);
   failWrites = false;
   eq(wvc('wvRecord').length, n + 1, 'U6 a server that records nobody and gives everybody back is asked once, not again and again');
-  ok(/No answer from the server\. Try again\./.test(toastOf(d)), 'U6 the page says so in words: ' + toastOf(d));
+  ok(/No answer from the server in time\. Try again\./.test(toastOf(d)), 'U6 the page says so in words: ' + toastOf(d));
   eq(sigRowsOf(EV, ID('nina')).length, 0, 'U6 and nothing was recorded');
   ok(namesOf(d).includes('Nina Nobib') && label(d, 'wv-rec') === 'Record 0 papers as signed', 'U6 she is still to sign and nothing is ticked');
 }

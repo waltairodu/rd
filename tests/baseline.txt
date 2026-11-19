@@ -1,7 +1,7 @@
 # Regression baseline: the number of checks each suite passed at the last release (2026-11-15, Package 6: Privacy, hidden phone numbers and e-mail addresses, contact files, erasing a person).
 # tests/all.sh fails if any suite now passes fewer checks than listed here, or if any check fails.
 # Update a number only when checks were removed on purpose.
-unit-auth.mjs 122
+unit-auth.mjs 123
 unit-team.mjs 249
 unit-finance.mjs 117
 unit-results.mjs 119
@@ -58,5 +58,5 @@ unit-privacy.mjs 400
 pentest-privacy.mjs 529
 privacy.mjs 387
 privacy-ui.mjs 241
-events-lazy.mjs 29
-diagnose-ui.mjs 295
+events-lazy.mjs 34
+diagnose-ui.mjs 304

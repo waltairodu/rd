@@ -229,7 +229,7 @@ function words(html) {
   if (i < 0 || j < 0) return null;
   return new Function(html.slice(i, k) + '\nreturn msg;')();
 }
-const BACKEND = 'The backend file is out of date. Paste the latest backend files, then publish.';
+const BACKEND = 'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6.';
 const PAGECODE = 'This page\'s code is out of date. Paste the latest page-code.js for this page, then publish.';
 {
   const detail = 'most likely missing or misnamed: rd-privacy.js; racedir.web.js has none of its 73 methods';
@@ -437,6 +437,25 @@ for (const phrase of ['most likely missing or misnamed: ', 'check that these fil
 ok(/^## If a page shows an error\s*$/m.test(GUIDE) && /"If a page shows an error" in SETUP\.md/.test(dirHtml), 'G11 the screen and the guide use the same name for the section');
 ok(/Events|Registrations/.test(GUIDE) && /only when this screen asks for it/.test(GUIDE), 'G12 the guide says the Wix Events connection is opened only on the Registrations screen');
 ok(/## If a page shows an error/.test(GUIDE) && GUIDE.indexOf('## If a page shows an error') > GUIDE.indexOf('## C. Your Wix plan') && GUIDE.indexOf('## If a page shows an error') < GUIDE.indexOf('## Expo desk rules'), 'G13 the section sits after the first-time steps and before the screens');
+
+// ---------------------------------------------------------------- G14: Wix's own build report (Wix scans every code file when you publish)
+{
+  const UPG = read('docs/UPGRADE.md');
+  const top = UPG.split(/^# Package 6 \(Privacy\)/m)[0];
+  ok(/nearly every error has one of six causes/.test(section) && /most problems end at check 1, 2 or 6/.test(section), 'G14 the guide counts six causes and points at check 6');
+  ok(/^6\. \*\*Wix's own build report has no error\.\*\*/m.test(section), 'G14 check 6 of the guide is the build report');
+  ok(/View build\.log/.test(section) && /Proceed with publishing/.test(section) && /Developer Tools/.test(section) && /Latest build/.test(section) && /`build\.log`/.test(section), 'G14 check 6 says where the report is (pop-up, then Developer Tools > Latest build > build.log)');
+  ok(/left out, and every method in it then looks missing/.test(section), 'G14 check 6 says why a file with an error looks like an old file');
+  ok(/Read the table below, then checks 1, 2, 4 and 6\./.test(section) && /Checks 5, 1, 4 and 6\./.test(section), 'G14 the table of sentences points at check 6 too');
+  ok(/\*\*Publish\*\* the site\.[^\n]*View build\.log[^\n]*check 6/.test(GUIDE), 'G14 the first-time steps tell you about the pop-up when you publish');
+  ok(/View build\.log/.test(top) && /Latest build/.test(top) && /check 6/.test(top), 'G14 the upgrade page tells you about the pop-up and the report');
+  // the line the guide says to replace is in racedir.web.js, word for word, once
+  const oldLine = (section.match(/replace the line `(const eventsApi = \(\) => import\('wix-events\.v2'\);)`/) || [])[1] || '';
+  const racedirSrc = read('wix/director/racedir.web.js');
+  ok(oldLine !== '' && racedirSrc.split(oldLine).length === 2, 'G14 the line the guide says to replace is in racedir.web.js, once, word for word');
+  const block = (section.match(/```js\n([\s\S]*?)```/) || [])[1] || '';
+  eq(block.trim().split('\n').map((l) => l.trim()), ["import * as wixEventsModule from 'wix-events.v2';", 'const eventsApi = async () => wixEventsModule;'], 'G14 the guide gives the two replacement lines (indented under item 6 in the source; the page shows them flush)');
+}
 
 console.log('Diagnose: ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

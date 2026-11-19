@@ -1,3 +1,41 @@
+# Package 6b (backend files that do not load): what to change on a site that already runs Package 6
+
+Date: 2026-11-19. Installing for the first time? Ignore this page and follow SETUP.md.
+Use this when /rd says "The backend file is out of date" or "No answer from the server" even after you pasted the backend files, or when the volunteer page says "Something went wrong". **All 22 backend files and the five pages are replaced.** No collection is made and no data is touched.
+
+**What changed**
+- Every web module now calls Wix's own `webMethod` directly. Before, each file wrapped it in a small helper of its own, which is not the form Wix documents.
+- `racedir.web.js` opens the Wix Events module only when the Registrations screen asks for it, never when the file loads. Before, that import sat at the top of the file, and a file with an import that fails does not load at all, so every method looked missing.
+- /rd says which file to look at: a sentence in brackets after "The backend file is out of date" names the backend file that is missing, empty, cut or older. The volunteer, athlete, coach and runner pages say it in plain words.
+- The last line of each of the 22 backend files is `// END` and the file's name. Press Ctrl+End after pasting: if you do not see it, the paste was cut.
+- SETUP.md has a new section, **If a page shows an error**, with six checks, the last one on Wix's own build report (Wix scans every code file when you publish and lists what it cannot read). `ai-core.js` is needed even if you never use the AI features.
+
+What this pack cannot prove: it was tested here against a copy of the Wix modules, not on your live site. If /rd still shows the red sentence after the steps below, the sentence in brackets (and SETUP.md, "If a page shows an error") says what to check first.
+
+## 1. Replace all 22 backend files (plain files first)
+Code sidebar > Backend. For each file in `1-backend/`: open the file with the same name, press Ctrl+A, paste the new contents. A file that does not exist yet: **+ > Add a .js file** (the eleven `rd-*.js` and `ai-core.js` files) or **+ > Add a web module** (the eleven `.web.js` files), named exactly as in `1-backend/`. Do the plain files first, then the web modules.
+- `racedir.web.js` and `training.web.js` each hold a line `const SETUP_KEY = '...'`. Copy yours before you paste, and put it back in place of `'change-this-key'` (training's is only for its optional manual setup).
+- After each paste press Ctrl+End: the last line must read `// END` and the file's own name. If it does not, select everything, delete, and paste again.
+- No import line at the top of a web module may be underlined in red.
+
+## 2. Replace the five pages
+For each page: the HTML element (**Enter Code**: select everything, paste the embed) and the page code (code panel of that page: select everything, paste `page-code.js`).
+- /rd (element `dirFrame`): `2-pages/rd/rd-embed.html` and `2-pages/rd/page-code.js`
+- /volunteer (element `volFrame`): `2-pages/volunteer/volunteer-embed.html` and `2-pages/volunteer/page-code.js`
+- /train (element `trainFrame`): `2-pages/train/athlete-embed.html` and `2-pages/train/page-code.js`
+- /coach (element `coachFrame`): `2-pages/coach/coach-embed.html` and `2-pages/coach/page-code.js`
+- /runner (element `runFrame`): `2-pages/runner/runner-embed.html` (its page code is unchanged)
+
+**Do not make the volunteer page by duplicating /rd.** A copy carries the Director page code, and the volunteer screen then cannot work. If your volunteer page is a copy of /rd, add a new page instead, with the volunteer embed in an HTML element whose ID is `volFrame`.
+
+## 3. Save, publish, and test at the real address
+1. Click **Save**, then **Publish**. If a pop-up says errors were found in the code, choose **View build.log**, not "Proceed with publishing": a file with an error is left out and then looks empty. The report names the file (SETUP.md, "If a page shows an error", check 6). You can open it after any publish: Developer Tools > Latest build > `build.log`.
+2. Open https://www.vtra.run/rd (not an address that ends in `?rc=test-site`, which is the preview) and log in as a director. The Dashboard opens.
+3. **Registrations**: Load my Wix events lists your Wix events. If Wix Events cannot be reached this screen alone says "Wix Events did not answer"; everything else keeps working.
+4. Open the volunteer page at its real address: the races are listed.
+5. A screen that still says "The backend file is out of date" or "This page's code is out of date" has a sentence in brackets: it names the file or the method. SETUP.md, "If a page shows an error", says what each one means.
+
+
 # Package 6 (Privacy): what to change on a site that already runs Package 5c
 
 Date: 2026-11-15. Installing for the first time? Ignore this page and follow SETUP.md.

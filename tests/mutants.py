@@ -55,6 +55,7 @@ ATHE = 'wix/training/athlete-embed.html'
 COAP = 'wix/training/coach-page-code.js'
 COAE = 'wix/training/coach-embed.html'
 GUIDE = 'docs/SETUP.md'
+UPG = 'docs/UPGRADE.md'
 AIC = 'wix/director/ai-core.js'
 
 # name, file, old text (must occur exactly once), new text, suites that must fail
@@ -630,7 +631,7 @@ MUTANTS = [
     ('diag-guide-allows-duplicating-rd', GUIDE, '**Do not make the volunteer page by duplicating /rd**', '**You may make the volunteer page by duplicating /rd**', ['diagnose-ui.mjs']),
     ('diag-guide-wrong-element-id', GUIDE, 'give the element the ID `volFrame`', 'give the element the ID `dirFrame`', ['diagnose-ui.mjs']),
     ('diag-guide-drops-publish', GUIDE, '**Save**, then **Publish**.', '**Save**.', ['diagnose-ui.mjs']),
-    ('diag-guide-misquotes-sentence', GUIDE, '"The backend file is out of date. Paste the latest backend files, then publish." with a sentence in brackets', '"The backend file is out of date. Paste all the backend files, then publish." with a sentence in brackets', ['diagnose-ui.mjs']),
+    ('diag-guide-misquotes-sentence', GUIDE, '"The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6." with a sentence in brackets', '"The backend file is out of date. Paste all the backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6." with a sentence in brackets', ['diagnose-ui.mjs']),
     ('diag-guide-drops-events-note', GUIDE, 'RaceOS opens the Wix Events connection only when this screen asks for it, never when the backend file loads. ', '', ['diagnose-ui.mjs']),
     ('diag-guide-drops-fallback-row', GUIDE, '| `every backend module answers, so paste the newest backend files and publish` | Every web module has methods, but not the one the page just asked for. | Replace all eleven web modules with the ones in this pack. Save, Publish. |\n', '', ['diagnose-ui.mjs']),
     ('diag-marker-missing-racedir', RD, '\n// END racedir.web.js\n', '\n', ['diagnose-ui.mjs']),
@@ -651,6 +652,17 @@ MUTANTS = [
     ('guard-finance-method-unwrapped', FIN, 'export const finVoid = webMethod(Permissions.Anyone, guarded(async (arg) => {', 'export const finVoid = webMethod(Permissions.Anyone, (async (arg) => {', ['security.mjs']),
     ('guard-finance-own-webmethod', FIN, "import { Permissions, webMethod } from 'wix-web-module';\n", "import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';\nconst webMethod = (permission, fn) => wixWebMethod(permission, fn);\n", ['security.mjs']),
     ('guard-racedir-own-webmethod', RD, "import { Permissions, webMethod } from 'wix-web-module';\n", "import { Permissions, webMethod as wixWebMethod } from 'wix-web-module';\nconst webMethod = (permission, fn) => wixWebMethod(permission, fn);\n", ['security.mjs']),
+    ('diag-guide-no-buildlog-choice', GUIDE, 'choose **View build.log** and do not choose "Proceed with publishing"', 'choose "Proceed with publishing"', ['diagnose-ui.mjs']),
+    ('diag-guide-wrong-latest-build', GUIDE, 'then **Latest build**, then `build.log`', 'then **Logs**, then `site.log`', ['diagnose-ui.mjs']),
+    ('diag-guide-says-five-causes', GUIDE, 'nearly every error has one of six causes', 'nearly every error has one of five causes', ['diagnose-ui.mjs']),
+    ('diag-guide-table-forgets-check-6', GUIDE, 'Read the table below, then checks 1, 2, 4 and 6.', 'Read the table below, then checks 1, 2 and 4.', ['diagnose-ui.mjs']),
+    ('diag-guide-firsttime-forgets-popup', GUIDE, ' If a pop-up says errors were found in the code, choose **View build.log** instead of publishing anyway: it names the file (check 6 under "If a page shows an error").', '', ['diagnose-ui.mjs']),
+    ('diag-guide-fallback-line-misquoted', GUIDE, "replace the line `const eventsApi = () => import('wix-events.v2');`", "replace the line `const eventsApi = () => import('wix-events');`", ['diagnose-ui.mjs', 'events-lazy.mjs']),
+    ('diag-guide-fallback-wrong-module', GUIDE, "import * as wixEventsModule from 'wix-events.v2';", "import * as wixEventsModule from 'wix-events';", ['diagnose-ui.mjs', 'events-lazy.mjs']),
+    ('diag-upgrade-forgets-popup', UPG, 'If a pop-up says errors were found in the code, choose **View build.log**, not "Proceed with publishing": a file with an error is left out and then looks empty.', 'If a pop-up says errors were found in the code, proceed.', ['diagnose-ui.mjs']),
+    ('diag-embed-backend-sentence-no-buildlog', DIR, "backend_old:'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6.'", "backend_old:'The backend file is out of date. Paste the latest backend files, then publish.'", ['diagnose-ui.mjs']),
+    ('diag-guide-quote-lacks-buildlog', GUIDE, '| "The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6." with a sentence in brackets |', '| "The backend file is out of date. Paste the latest backend files, then publish." with a sentence in brackets |', ['diagnose-ui.mjs']),
+    ('diag-embed-backend-sentence-points-elsewhere', DIR, "backend_old:'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6.'", "backend_old:'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 9.'", ['diagnose-ui.mjs']),
 ]
 
 

@@ -19,6 +19,8 @@ Software for running a VTRA race end to end, built on Wix (Velo). Started with t
 
 None of these packages has run on a live Wix site yet. Rehearse on the published site before race day.
 
+**A page says "The backend file is out of date"?** All 22 backend files are needed (`ai-core.js` too, even if you never use the AI features), and each one ends with a `// END <file name>` line so you can see a paste was whole. The sentence in brackets on the screen names the file to look at, and Wix's own build report (written each time you publish) names any file it could not read: see `docs/SETUP.md`, "If a page shows an error".
+
 **Choose the Wix plan before race day.** Wix limits the items a site may hold in its own collections (Light 1,500, Core 4,000, Business 20,000, Business Elite and Elite 10 million) and refuses new rows at the limit. A race uses about 9 items per runner plus one per message sent, plus about 500: a race of 1,000 runners is about 12,500 items. See `docs/SETUP.md` section C for the table, how to check the count and how to free space after a race.
 
 ## Layout

@@ -4,14 +4,14 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 9 | 1614 | 0 |
+| 1. Unit tests | 9 | 1615 | 0 |
 | 2. Penetration tests | 10 | 2786 | 0 |
-| 3. Integration tests | 19 | 4314 | 0 |
-| 4. Security tests | 1 | 574 | 0 |
+| 3. Integration tests | 21 | 4652 | 0 |
+| 4. Security tests | 1 | 579 | 0 |
 | Component tests (older suites) | 18 | 1538 | 0 |
-| 5. Regression (older suites against the saved baseline) | 57 | 10826 | 0 |
+| 5. Regression (older suites against the saved baseline) | 59 | 11170 | 0 |
 
-**Total: 10826 checks passed, 0 failed.**
+**Total: 11170 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
@@ -19,7 +19,7 @@ One piece on its own: password hashing, PINs, roles, the Team screen rules, the 
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `unit-auth.mjs` | 122 | 0 |
+| `unit-auth.mjs` | 123 | 0 |
 | `unit-team.mjs` | 249 | 0 |
 | `unit-finance.mjs` | 117 | 0 |
 | `unit-results.mjs` | 119 | 0 |
@@ -48,7 +48,7 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back) and Backend loading (the backend file still loads and logs in when the Wix Events module cannot be opened, and only the three Registrations calls say so; when a backend file or a page code is missing the Director page names the file to look at, for one missing file, several at once, empty, cut and older files, hostile method names, and the Director screen shows it escaped; the volunteer, athlete, coach and runner pages say it in plain words with no technical details; the setup guide explains every sentence and the 22 backend files end with the marker it tells you to look for).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -71,6 +71,8 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `reports-ui.mjs` | 182 | 0 |
 | `privacy.mjs` | 387 | 0 |
 | `privacy-ui.mjs` | 241 | 0 |
+| `events-lazy.mjs` | 34 | 0 |
+| `diagnose-ui.mjs` | 304 | 0 |
 
 ## 4. Security tests
 
@@ -78,7 +80,7 @@ An audit of every method, Finance, Results, Print, Messages, Waivers, Reports an
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `security.mjs` | 574 | 0 |
+| `security.mjs` | 579 | 0 |
 
 ## Component tests (older suites)
 
@@ -120,8 +122,10 @@ Every suite that existed before a change must still pass at least as many checks
 | `comms.mjs` | 533 | 533 |
 | `dash-ui.mjs` | 15 | 15 |
 | `dash.mjs` | 38 | 38 |
+| `diagnose-ui.mjs` | 304 | 304 |
 | `director-ui.mjs` | 73 | 73 |
 | `director.mjs` | 212 | 212 |
+| `events-lazy.mjs` | 34 | 34 |
 | `expo-int.mjs` | 65 | 65 |
 | `finance-ui.mjs` | 180 | 180 |
 | `finance.mjs` | 222 | 222 |
@@ -152,12 +156,12 @@ Every suite that existed before a change must still pass at least as many checks
 | `results.mjs` | 173 | 173 |
 | `runner-ui.mjs` | 99 | 99 |
 | `scen.mjs` | 97 | 97 |
-| `security.mjs` | 574 | 574 |
+| `security.mjs` | 579 | 579 |
 | `training-ai.mjs` | 32 | 32 |
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
 | `ui.mjs` | 45 | 45 |
-| `unit-auth.mjs` | 122 | 122 |
+| `unit-auth.mjs` | 123 | 123 |
 | `unit-comms.mjs` | 129 | 129 |
 | `unit-finance.mjs` | 117 | 117 |
 | `unit-print.mjs` | 120 | 120 |
@@ -173,7 +177,7 @@ Every suite that existed before a change must still pass at least as many checks
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
 
-**510 protections removed, 510 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed.
+**595 protections removed, 595 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed. Package 6b (19 November 2026) added 85 more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step); those 85 and 208 older ones that touch the files or tests that changed were run on the finished code: all 293 caught, none missed. The other 302 older ones were not run again for 6b (all caught on 16 November); to repeat them: `python3 tests/mutants.py --jobs 2`, about 35 minutes.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -231,7 +235,7 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | fin-claim-owner-from-call | KILLED | pentest-finance.mjs: FC1 a claim raised with its id, race, number, status, approval, owner |
 | fin-collections-readable-by-visitors | KILLED | security.mjs: S7 Finance makes its 5 collections on first use, each readable, changeable a |
 | fin-write-without-suppress-auth | KILLED | security.mjs: S8 every Finance read and write of a locked collection passes suppressAuth ( |
-| fin-page-relay-list-open | KILLED | pentest-finance.mjs: FH1 on the Finance side of the relay, a method that is not one of the |
+| fin-page-relay-list-open | KILLED | pentest-finance.mjs |
 | fin-void-cash-recheck-removed | KILLED | finance.mjs: F5 two withdrawals of the same person voided at the same moment never leave t |
 | fin-refund-over-paid | KILLED | pentest-finance.mjs: FD4 a refund one paisa more than has been paid to that vendor (10010) |
 | fin-pay-unapproved-claim | KILLED | pentest-finance.mjs: FB7 a claim that is not approved cannot be paid   [wanted claim_not_a |
@@ -268,7 +272,7 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | res-setup-questions-carry-answers | KILLED | unit-results.mjs: U5 and nothing a runner answered is copied into that list (a question ma |
 | res-collections-readable-by-visitors | KILLED | security.mjs: S7 Results makes its 3 collections on first use, each readable, changeable a |
 | res-write-without-suppress-auth | KILLED | security.mjs: S8 every Results read and write of a locked collection passes suppressAuth ( |
-| res-page-relay-list-open | KILLED | pentest-results.mjs: RI1 on the Results side of the relay, a method that is not one of the |
+| res-page-relay-list-open | KILLED | pentest-results.mjs |
 | res-awards-screen-no-escaping | KILLED | results-ui.mjs: U8 the name typed as an HTML picture is shown as text in the awards |
 | res-print-unescaped | KILLED | results-ui.mjs: U9 the print-out is titled with the race, and markup in a name is escaped |
 | res-csv-formulas-run | KILLED | results-ui.mjs: U9 a name that looks like a formula (= or @) is written with a leading quo |
@@ -687,6 +691,91 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | pv-ui-erase-keeps-shown | KILLED | privacy-ui.mjs: U8 and the open question about a number is closed (nothing that was being  |
 | pv-ui-trail-text-as-markup | KILLED | privacy-ui.mjs: U6 a note with markup in its fields is drawn as the characters it is (who, |
 | pv-ui-plan-name-as-markup | KILLED | privacy-ui.mjs: U8 a name with markup is shown as text in the list |
+| diag-proven-by-any-module | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-unproven-inverted | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-culprit-count-flat | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-culprit-one-round | KILLED | diagnose-ui.mjs: P4 two missing files are both named (the bigger one first), and the modul |
+| diag-culprit-least-common | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-advice-comes-last | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-details-cut-short | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-paste-again-wrong-branch | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-older-copy-not-reported | KILLED | diagnose-ui.mjs: P8 an older finance.web.js: how many methods it has and which are missing |
+| diag-empty-module-not-reported | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-racedir-needs-lose-ai-core | KILLED | diagnose-ui.mjs: P0 racedir.web.js: the files the check expects are exactly the files it i |
+| diag-exposoft-needs-lose-auth | KILLED | diagnose-ui.mjs: P0 exposoft.web.js: the files the check expects are exactly the files it  |
+| diag-method-name-allows-markup | KILLED | diagnose-ui.mjs: P15 markup in a method name is stripped to letters and digits |
+| diag-method-name-not-cut | KILLED | diagnose-ui.mjs: P15 a long name is cut to 40 characters |
+| diag-page-code-old-without-detail | KILLED | diagnose-ui.mjs: P14 an unlisted method: page_code_old and its name |
+| diag-backend-old-without-detail | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-singular-empty-wrong | KILLED | diagnose-ui.mjs: P12 a fourth module that cannot load is "1 more module has none of its me |
+| diag-singular-old-wrong | KILLED | diagnose-ui.mjs: P10 two older copies are named, a third is counted |
+| diag-fallback-sentence-removed | KILLED | diagnose-ui.mjs: P13 when every module answers, the sentence is still advice |
+| diag-unlisted-method-ignored | KILLED | diagnose-ui.mjs |
+| diag-embed-details-uncapped | KILLED | diagnose-ui.mjs: E4 2,000 characters of details are cut to 400 |
+| diag-embed-details-dropped | KILLED | diagnose-ui.mjs: E1 the login screen says the sentence for backend_old and the file to loo |
+| diag-embed-no-answer-text-plain | KILLED | diagnose-ui.mjs: E6 "no answer in time" says where to look: No answer from the server in t |
+| diag-embed-prototype-name-is-a-code | KILLED | diagnose-ui.mjs: E6 a name from the prototype is not a known code |
+| diag-embed-unknown-code-uncut | KILLED | diagnose-ui.mjs: E6 a long unknown code is cut to 120 characters |
+| diag-embed-toast-uses-markup | KILLED | diagnose-ui.mjs: E3 markup in the details is not turned into elements and does not run |
+| diag-embed-login-error-uses-markup | KILLED | diagnose-ui.mjs: E3 markup in the details is not turned into elements and does not run |
+| diag-volunteer-embed-shows-details | KILLED | diagnose-ui.mjs: V7 volunteer: details after the bar are never shown (page_code_old) |
+| diag-volunteer-embed-prototype-name-is-a-code | KILLED | diagnose-ui.mjs: V7 volunteer: a name from the prototype is not a code |
+| diag-volunteer-embed-no-answer-text-plain | KILLED | diagnose-ui.mjs: V7 volunteer: "no answer" says what to try, and whom to tell: No answer f |
+| diag-volunteer-relay-names-method | KILLED | diagnose-ui.mjs: V3 volunteer: a method the page code does not list is answered "page_code |
+| diag-volunteer-relay-ignores-unlisted | KILLED | diagnose-ui.mjs: V3 volunteer: a method the page code does not list is answered "page_code |
+| diag-volunteer-relay-no-backend-check | KILLED | diagnose-ui.mjs: V2 volunteer: a listed method the backend does not have is answered "back |
+| diag-athlete-embed-shows-details | KILLED | diagnose-ui.mjs: V7 athlete: details after the bar are never shown (page_code_old) |
+| diag-athlete-embed-prototype-name-is-a-code | KILLED | diagnose-ui.mjs: V7 athlete: a name from the prototype is not a code |
+| diag-athlete-embed-no-answer-text-plain | KILLED | diagnose-ui.mjs: V7 athlete: "no answer" says what to try, and whom to tell: No answer fro |
+| diag-athlete-relay-names-method | KILLED | diagnose-ui.mjs: V3 athlete: a method the page code does not list is answered "page_code_o |
+| diag-athlete-relay-ignores-unlisted | KILLED | diagnose-ui.mjs: V3 athlete: a method the page code does not list is answered "page_code_o |
+| diag-athlete-relay-no-backend-check | KILLED | diagnose-ui.mjs: V2 athlete: a listed method the backend does not have is answered "backen |
+| diag-coach-embed-shows-details | KILLED | diagnose-ui.mjs: V7 coach: details after the bar are never shown (page_code_old) |
+| diag-coach-embed-prototype-name-is-a-code | KILLED | diagnose-ui.mjs: V7 coach: a name from the prototype is not a code |
+| diag-coach-embed-no-answer-text-plain | KILLED | diagnose-ui.mjs: V7 coach: "no answer" says what to try, and whom to tell: No answer from  |
+| diag-coach-relay-names-method | KILLED | diagnose-ui.mjs: V3 coach: a method the page code does not list is answered "page_code_old |
+| diag-coach-relay-ignores-unlisted | KILLED | diagnose-ui.mjs: V3 coach: a method the page code does not list is answered "page_code_old |
+| diag-coach-relay-no-backend-check | KILLED | diagnose-ui.mjs: V2 coach: a listed method the backend does not have is answered "backend_ |
+| diag-runner-embed-shows-details | KILLED | diagnose-ui.mjs: V9 runner: details after the bar are never shown |
+| diag-guide-calls-ai-core-optional | KILLED | diagnose-ui.mjs: G4 ai-core.js is said to be required, never optional |
+| diag-guide-says-21-files | KILLED | diagnose-ui.mjs: G4 the guide says all 22 are needed |
+| diag-guide-wrong-logs-path | KILLED | diagnose-ui.mjs: G6 the guide says where Wix shows server errors |
+| diag-guide-drops-end-marker | KILLED | diagnose-ui.mjs: G5 the guide tells you to look for the end marker with Ctrl+End |
+| diag-guide-allows-duplicating-rd | KILLED | diagnose-ui.mjs: G7 the guide says not to duplicate /rd for the volunteer page, and the el |
+| diag-guide-wrong-element-id | KILLED | diagnose-ui.mjs: G7 the guide says not to duplicate /rd for the volunteer page, and the el |
+| diag-guide-drops-publish | KILLED | diagnose-ui.mjs: G8 the guide says to save, publish and test at the real address, not ?rc= |
+| diag-guide-misquotes-sentence | KILLED | diagnose-ui.mjs: G9 the guide quotes the two sentences of the Director screen word for wor |
+| diag-guide-drops-events-note | KILLED | diagnose-ui.mjs: G12 the guide says the Wix Events connection is opened only on the Regist |
+| diag-guide-drops-fallback-row | KILLED | diagnose-ui.mjs: G10 the guide explains the bracket sentence "every backend module answers |
+| diag-marker-missing-racedir | KILLED | diagnose-ui.mjs: G2 racedir.web.js ends with the line "// END racedir.web.js", once |
+| diag-marker-missing-ai-core | KILLED | diagnose-ui.mjs: G2 ai-core.js ends with the line "// END ai-core.js", once |
+| diag-marker-misnamed-auth | KILLED | diagnose-ui.mjs: G2 rd-auth.js ends with the line "// END rd-auth.js", once |
+| events-static-import-returns | KILLED | events-lazy.mjs: E1 no backend file imports wix-events.v2 at the top (that import is the o |
+| events-every-failure-is-unavailable | KILLED | events-lazy.mjs: E4 the list of Wix events says "wix_events_denied" when the module is not |
+| events-every-failure-is-denied | KILLED | events-lazy.mjs: E4 the list of Wix events says "wix_events_unavailable" when the module c |
+| events-list-open-outside-try | KILLED | events-lazy.mjs: E4 the list of Wix events says "wix_events_unavailable" when the module c |
+| events-holders-open-outside-try | KILLED | events-lazy.mjs: E4 the form fields say "wix_events_unavailable" when the module cannot be |
+| events-failed-open-is-remembered | KILLED | events-lazy.mjs: E1 that one place is the small eventsApi function |
+| events-opened-at-load | KILLED | events-lazy.mjs: E1 only two spots call eventsApi: the list of Wix events and the ticket h |
+| guard-racedir-leaks-errors | KILLED | security.mjs: S8 every RaceOS method answers through the wrapper that turns an unexpected  |
+| guard-exposoft-leaks-errors | KILLED | security.mjs: S8 every Expo desk method answers through the same wrapper |
+| guard-training-leaks-errors | KILLED | security.mjs: S8 every Training method answers through the same wrapper |
+| guard-reports-leaks-errors | KILLED | security.mjs: S8 every Reports method answers through the wrapper that lets only a known c |
+| guard-racedir-method-unwrapped | KILLED | security.mjs: S8 every RaceOS method answers through the wrapper that turns an unexpected  |
+| guard-finance-method-unwrapped | KILLED | security.mjs: S8 every Finance method answers through the wrapper that turns an unexpected |
+| guard-finance-own-webmethod | KILLED | security.mjs: S8 every Finance method answers through the wrapper that turns an unexpected |
+| guard-racedir-own-webmethod | KILLED | security.mjs: S8 every RaceOS method answers through the wrapper that turns an unexpected  |
+| diag-guide-no-buildlog-choice | KILLED | diagnose-ui.mjs: G14 check 6 says where the report is (pop-up, then Developer Tools > Late |
+| diag-guide-wrong-latest-build | KILLED | diagnose-ui.mjs: G14 check 6 says where the report is (pop-up, then Developer Tools > Late |
+| diag-guide-says-five-causes | KILLED | diagnose-ui.mjs: G14 the guide counts six causes and points at check 6 |
+| diag-guide-table-forgets-check-6 | KILLED | diagnose-ui.mjs: G14 the table of sentences points at check 6 too |
+| diag-guide-firsttime-forgets-popup | KILLED | diagnose-ui.mjs: G14 the first-time steps tell you about the pop-up when you publish |
+| diag-guide-fallback-line-misquoted | KILLED | diagnose-ui.mjs: G14 the line the guide says to replace is in racedir.web.js, once, word f |
+| diag-guide-fallback-wrong-module | KILLED | diagnose-ui.mjs: G14 the guide gives the two replacement lines (indented under item 6 in t |
+| diag-upgrade-forgets-popup | KILLED | diagnose-ui.mjs: G14 the upgrade page tells you about the pop-up and the report |
+| diag-embed-backend-sentence-no-buildlog | KILLED | diagnose-ui.mjs: E1 the login screen says the sentence for backend_old and the file to loo |
+| diag-guide-quote-lacks-buildlog | KILLED | diagnose-ui.mjs: G9 the guide quotes the two sentences of the Director screen word for wor |
+| diag-embed-backend-sentence-points-elsewhere | KILLED | diagnose-ui.mjs: E1 the login screen says the sentence for backend_old and the file to loo |
 
 ## How to run
 
