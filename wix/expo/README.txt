@@ -8,7 +8,7 @@ Desk staff open /rd, type their login, and land on their desk. They never see th
 
 FILES (see docs/SETUP.md for the full steps)
   exposoft.web.js    Backend web module named exposoft.web.js. It checks the RaceOS session on every call.
-  rd-auth.js         Backend plain file named rd-auth.js (shared with racedir.web.js and training.web.js).
+  rd-auth.js         Source only: its code is built into every backend file of the pack, so there is no rd-auth.js to add to Wix.
   exposoft-embed.html  NOT pasted anywhere: it is built into rd-embed.html (tools/build_rd.py does that).
   The page is /rd, with rd-embed.html and director-page-code.js. The old stand-alone /exposoft page and its page code are gone.
 

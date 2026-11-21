@@ -2,7 +2,7 @@
 //  P: the Director page code works out which backend file to look at (the "backend check") and says it in the error it relays;
 //  E: the Director screen shows that sentence, escaped and cut to a safe length;
 //  V: the volunteer, athlete, coach and runner page codes and screens say it in plain words, with no technical details;
-//  G: the setup guide says what each sentence means, and the 22 backend files carry the end marker the guide tells you to look for.
+//  G: the setup guide says what each sentence means, and the 11 backend files carry the end marker the guide tells you to look for.
 import fs from 'fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
 
@@ -15,16 +15,15 @@ const read = (f) => fs.readFileSync('../' + f, 'utf8');
 // ---------------------------------------------------------------- P: the Director page code
 const PC = read('wix/director/director-page-code.js');
 const listOf = (name) => [...PC.match(new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];'))[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
-const rows = [...PC.matchAll(/\['([\w.-]+\.web\.js)', (\w+), (\w+), \[([^\]]*)\]\]/g)].map((m) => ({ file: m[1], ns: m[2], list: m[3], needs: [...m[4].matchAll(/'([^']+)'/g)].map((x) => x[1]) }));
+const rows = [...PC.matchAll(/\['([\w.-]+\.web\.js)', (\w+), (\w+)\]/g)].map((m) => ({ file: m[1], ns: m[2], list: m[3] }));
 const N = {};
 rows.forEach((r) => { N[r.file] = listOf(r.list).length; });
 
 eq(rows.map((r) => r.file), ['racedir.web.js', 'exposoft.web.js', 'training.web.js', 'finance.web.js', 'results.web.js', 'print.web.js', 'comms.web.js', 'waivers.web.js', 'reports.web.js', 'privacy.web.js'], 'P0 the check knows the ten web modules the page imports');
-// the plain files each web module really imports, directly or through another plain file
 const dirOf = (f) => (f === 'exposoft.web.js' ? 'wix/expo' : f === 'training.web.js' ? 'wix/training' : 'wix/director');
-const importsOf = (f) => [...read(dirOf(f) + '/' + f).matchAll(/from '\.\/([\w.-]+\.js)'/g)].map((m) => m[1]);
-const closure = (f) => { const seen = new Set(), todo = [f]; while (todo.length) { const x = todo.pop(); for (const y of importsOf(x)) if (!seen.has(y)) { seen.add(y); todo.push(y); } } return [...seen].sort(); };
-for (const r of rows) eq(r.needs, closure(r.file), 'P0 ' + r.file + ': the files the check expects are exactly the files it imports');
+// each web module is one file that holds everything it needs, so the check names no helper file (there is none to get wrong)
+const checkText = PC.slice(PC.indexOf('function modules()'), PC.indexOf('$w.onReady'));
+ok(checkText.length > 500 && !/rd-[a-z]+\.js|ai-core\.js/.test(checkText), 'P0 the backend check names no helper file');
 // each module is imported under the name the check uses for it
 const imported = Object.fromEntries([...PC.matchAll(/import \* as (\w+) from 'backend\/([\w-]+)\.web';/g)].map((m) => [m[1], m[2] + '.web.js']));
 for (const r of rows) eq(imported[r.ns], r.file, 'P0 the page imports ' + r.file + ' as ' + r.ns + ' and the check uses the same name');
@@ -57,13 +56,13 @@ function director(w) {
   };
 }
 const full = (r) => Object.fromEntries(listOf(r.list).map((m) => [m, async () => ({ ran: m })]));
-// A site where the given plain/web files are missing (every module that imports one is empty), the given web modules are empty, and some modules are older copies
+// A site where the given web modules are empty (missing, cut, misnamed or left out by Wix's build), and some modules are older copies
 function site(o) {
   o = o || {};
-  const missing = o.missing || [], empty = o.empty || [], old = o.old || {};
+  const empty = o.empty || [], old = o.old || {};
   const w = {};
   for (const r of rows) {
-    if (missing.some((f) => f === r.file || r.needs.includes(f)) || empty.includes(r.file)) { w[r.ns] = {}; continue; }
+    if (empty.includes(r.file)) { w[r.ns] = {}; continue; }
     const mod = full(r);
     (old[r.file] || []).forEach((m) => { delete mod[m]; });
     w[r.ns] = mod;
@@ -71,7 +70,9 @@ function site(o) {
   return w;
 }
 const FIRST = listOf('ALLOWED')[0];
-const none = (f) => f + ' has none of its ' + N[f] + ' methods';
+const none = (f) => f + ' has none of its ' + N[f] + ' methods: paste ' + f + ' again, then save and publish';
+const ALLGONE = 'none of the ' + rows.length + ' backend files answers: check that the Backend list has the 11 files of this pack with exactly these names, paste each one whole, then save and publish';
+const ALLFILES = rows.map((r) => r.file);
 
 { // P1: nothing wrong, nothing said
   const d = director(site());
@@ -80,31 +81,34 @@ const none = (f) => f + ' has none of its ' + N[f] + ' methods';
   const r2 = await d.call(listOf('FIN_ALLOWED')[0], { mod: 'fin' });
   ok(r2 && r2.ok === true, 'P1 and so does a method of another module');
 }
-{ // P2: one plain file missing that three web modules import: it is named first, as the most likely cause
-  const d = director(site({ missing: ['rd-privacy.js'] }));
-  const r = await d.call(FIRST);
-  eq(r.error, 'backend_old|most likely missing or misnamed: rd-privacy.js; ' + none('racedir.web.js') + '; ' + none('exposoft.web.js') + '; ' + none('privacy.web.js'), 'P2 a missing rd-privacy.js is named, then the three modules that cannot load without it');
+{ // P2: one web module is empty (missing, cut, misnamed or left out by Wix's build): it is named, with what to do, and the others keep working
+  const d = director(site({ empty: ['privacy.web.js'] }));
+  const r = await d.call('pvList', { mod: 'pv' });
+  eq(r.error, 'backend_old|' + none('privacy.web.js'), 'P2 an empty privacy.web.js is named, with the advice to paste it again');
   ok(r.ok === false, 'P2 the answer is a refusal');
+  ok((await d.call(FIRST)).ok === true, 'P2 and the other modules keep working');
 }
-{ // P3: a file that only one module imports
-  const d = director(site({ missing: ['rd-approvals.js'] }));
-  eq((await d.call(FIRST)).error, 'backend_old|most likely missing or misnamed: rd-approvals.js; ' + none('racedir.web.js'), 'P3 a missing rd-approvals.js: it is named, and racedir.web.js is the one module that cannot load');
+{ // P3: the biggest module empty
+  const d = director(site({ empty: ['racedir.web.js'] }));
+  eq((await d.call(FIRST)).error, 'backend_old|' + none('racedir.web.js'), 'P3 an empty racedir.web.js is named');
+  ok((await d.call(listOf('FIN_ALLOWED')[0], { mod: 'fin' })).ok === true, 'P3 and finance.web.js still answers');
 }
-{ // P4: two files missing at once: both are named, the one that explains more modules first
-  const d = director(site({ missing: ['rd-privacy.js', 'rd-finance.js'] }));
-  eq((await d.call(FIRST)).error, 'backend_old|check that these files exist with exactly these names: rd-privacy.js, rd-finance.js; ' + none('racedir.web.js') + '; ' + none('exposoft.web.js') + '; ' + none('finance.web.js') + '; 2 more modules have none of their methods', 'P4 two missing files are both named (the bigger one first), and the modules beyond three are counted');
+{ // P4: two empty at once: both are named, in the order the page lists the modules (not the order they were emptied)
+  const d = director(site({ empty: ['finance.web.js', 'racedir.web.js'] }));
+  eq((await d.call(FIRST)).error, 'backend_old|' + none('racedir.web.js') + '; ' + none('finance.web.js'), 'P4 two empty modules are both named, racedir.web.js first');
 }
-{ // P5: rd-auth.js is imported by all ten modules: all ten are empty and the one file is named
-  const d = director(site({ missing: ['rd-auth.js'] }));
-  eq((await d.call(FIRST)).error, 'backend_old|most likely missing or misnamed: rd-auth.js; ' + none('racedir.web.js') + '; ' + none('exposoft.web.js') + '; ' + none('training.web.js') + '; 7 more modules have none of their methods', 'P5 with rd-auth.js missing all ten modules are empty and rd-auth.js is the file named');
+{ // P5: three empty modules are all named, with no "more"
+  const d = director(site({ empty: ['racedir.web.js', 'exposoft.web.js', 'training.web.js'] }));
+  eq((await d.call(FIRST)).error, 'backend_old|' + none('racedir.web.js') + '; ' + none('exposoft.web.js') + '; ' + none('training.web.js'), 'P5 three empty modules are all named');
 }
-{ // P6: ai-core.js is needed even though the AI is never used: its absence empties racedir.web.js and training.web.js
-  const d = director(site({ missing: ['ai-core.js'] }));
-  eq((await d.call(FIRST)).error, 'backend_old|most likely missing or misnamed: ai-core.js; ' + none('racedir.web.js') + '; ' + none('training.web.js'), 'P6 a missing ai-core.js is named (racedir.web.js and training.web.js cannot load without it)');
+{ // P6: every module empty (nothing pasted yet, or Wix built none of them): one line of advice, not ten sentences
+  const d = director(site({ empty: ALLFILES }));
+  eq((await d.call(FIRST)).error, 'backend_old|' + ALLGONE, 'P6 with every module empty the sentence is one line of advice');
+  eq((await d.call('assignCoach', { mod: 'train' })).error, 'backend_old|' + ALLGONE, 'P6 and the same for a method of another module');
 }
-{ // P7: one web module empty while every file it imports is there: the module itself is the suspect
+{ // P7: a lone empty training.web.js
   const d = director(site({ empty: ['training.web.js'] }));
-  eq((await d.call('assignCoach', { mod: 'train' })).error, 'backend_old|every file training.web.js imports is there, so paste training.web.js again, then save and publish; ' + none('training.web.js'), 'P7 a lone empty module: the files are fine, paste the module again');
+  eq((await d.call('assignCoach', { mod: 'train' })).error, 'backend_old|' + none('training.web.js'), 'P7 a lone empty training.web.js: paste it again');
   ok((await d.call(FIRST)).ok === true, 'P7 and the other modules keep working');
 }
 { // P8: an older copy of a module
@@ -123,16 +127,17 @@ const none = (f) => f + ' has none of its ' + N[f] + ' methods';
   const d2 = director(site({ old: { 'finance.web.js': ['finVoid'], 'results.web.js': ['resAwards'], 'print.web.js': ['prnSavePublish'], 'comms.web.js': ['cmTest'] } }));
   ok(/; 2 more modules are older copies$/.test((await d2.call('finVoid', { mod: 'fin' })).error), 'P10 and with four, "2 more modules are older copies"');
 }
-{ // P11: empty and older at once: the empty ones come first
+{ // P11: empty and older at once: the empty ones (with their advice) come first
   const d = director(site({ empty: ['training.web.js'], old: { 'finance.web.js': ['finVoid'] } }));
   const e = (await d.call('assignCoach', { mod: 'train' })).error;
-  ok(e.indexOf('every file training.web.js imports is there') < e.indexOf('training.web.js has none') && e.indexOf('training.web.js has none') < e.indexOf('finance.web.js has'), 'P11 advice first, then the empty module, then the older copy: ' + e);
+  ok(e.indexOf('training.web.js has none of its') >= 0 && e.indexOf('training.web.js has none of its') < e.indexOf('paste training.web.js again') && e.indexOf('paste training.web.js again') < e.indexOf('finance.web.js has '), 'P11 the empty module and its advice, then the older copy: ' + e);
 }
-{ // P12: four modules cannot load: three are listed, the fourth is counted (singular); five: "2 more modules" (plural)
-  const d = director(site({ missing: ['rd-waiver.js', 'rd-approvals.js'] }));
-  eq((await d.call(FIRST)).error, 'backend_old|check that these files exist with exactly these names: rd-waiver.js, rd-approvals.js; ' + none('racedir.web.js') + '; ' + none('comms.web.js') + '; ' + none('waivers.web.js') + '; 1 more module has none of its methods', 'P12 a fourth module that cannot load is "1 more module has none of its methods"');
-  const d2 = director(site({ missing: ['rd-waiver.js', 'rd-approvals.js', 'rd-finance.js'] }));
-  eq((await d2.call(FIRST)).error, 'backend_old|check that these files exist with exactly these names: rd-waiver.js, rd-approvals.js, rd-finance.js; ' + none('racedir.web.js') + '; ' + none('finance.web.js') + '; ' + none('comms.web.js') + '; 2 more modules have none of their methods', 'P12 five modules that cannot load: three listed, "2 more modules have none of their methods"');
+{ // P12: four modules empty: three are listed, the fourth is counted (singular); five: "2 more modules" (plural)
+  const four = ['racedir.web.js', 'exposoft.web.js', 'training.web.js', 'finance.web.js'];
+  const d = director(site({ empty: four }));
+  eq((await d.call(FIRST)).error, 'backend_old|' + none('racedir.web.js') + '; ' + none('exposoft.web.js') + '; ' + none('training.web.js') + '; 1 more module has none of its methods', 'P12 a fourth empty module is "1 more module has none of its methods"');
+  const d2 = director(site({ empty: four.concat(['results.web.js']) }));
+  eq((await d2.call(FIRST)).error, 'backend_old|' + none('racedir.web.js') + '; ' + none('exposoft.web.js') + '; ' + none('training.web.js') + '; 2 more modules have none of their methods', 'P12 five empty modules: three listed, "2 more modules have none of their methods"');
 }
 { // P13: nothing found wrong: the last sentence is still advice. The first look at the method fails, the second finds every method.
   let looks = 0;
@@ -170,13 +175,21 @@ const none = (f) => f + ' has none of its ' + N[f] + ' methods';
   ok(!threw, 'P16 nothing the embed sends can make the message handler throw');
 }
 { // P17: the check is read-only, short and works on a site where every module is empty
-  const d = director(site({ missing: ['rd-auth.js'] }));
+  const d = director(site({ empty: ALLFILES }));
   const r = await d.call(FIRST);
   ok(r.error.length <= 'backend_old|'.length + 420, 'P17 the sentence stays within 420 characters (' + r.error.length + ')');
+  // the longest case: nine of the ten empty, one older copy cannot exist at the same time, so nine empty and the tenth answering
+  const nine = director(site({ empty: ALLFILES.slice(0, 9) }));
+  const rn = await nine.call(FIRST);
+  ok(rn.error.length <= 'backend_old|'.length + 420 && /; 6 more modules have none of their methods$/.test(rn.error), 'P17 nine empty modules: three named, six counted, still within 420 characters (' + rn.error.length + ')');
+  // empty plus older: the cut at 420 never removes the advice that comes first
+  const mix = director(site({ empty: ALLFILES.slice(0, 3), old: { 'finance.web.js': listOf('FIN_ALLOWED').slice(-6), 'results.web.js': listOf('RES_ALLOWED').slice(-6), 'print.web.js': listOf('PRN_ALLOWED').slice(-3) } }));
+  const rm = await mix.call(FIRST);
+  ok(rm.error.length <= 'backend_old|'.length + 420 && rm.error.startsWith('backend_old|' + none('racedir.web.js')), 'P17 empty and older modules together: still within 420 characters and the advice is first (' + rm.error.length + ')');
   const w = {};
   const d2 = director(w);
   const r2 = await d2.call(FIRST);
-  ok(r2.ok === false && /^backend_old\|most likely missing or misnamed: rd-auth\.js; racedir\.web\.js has none/.test(r2.error), 'P17 with no module found at all, rd-auth.js is named first: ' + r2.error);
+  ok(r2.ok === false && r2.error === 'backend_old|' + ALLGONE, 'P17 with no module found at all the sentence is the all-empty advice: ' + r2.error);
 }
 { // P18: a backend method that throws still answers with its own message (the check is only for a method that is not there)
   const w = site();
@@ -232,7 +245,7 @@ function words(html) {
 const BACKEND = 'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6.';
 const PAGECODE = 'This page\'s code is out of date. Paste the latest page-code.js for this page, then publish.';
 {
-  const detail = 'most likely missing or misnamed: rd-privacy.js; racedir.web.js has none of its 73 methods';
+  const detail = 'racedir.web.js has none of its 73 methods: paste racedir.web.js again, then save and publish';
   const s = await tryLogin('backend_old|' + detail);
   eq(txt(s.d.querySelector('#lgErr')), BACKEND + ' (' + detail + ')', 'E1 the login screen says the sentence for backend_old and the file to look at in brackets');
   eq(txt(s.d.querySelector('#toast')), BACKEND + ' (' + detail + ')', 'E1 the pop-up message carries the same words');
@@ -404,20 +417,40 @@ for (const [name, file] of embeds) {
 // ---------------------------------------------------------------- G: the setup guide and the files
 const GUIDE = read('docs/SETUP.md');
 const WEB = ['racedir.web.js', 'exposoft.web.js', 'training.web.js', 'finance.web.js', 'results.web.js', 'print.web.js', 'runner.web.js', 'comms.web.js', 'waivers.web.js', 'reports.web.js', 'privacy.web.js'];
-const PLAINF = ['rd-auth.js', 'ai-core.js', 'rd-approvals.js', 'rd-finance.js', 'rd-results.js', 'rd-print.js', 'rd-data.js', 'rd-comms.js', 'rd-waiver.js', 'rd-report.js', 'rd-privacy.js'];
-const ALL22 = WEB.concat(PLAINF);
+const OLDHELPERS = ['rd-auth.js', 'ai-core.js', 'rd-approvals.js', 'rd-finance.js', 'rd-results.js', 'rd-print.js', 'rd-data.js', 'rd-comms.js', 'rd-waiver.js', 'rd-report.js', 'rd-privacy.js'];
 const section = (GUIDE.split(/^## If a page shows an error\s*$/m)[1] || '').split(/^## /m)[0];
 ok(section.length > 3000, 'G1 the guide has the section "If a page shows an error" (' + section.length + ' characters)');
-for (const f of ALL22) {
+for (const f of WEB) {
   ok(fs.existsSync('../' + dirOf(f) + '/' + f), 'G2 ' + f + ' is in the pack');
   const t = read(dirOf(f) + '/' + f);
   ok(t.endsWith('\n// END ' + f + '\n') && (t.match(/^\/\/ END /gm) || []).length === 1, 'G2 ' + f + ' ends with the line "// END ' + f + '", once');
-  ok(section.includes('`' + f + '`'), 'G3 the guide names ' + f + ' in its check of the 22 files');
+  ok(section.includes('`' + f + '`'), 'G3 the guide names ' + f + ' in its check of the 11 files');
   ok(new RegExp('\\| 1-backend/' + f.replace(/\./g, '\\.') + ' \\|').test(GUIDE), 'G3 the table in section A lists ' + f);
 }
-eq(new Set(ALL22).size, 22, 'G3 the guide counts 22 distinct backend files');
-ok(/All 22 files below are needed: none is optional/.test(GUIDE) && /check 1/i.test(section) && /All 22 backend files exist/.test(section), 'G4 the guide says all 22 are needed');
-ok(/ai-core\.js[^\n]*\*\*Required, even if you never use the AI features\.\*\*/.test(GUIDE) && !/Optional AI helper/.test(GUIDE) && !/ai-core[^\n]*optional/i.test(GUIDE.replace(/AI features \(optional[^\n]*/g, '')), 'G4 ai-core.js is said to be required, never optional');
+eq(new Set(WEB).size, 11, 'G3 the guide counts 11 distinct backend files');
+ok(/\*\*All 11 files below are needed: none is optional\.\*\*/.test(GUIDE) && /check 1/i.test(section) && /All 11 backend files exist/.test(section), 'G4 the guide says all 11 are needed');
+// no helper file is a file to add any more; the guide says to delete the old ones, in the quick start, in section A and in check 1
+for (const f of OLDHELPERS) {
+  ok(!new RegExp('\\| 1-backend/' + f.replace(/\./g, '\\.') + ' \\|').test(GUIDE), 'G4 the table of files has no row for the old helper ' + f);
+  ok(GUIDE.split('`' + f + '`').length - 1 >= 3, 'G4 the guide names the old helper ' + f + ' where it says to delete it (quick start, section A, check 1)');
+}
+ok(/\*\*Delete the old helper files\*\*/.test(GUIDE) && /\*\*Delete all eleven\*\*/.test(GUIDE) && /delete them, because one that is only half pasted can stop Wix's build/.test(section), 'G4 the guide says to delete the eleven old helper files');
+ok(!/\b22 (backend )?files\b/.test(GUIDE) && !/two backend files, `(finance|results|comms|waivers|reports|privacy)\.web\.js`/.test(GUIDE), 'G4 nothing in the guide still counts 22 files or asks for a helper beside a web module');
+// the quick start at the top of the guide: how to run it and log in
+const QS = (GUIDE.split(/^## Quick start: run it and log in\s*$/m)[1] || '').split(/^## A\. /m)[0];
+ok(QS.length > 1800 && GUIDE.indexOf('## Quick start: run it and log in') < GUIDE.indexOf('## A. The files and where each one goes'), 'Q1 the guide opens with a quick start that comes before section A (' + QS.length + ' characters)');
+ok(/1\. \*\*Backend: 11 files\.\*\*/.test(QS) && /\*\*Dev Mode\*\*/.test(QS) && /Add web module/.test(QS) && /Ctrl\+End/.test(QS) && /`\/\/ END`/.test(QS), 'Q2 the quick start says to turn Dev Mode on, add 11 web modules and check the END line');
+ok(/2\. \*\*Delete the old helper files\*\*/.test(QS) && /\*\*after\*\* step 1/.test(QS), 'Q3 the quick start says to delete the old helper files after pasting the new ones');
+ok(/3\. \*\*Pages: five\.\*\*/.test(QS) && /4\. \*\*Save, then Publish\.\*\*/.test(QS) && /View build\.log/.test(QS), 'Q4 the quick start covers the five pages, Save and Publish and the build report');
+ok(/5\. \*\*Open the published address\*\* `https:\/\/www\.vtra\.run\/rd`: not the Editor's Preview/.test(QS) && /\?rc=test-site/.test(QS), 'Q5 the quick start says to open the published address, not the Editor\'s Preview');
+ok(/6\. \*\*Sign in\*\* with the username `master`/.test(QS) && /\*\*change that password on the Team screen at once\*\*/.test(QS) && /not written in any file of this pack/.test(QS), 'Q6 the quick start says to sign in as master, to change that password at once, and that no file holds it');
+ok(['/rd', '/coach', '/train', '/volunteer', '/runner'].every((x) => QS.includes('**' + x + '**')) && /\/volunteer\*\* and \*\*\/runner\*\* are public pages and have no login/.test(QS), 'Q7 the quick start says who signs in where (/rd, /coach, /train; /volunteer and /runner are public)');
+const DBS = (GUIDE.split(/^## D\. The database collections \(37\)\s*$/m)[1] || '').split(/^## /m)[0];
+ok(DBS.length > 1500 && /\*\*Sandbox\*\*/.test(DBS) && /\*\*Live\*\*/.test(DBS) && /set to the site admin/.test(DBS) && /`admin`, `director`, `lead1`, `coach1`, `desk1`, `user1` and `user2`/.test(DBS), 'Q8 section D says where the data is (Sandbox and Live), that every collection is locked, and which seven old logins need new passwords (' + DBS.length + ' characters)');
+{
+  const UP = read('docs/UPGRADE.md');
+  ok(/^## 2\. Delete the 11 old helper files\s*$/m.test(UP) && /\*\*Only after step 1\.\*\*/.test(UP) && /Give the seven older logins new passwords/.test(UP) && /^# Package 6c /m.test(UP), 'Q9 UPGRADE.md says to delete the 11 helper files after step 1 and to give the seven older logins new passwords');
+}
 ok(/Ctrl\+End/.test(section) && /`\/\/ END` followed by the file's own name/.test(section), 'G5 the guide tells you to look for the end marker with Ctrl+End');
 ok(/Developer Tools > Logging Tools > Wix Logs/.test(section), 'G6 the guide says where Wix shows server errors');
 ok(/volFrame/.test(section) && /Do not make the volunteer page by duplicating \/rd/.test(section), 'G7 the guide says not to duplicate /rd for the volunteer page, and the element ID to use');
@@ -428,10 +461,10 @@ ok(dirHtml.includes("This page\\'s code is out of date. Paste the latest page-co
 ok(section.includes('"No answer from the server in time."') && section.includes('"Something went wrong (server_error)"') && section.includes('"Wix Events did not answer"') && section.includes('"Wix Events refused access"'), 'G9 the guide quotes the other sentences it explains');
 ok(dirHtml.includes('Wix Events did not answer') && dirHtml.includes('Wix Events refused access'), 'G9 and the screen says the two Wix Events sentences');
 // the guide explains every sentence the page code can build
-for (const phrase of ['most likely missing or misnamed', 'check that these files exist with exactly these names', 'every file racedir.web.js imports is there, so paste racedir.web.js again, then save and publish', 'has none of its', 'methods (missing', 'more modules have none of their methods', 'more module is an older copy', 'every backend module answers, so paste the newest backend files and publish']) {
+for (const phrase of ['racedir.web.js has none of its 73 methods: paste racedir.web.js again, then save and publish', 'none of the 10 backend files answers: check that the Backend list has the 11 files of this pack with exactly these names, paste each one whole, then save and publish', 'has none of its', 'methods (missing', 'more modules have none of their methods', 'more module is an older copy', 'every backend module answers, so paste the newest backend files and publish']) {
   ok(section.includes(phrase), 'G10 the guide explains the bracket sentence "' + phrase + '"');
 }
-for (const phrase of ['most likely missing or misnamed: ', 'check that these files exist with exactly these names: ', 'every file ', ' imports is there, so paste ', ' again, then save and publish', ' has none of its ', ' methods (missing ', ' more modules have none of their methods', ' more module has none of its methods', ' more modules are older copies', ' more module is an older copy', 'every backend module answers, so paste the newest backend files and publish']) {
+for (const phrase of ['none of the ', ' backend files answers: check that the Backend list has the 11 files of this pack with exactly these names, paste each one whole, then save and publish', ': paste ', ' again, then save and publish', ' has none of its ', ' methods (missing ', ' more modules have none of their methods', ' more module has none of its methods', ' more modules are older copies', ' more module is an older copy', 'every backend module answers, so paste the newest backend files and publish']) {
   ok(PC.includes(phrase), 'G10 the page code still builds the phrase "' + phrase.trim() + '"');
 }
 ok(/^## If a page shows an error\s*$/m.test(GUIDE) && /"If a page shows an error" in SETUP\.md/.test(dirHtml), 'G11 the screen and the guide use the same name for the section');

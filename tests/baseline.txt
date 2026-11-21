@@ -1,7 +1,8 @@
-# Regression baseline: the number of checks each suite passed at the last release (2026-11-15, Package 6: Privacy, hidden phone numbers and e-mail addresses, contact files, erasing a person).
+# Regression baseline: the number of checks each suite passed at the last release (2026-11-20, Package 6c: one self-contained file per web module).
+# diagnose-ui.mjs went from 304 to 286 on purpose: the check of the 22 files (helper lists, culprit counting) was replaced by the check of the 11 web modules.
 # tests/all.sh fails if any suite now passes fewer checks than listed here, or if any check fails.
 # Update a number only when checks were removed on purpose.
-unit-auth.mjs 123
+unit-auth.mjs 125
 unit-team.mjs 249
 unit-finance.mjs 117
 unit-results.mjs 119
@@ -59,4 +60,6 @@ pentest-privacy.mjs 529
 privacy.mjs 387
 privacy-ui.mjs 241
 events-lazy.mjs 34
-diagnose-ui.mjs 304
+diagnose-ui.mjs 286
+bundle.mjs 315
+collections.mjs 323

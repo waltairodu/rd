@@ -14,6 +14,7 @@
 //                              Results never deletes a result, Print never deletes a design, Waivers deletes nothing and keeps no name in its change notes, Messages deletes nothing and keeps no address,
 //                              phone number or message text in its log, the public runner page never writes anything
 import fs from 'fs';
+import { execFileSync } from 'child_process';
 import * as R from './racedir.test.mjs';
 import * as X from './exposoft.test.mjs';
 import * as T from './training.test.mjs';
@@ -1270,8 +1271,10 @@ for (const [name, text] of [['racedir.web.js', rdText], ['training.web.js', trTe
   const lines = text.split('\n').filter((l) => /SETUP_KEY/.test(l) && !/^\s*\/\//.test(l));
   ok(lines.every((l) => /^const SETUP_KEY = 'change-this-key'/.test(l) || /SETUP_KEY === 'change-this-key'\) throw/.test(l) || /same\(String\(arg\.key \|\| ''\), SETUP_KEY\)/.test(l)), 'S7 ' + name + ': the key is only compared with the constant-time check, plus the placeholder guard');
 }
+// The file as it is shipped: the built, self-contained file (tools/inline_backend.mjs), with the placeholder setup key still in it.
 async function shipped(file, out) {
-  const s = src(file).replace("'./ai-core.js'", "'./ai-core.test.mjs'").replace("'./rd-approvals.js'", "'./rd-approvals.test.mjs'").replace("'./rd-auth.js'", "'./rd-auth.test.mjs'").replace("'./rd-privacy.js'", "'./rd-privacy.test.mjs'");
+  const tool = new URL('../tools/inline_backend.mjs', import.meta.url).pathname;
+  const s = execFileSync(process.execPath, [tool, '--entry', new URL('../' + file, import.meta.url).pathname], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   fs.writeFileSync(new URL('./' + out, import.meta.url), s);
   return import('./' + out);
 }

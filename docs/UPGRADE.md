@@ -1,24 +1,27 @@
-# Package 6b (backend files that do not load): what to change on a site that already runs Package 6
+# Package 6c (one self-contained file per web module): what to change on a site that runs Package 6b or older
 
-Date: 2026-11-19. Installing for the first time? Ignore this page and follow SETUP.md.
-Use this when /rd says "The backend file is out of date" or "No answer from the server" even after you pasted the backend files, or when the volunteer page says "Something went wrong". **All 22 backend files and the five pages are replaced.** No collection is made and no data is touched.
+Date: 2026-11-20. Installing for the first time? Ignore this page and follow SETUP.md ("Quick start: run it and log in").
+Use this when /rd says "The backend file is out of date" or "No answer from the server" even after you pasted the backend files, or when the volunteer page says "Something went wrong". **The 11 backend files and the five pages are replaced, and the 11 old helper files are deleted.** No data is touched. The database is already made on vtra.run (37 collections, locked to the site admin): see SETUP.md, section D.
 
 **What changed**
-- Every web module now calls Wix's own `webMethod` directly. Before, each file wrapped it in a small helper of its own, which is not the form Wix documents.
-- `racedir.web.js` opens the Wix Events module only when the Registrations screen asks for it, never when the file loads. Before, that import sat at the top of the file; when an import at the top of a file fails, the whole file does not load and every method in it looks missing.
-- /rd says which file to look at: a sentence in brackets after "The backend file is out of date" names the backend file that is missing, empty, cut or older. The volunteer, athlete, coach and runner pages say it in plain words.
-- The last line of each of the 22 backend files is `// END` and the file's name. Press Ctrl+End after pasting: if you do not see it, the paste was cut.
-- SETUP.md has a new section, **If a page shows an error**, with six checks, the last one on Wix's own build report (Wix scans every code file when you publish and lists what it cannot read). `ai-core.js` is needed even if you never use the AI features.
+- **11 backend files instead of 22.** Before, each web module imported plain helper files (`rd-auth.js`, `ai-core.js`, `rd-privacy.js` and eight more). If one helper was missing, misnamed or half pasted, every module that imported it did not load, and every method in it looked missing. Now each web module is one file that holds everything it needs and imports only Wix's own modules. There are no helper names to get wrong, no order to paste in, and half as many files.
+- The files in `1-backend/` are made by a build step from the same source that the tests run against (`tools/inline_backend.mjs`). The tests check each built file: it parses, imports nothing of ours, exports the same methods as its source, and ends with its `// END` line.
+- /rd's red sentence is simpler: it names the web module that does not answer and says to paste it again (`racedir.web.js has none of its 73 methods: paste racedir.web.js again, then save and publish`). When none of the ten answers it says so in one line.
+- The **database** is made and checked: 37 collections exist on your site, all locked to the site admin (nobody can read or write them from a page). The `ExpoStaff` collection, which holds the logins, was set to world-readable and still held the old plain-text passwords; that is closed. `3-database/COLLECTIONS.md` lists every collection.
+- A `master` login (role admin) exists, so you can sign in without the First-time setup form. Change its password on the Team screen at once.
 
-What this pack cannot prove: it was tested here against a copy of the Wix modules, not on your live site. If /rd still shows the red sentence after the steps below, the sentence in brackets (and SETUP.md, "If a page shows an error") says what to check first.
+What this pack cannot prove: it was tested here against a copy of the Wix modules, not on your live site. Three things are unproven on the live site: that Wix accepts files of this size (the largest is `racedir.web.js`, about 320 KB), that the one dynamic `import('wix-events.v2')` line in `racedir.web.js` is accepted (SETUP.md, check 6, has a two-line replacement if it is not), and that Wix's build makes a callable method of every `webMethod` export. If /rd still shows the red sentence after the steps below, the sentence in brackets (and SETUP.md, "If a page shows an error") says what to check first.
 
-## 1. Replace all 22 backend files (plain files first)
-Code sidebar > Backend. For each file in `1-backend/`: open the file with the same name, press Ctrl+A, paste the new contents. A file that does not exist yet: **+ > Add a .js file** (the eleven `rd-*.js` and `ai-core.js` files) or **+ > Add a web module** (the eleven `.web.js` files), named exactly as in `1-backend/`. Do the plain files first, then the web modules.
-- `racedir.web.js` and `training.web.js` each hold a line `const SETUP_KEY = '...'`. Copy yours before you paste, and put it back in place of `'change-this-key'` (training's is only for its optional manual setup).
+## 1. Replace the 11 backend files
+Code sidebar > Backend. For each file in `1-backend/`: open the file with the same name, press Ctrl+A, paste the new contents. A file that does not exist yet: **+ > Add a web module**, named exactly as in `1-backend/` (it must end in `.web.js`). There is no order to follow.
+- `racedir.web.js` and `training.web.js` each hold a line `const SETUP_KEY = '...'` near the top. Copy yours before you paste, and put it back in place of `'change-this-key'` (training's is only for its optional manual setup).
 - After each paste press Ctrl+End: the last line must read `// END` and the file's own name. If it does not, select everything, delete, and paste again.
 - No import line at the top of a web module may be underlined in red.
 
-## 2. Replace the five pages
+## 2. Delete the 11 old helper files
+**Only after step 1.** In the Backend list, right-click and delete each of these: `rd-auth.js`, `ai-core.js`, `rd-approvals.js`, `rd-finance.js`, `rd-results.js`, `rd-print.js`, `rd-data.js`, `rd-comms.js`, `rd-waiver.js`, `rd-report.js` and `rd-privacy.js`. The new files do not use them, and an old one that is only half pasted can stop Wix's build.
+
+## 3. Replace the five pages
 For each page: the HTML element (**Enter Code**: select everything, paste the embed) and the page code (code panel of that page: select everything, paste `page-code.js`).
 - /rd (element `dirFrame`): `2-pages/rd/rd-embed.html` and `2-pages/rd/page-code.js`
 - /volunteer (element `volFrame`): `2-pages/volunteer/volunteer-embed.html` and `2-pages/volunteer/page-code.js`
@@ -28,13 +31,17 @@ For each page: the HTML element (**Enter Code**: select everything, paste the em
 
 **Do not make the volunteer page by duplicating /rd.** A copy carries the Director page code, and the volunteer screen then cannot work. If your volunteer page is a copy of /rd, add a new page instead, with the volunteer embed in an HTML element whose ID is `volFrame`.
 
-## 3. Save, publish, and test at the real address
+## 4. Save, publish, and test at the real address
 1. Click **Save**, then **Publish**. If a pop-up says errors were found in the code, choose **View build.log**, not "Proceed with publishing": a file with an error can end up left out and then looks empty. The report names the file (SETUP.md, "If a page shows an error", check 6). You can open it after any publish: Developer Tools > Latest build > `build.log`.
-2. Open https://www.vtra.run/rd (not an address that ends in `?rc=test-site`, which is the preview) and log in as a director. The Dashboard opens.
+2. Open https://www.vtra.run/rd (not an address that ends in `?rc=test-site`, which is the preview) and sign in as `master` (or as a director). The Dashboard opens. Change the `master` password on the Team screen.
 3. **Registrations**: Load my Wix events lists your Wix events. If Wix Events cannot be reached this screen alone says "Wix Events did not answer"; everything else keeps working.
 4. Open the volunteer page at its real address: the races are listed.
 5. A screen that still says "The backend file is out of date" or "This page's code is out of date" has a sentence in brackets: it names the file or the method. SETUP.md, "If a page shows an error", says what each one means.
+6. **Give the seven older logins new passwords** (`admin`, `director`, `lead1`, `coach1`, `desk1`, `user1`, `user2`): Team > the person > New password. Their old passwords are still stored as plain text until each person signs in once.
 
+# Package 6b (backend files that do not load): what changed, for the record
+
+The steps of Package 6b are replaced by Package 6c above. 6b added the end line on every backend file, the "If a page shows an error" section and the build-report check, and made the Wix Events import lazy. 6c keeps all of that.
 
 # Package 6 (Privacy): what to change on a site that already runs Package 5c
 

@@ -3,3 +3,4 @@ node_modules/
 __pycache__/
 dist/
 tests/last-run.json
+tests/built-tmp/

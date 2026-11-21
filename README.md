@@ -19,20 +19,28 @@ Software for running a VTRA race end to end, built on Wix (Velo). Started with t
 
 None of these packages has run on a live Wix site yet. Rehearse on the published site before race day.
 
-**A page says "The backend file is out of date"?** All 22 backend files are needed (`ai-core.js` too, even if you never use the AI features), and each one ends with a `// END <file name>` line so you can see a paste was whole. The sentence in brackets on the screen names the file to look at, and Wix's own build report (written each time you publish) names any file it could not read: see `docs/SETUP.md`, "If a page shows an error".
+**A page says "The backend file is out of date"?** The pack has 11 backend files, one web module each, and every one holds everything it needs (the old helper files `rd-*.js` and `ai-core.js` are not pasted any more). Each ends with a `// END <file name>` line so you can see a paste was whole. The sentence in brackets on the screen names the file to paste again, and Wix's own build report (written each time you publish) names any file it could not read: see `docs/SETUP.md`, "If a page shows an error".
+
+**Run it and log in:** `docs/SETUP.md`, "Quick start: run it and log in". The database (37 collections, all locked to the site admin) is listed in `docs/COLLECTIONS.md`.
 
 **Choose the Wix plan before race day.** Wix limits the items a site may hold in its own collections (Light 1,500, Core 4,000, Business 20,000, Business Elite and Elite 10 million) and refuses new rows at the limit. A race uses about 9 items per runner plus one per message sent, plus about 500: a race of 1,000 runners is about 12,500 items. See `docs/SETUP.md` section C for the table, how to check the count and how to free space after a race.
 
 ## Layout
 
 - `wix/expo`: Expo desk (backend module, HTML embed, page code, README).
-- `wix/director`: Director (backend module, two HTML embeds, two page codes, README).
+- `wix/director`: Director (web modules, the helper files they share, HTML embeds, page codes, README). The helper files are source only: the pack ships one built file per web module.
+- `tools`: `make_pack.py` (builds the zip you upload), `inline_backend.mjs` (puts each web module's helper code inside it), `collections.mjs` (the list of database collections, read from the code).
 - `tests`: a small simulator of the Wix modules and the test suites. Run `tests/all.sh`.
 - `docs/PLAN.md`: decisions and build order. `docs/mockups`: the clickable design screens.
 
 ## Run the tests
 
     cd tests && npm install jsdom@24 && ./all.sh
+
+## Make the pack you upload to Wix
+
+    python3 tools/make_pack.py --name vtra-wix      # dist/vtra-wix/ and dist/vtra-wix-files.zip
+    node tools/inline_backend.mjs --list            # what each backend file takes in
 
 ## Secrets
 

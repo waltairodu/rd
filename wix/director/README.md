@@ -15,12 +15,14 @@ There is **one login for everything**, made on the **Team** screen (they are row
 
 ## Files
 
-| File | Where it goes |
+**These are the source files. What you upload to Wix is the pack made by `python3 tools/make_pack.py`: 11 backend files (one web module each, with the helper code it needs inside it) and the pages. Do not add the plain helper files (`rd-*.js`, `ai-core.js`) to Wix.** See docs/SETUP.md.
+
+| File | What it is |
 | --- | --- |
-| `racedir.web.js` | Code panel, Backend, a web module named `racedir.web.js` |
-| `rd-auth.js` | Code panel, Backend, a plain file named `rd-auth.js` (not .web.js). Passwords, PINs and roles; all three backends import it |
-| `rd-approvals.js` | Code panel, Backend, a plain file named `rd-approvals.js` (not .web.js). Approvals library and letter writer; `racedir.web.js` imports it |
-| `ai-core.js` | Code panel, Backend, a plain file named `ai-core.js`; `racedir.web.js` imports it |
+| `racedir.web.js` | The RaceOS web module (a backend file in the pack) |
+| `rd-auth.js` | Helper, built into every web module: passwords, PINs and roles |
+| `rd-approvals.js` | Helper, built into `racedir.web.js`: approvals library and letter writer |
+| `ai-core.js` | Helper, built into `racedir.web.js` and `training.web.js`: talks to the Anthropic API |
 | `director-embed.html` | HTML embed on the **Director** page, element ID `dirFrame` |
 | `director-page-code.js` | That page's code panel |
 | `volunteer-embed.html` | HTML embed on the **Volunteer** page, element ID `volFrame` |

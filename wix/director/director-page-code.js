@@ -63,22 +63,22 @@ const RP_ALLOWED = ['rpList', 'rpRun', 'rpCsv'];
 // who may use each one (directors everything; leads may show one detail).
 const PV_ALLOWED = ['pvList', 'pvReveal', 'pvExport', 'pvErasePlan', 'pvErase'];
 
-// Backend check. When a backend module cannot answer, the screen is told which module is empty or old and which backend file is
-// probably missing, so nobody has to guess. The answer reaches the screen as  code|details.
-// The last item of each line lists the plain backend files that module imports, directly or through another plain file
-// (a test keeps these lists in step with the backend files).
+// Backend check. When a backend module cannot answer, the screen is told which module is empty or old, so nobody has to guess.
+// The answer reaches the screen as  code|details.
+// Each backend file of the pack is one web module that holds everything it needs (it imports no other file of ours), so a module
+// that is empty or old is a file that is missing, cut, misnamed, left out by Wix's build, or from an older pack.
 function modules() {
   return [
-    ['racedir.web.js', rd, ALLOWED, ['ai-core.js', 'rd-approvals.js', 'rd-auth.js', 'rd-comms.js', 'rd-print.js', 'rd-privacy.js', 'rd-results.js']],
-    ['exposoft.web.js', expo, EXPO_ALLOWED, ['rd-auth.js', 'rd-comms.js', 'rd-print.js', 'rd-privacy.js', 'rd-results.js']],
-    ['training.web.js', train, TRAIN_ALLOWED, ['ai-core.js', 'rd-auth.js']],
-    ['finance.web.js', fin, FIN_ALLOWED, ['rd-auth.js', 'rd-finance.js']],
-    ['results.web.js', res, RES_ALLOWED, ['rd-auth.js', 'rd-results.js']],
-    ['print.web.js', prn, PRN_ALLOWED, ['rd-auth.js', 'rd-data.js', 'rd-print.js', 'rd-results.js']],
-    ['comms.web.js', comms, COMMS_ALLOWED, ['rd-auth.js', 'rd-comms.js', 'rd-data.js', 'rd-print.js', 'rd-results.js', 'rd-waiver.js']],
-    ['waivers.web.js', wv, WV_ALLOWED, ['rd-auth.js', 'rd-comms.js', 'rd-data.js', 'rd-print.js', 'rd-results.js', 'rd-waiver.js']],
-    ['reports.web.js', rp, RP_ALLOWED, ['rd-auth.js', 'rd-comms.js', 'rd-data.js', 'rd-finance.js', 'rd-print.js', 'rd-report.js', 'rd-results.js', 'rd-waiver.js']],
-    ['privacy.web.js', pv, PV_ALLOWED, ['rd-auth.js', 'rd-comms.js', 'rd-data.js', 'rd-print.js', 'rd-privacy.js', 'rd-results.js']],
+    ['racedir.web.js', rd, ALLOWED],
+    ['exposoft.web.js', expo, EXPO_ALLOWED],
+    ['training.web.js', train, TRAIN_ALLOWED],
+    ['finance.web.js', fin, FIN_ALLOWED],
+    ['results.web.js', res, RES_ALLOWED],
+    ['print.web.js', prn, PRN_ALLOWED],
+    ['comms.web.js', comms, COMMS_ALLOWED],
+    ['waivers.web.js', wv, WV_ALLOWED],
+    ['reports.web.js', rp, RP_ALLOWED],
+    ['privacy.web.js', pv, PV_ALLOWED],
   ];
 }
 
@@ -94,35 +94,18 @@ function shortName(x) {
 function backendCheck() {
   const rows = modules().map((m) => {
     const missing = m[2].filter((name) => !(m[1] && typeof m[1][name] === 'function'));
-    return { file: m[0], want: m[2].length, have: m[2].length - missing.length, missing, needs: m[3] };
+    return { file: m[0], want: m[2].length, have: m[2].length - missing.length, missing };
   });
-  // A module that answers with some of its methods was read in full, so every file it imports is there.
-  const proven = {};
-  rows.forEach((r) => {
-    if (r.have > 0) r.needs.forEach((f) => { proven[f] = true; });
-  });
-  const unproven = (r) => r.needs.filter((f) => !proven[f]);
   const empty = rows.filter((r) => r.have === 0);
   const old = rows.filter((r) => r.have > 0 && r.missing.length > 0);
-  // A missing file breaks every module that imports it. So the files to look at are the ones that explain the most empty
-  // modules and that no working module imports. Each round takes the file(s) that explain the most modules still unexplained.
-  const culprits = [];
-  let todo = empty.filter((r) => unproven(r).length > 0);
-  while (todo.length) {
-    const count = {};
-    todo.forEach((r) => unproven(r).forEach((f) => { count[f] = (count[f] || 0) + 1; }));
-    const top = Math.max.apply(null, Object.keys(count).map((f) => count[f]));
-    const best = Object.keys(count).filter((f) => count[f] === top).sort();
-    best.forEach((f) => culprits.push(f));
-    todo = todo.filter((r) => !best.some((f) => r.needs.indexOf(f) >= 0));
-  }
   // What to do comes first, then the facts it rests on (a few of them), so a long list can never cut the advice off.
   const parts = [];
-  if (culprits.length === 1) parts.push('most likely missing or misnamed: ' + culprits[0]);
-  else if (culprits.length) parts.push('check that these files exist with exactly these names: ' + culprits.join(', '));
-  empty.filter((r) => unproven(r).length === 0).forEach((r) => parts.push('every file ' + r.file + ' imports is there, so paste ' + r.file + ' again, then save and publish'));
-  empty.slice(0, 3).forEach((r) => parts.push(r.file + ' has none of its ' + r.want + ' methods'));
-  if (empty.length > 3) parts.push(empty.length - 3 + (empty.length === 4 ? ' more module has none of its methods' : ' more modules have none of their methods'));
+  if (empty.length === rows.length) {
+    parts.push('none of the ' + rows.length + ' backend files answers: check that the Backend list has the 11 files of this pack with exactly these names, paste each one whole, then save and publish');
+  } else {
+    empty.slice(0, 3).forEach((r) => parts.push(r.file + ' has none of its ' + r.want + ' methods: paste ' + r.file + ' again, then save and publish'));
+    if (empty.length > 3) parts.push(empty.length - 3 + (empty.length === 4 ? ' more module has none of its methods' : ' more modules have none of their methods'));
+  }
   old.slice(0, 2).forEach((r) => parts.push(r.file + ' has ' + r.have + ' of ' + r.want + ' methods (missing ' + r.missing.slice(0, 4).join(', ') + (r.missing.length > 4 ? ', ...' : '') + ')'));
   if (old.length > 2) parts.push(old.length - 2 + (old.length === 3 ? ' more module is an older copy' : ' more modules are older copies'));
   if (!parts.length) parts.push('every backend module answers, so paste the newest backend files and publish');

@@ -1,25 +1,4 @@
-# More files for the Wix pack (tools/make_pack.py reads this): "backend path" or "page folder embed pagecode"
-# Package 2: Finance
-backend wix/director/finance.web.js
-backend wix/director/rd-finance.js
-# Package 3: Waves, results and awards
-backend wix/director/results.web.js
-backend wix/director/rd-results.js
-# Package 4: Bibs, certificates and the public runner page
-backend wix/director/print.web.js
-backend wix/director/runner.web.js
-backend wix/director/rd-print.js
-backend wix/director/rd-data.js
+# More pages for the Wix pack (tools/make_pack.py reads this): "page folder embed pagecode"
+# The backend files are no longer listed here: tools/inline_backend.mjs builds one file for every web module under wix/.
+# Package 4: the public runner page
 page runner wix/director/runner-embed.html wix/director/runner-page-code.js
-# Package 5a: Communications (messages to runners and volunteers)
-backend wix/director/comms.web.js
-backend wix/director/rd-comms.js
-# Package 5b: Waivers (the text in versions, who has signed, papers on the day, papers to print)
-backend wix/director/waivers.web.js
-backend wix/director/rd-waiver.js
-# Package 5c: Reports (counts and totals as tables, and a CSV file of any table)
-backend wix/director/reports.web.js
-backend wix/director/rd-report.js
-# Package 6: Privacy (hidden phone numbers and e-mail addresses, contact files, erasing a person)
-backend wix/director/privacy.web.js
-backend wix/director/rd-privacy.js

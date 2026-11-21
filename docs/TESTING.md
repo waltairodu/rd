@@ -4,14 +4,14 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 
 | Kind of test | Suites | Checks passed | Failed |
 |---|---|---|---|
-| 1. Unit tests | 9 | 1615 | 0 |
+| 1. Unit tests | 9 | 1617 | 0 |
 | 2. Penetration tests | 10 | 2786 | 0 |
-| 3. Integration tests | 21 | 4652 | 0 |
+| 3. Integration tests | 23 | 5272 | 0 |
 | 4. Security tests | 1 | 579 | 0 |
 | Component tests (older suites) | 18 | 1538 | 0 |
-| 5. Regression (older suites against the saved baseline) | 59 | 11170 | 0 |
+| 5. Regression (older suites against the saved baseline) | 61 | 11792 | 0 |
 
-**Total: 11170 checks passed, 0 failed.**
+**Total: 11792 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
@@ -19,7 +19,7 @@ One piece on its own: password hashing, PINs, roles, the Team screen rules, the 
 
 | Suite | Passed | Failed |
 |---|---|---|
-| `unit-auth.mjs` | 123 | 0 |
+| `unit-auth.mjs` | 125 | 0 |
 | `unit-team.mjs` | 249 | 0 |
 | `unit-finance.mjs` | 117 | 0 |
 | `unit-results.mjs` | 119 | 0 |
@@ -48,7 +48,7 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back) and Backend loading (the backend file still loads and logs in when the Wix Events module cannot be opened, and only the three Registrations calls say so; when a backend file or a page code is missing the Director page names the file to look at, for one missing file, several at once, empty, cut and older files, hostile method names, and the Director screen shows it escaped; the volunteer, athlete, coach and runner pages say it in plain words with no technical details; the setup guide explains every sentence and the 22 backend files end with the marker it tells you to look for).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back) and Backend loading (the backend file still loads and logs in when the Wix Events module cannot be opened, and only the three Registrations calls say so; when a backend file or a page code is missing the Director page names the file to look at, for one missing file, several at once, empty, cut and older files, hostile method names, and the Director screen shows it escaped; the volunteer, athlete, coach and runner pages say it in plain words with no technical details; the setup guide explains every sentence and the 11 backend files end with the marker it tells you to look for) and Bundles (the 11 files you paste into Wix are made by one build tool: each reads as ES2020, imports no file of ours and only the expected Wix modules, exports what its source exports, ends with its marker, takes in exactly the helper files its source imports, holds no state that two files would have to share, and the tool does the same as the modules it replaces and refuses, loudly, sixteen kinds of input it cannot turn into the same behaviour) and Collections (the 37 database collections the code makes: only Text columns, all four permissions Admin, shared ones agree, every name the code uses is in the list, the guide is exactly what the tool makes from the code).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -72,7 +72,9 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `privacy.mjs` | 387 | 0 |
 | `privacy-ui.mjs` | 241 | 0 |
 | `events-lazy.mjs` | 34 | 0 |
-| `diagnose-ui.mjs` | 304 | 0 |
+| `diagnose-ui.mjs` | 286 | 0 |
+| `bundle.mjs` | 315 | 0 |
+| `collections.mjs` | 323 | 0 |
 
 ## 4. Security tests
 
@@ -117,12 +119,14 @@ Every suite that existed before a change must still pass at least as many checks
 | `approvals-ui.mjs` | 60 | 60 |
 | `approvals.mjs` | 228 | 228 |
 | `bibs-ai-ui.mjs` | 27 | 27 |
+| `bundle.mjs` | 315 | 315 |
 | `coaching-ui.mjs` | 15 | 15 |
+| `collections.mjs` | 323 | 323 |
 | `comms-ui.mjs` | 267 | 267 |
 | `comms.mjs` | 533 | 533 |
 | `dash-ui.mjs` | 15 | 15 |
 | `dash.mjs` | 38 | 38 |
-| `diagnose-ui.mjs` | 304 | 304 |
+| `diagnose-ui.mjs` | 286 | 286 |
 | `director-ui.mjs` | 73 | 73 |
 | `director.mjs` | 212 | 212 |
 | `events-lazy.mjs` | 34 | 34 |
@@ -161,7 +165,7 @@ Every suite that existed before a change must still pass at least as many checks
 | `training-ui.mjs` | 37 | 37 |
 | `training.mjs` | 130 | 130 |
 | `ui.mjs` | 45 | 45 |
-| `unit-auth.mjs` | 123 | 123 |
+| `unit-auth.mjs` | 125 | 125 |
 | `unit-comms.mjs` | 129 | 129 |
 | `unit-finance.mjs` | 117 | 117 |
 | `unit-print.mjs` | 120 | 120 |
@@ -177,7 +181,7 @@ Every suite that existed before a change must still pass at least as many checks
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
 
-**595 protections removed, 595 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed. Package 6b (19 November 2026) added 85 more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step); those 85 and 208 older ones that touch the files or tests that changed were run on the finished code: all 293 caught, none missed. The other 302 older ones were not run again for 6b (all caught on 16 November); to repeat them: `python3 tests/mutants.py --jobs 2`, about 35 minutes.
+**628 protections removed, 628 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed. Package 6b (19 November 2026) added 85 more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step) and ran those and 208 older ones again: all caught. Package 6c (21 November 2026) added 43 more (the build of one self-contained file per web module, the list of database collections, the new wording of the on-screen diagnosis, the check of a stored password against a fixed answer) and retired 10 that belonged to the old two-file layout; those 43 and 89 older ones that touch the files or tests that changed were run on the finished code: all 132 caught, none missed. The other 496 older ones were not run again for 6c (all caught when last run); to repeat them: `python3 tests/mutants.py --jobs 2`, about 70 minutes.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -691,23 +695,15 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | pv-ui-erase-keeps-shown | KILLED | privacy-ui.mjs: U8 and the open question about a number is closed (nothing that was being  |
 | pv-ui-trail-text-as-markup | KILLED | privacy-ui.mjs: U6 a note with markup in its fields is drawn as the characters it is (who, |
 | pv-ui-plan-name-as-markup | KILLED | privacy-ui.mjs: U8 a name with markup is shown as text in the list |
-| diag-proven-by-any-module | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-unproven-inverted | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-culprit-count-flat | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-culprit-one-round | KILLED | diagnose-ui.mjs: P4 two missing files are both named (the bigger one first), and the modul |
-| diag-culprit-least-common | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-advice-comes-last | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-details-cut-short | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-paste-again-wrong-branch | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
+| diag-advice-comes-last | KILLED | diagnose-ui.mjs: P4 two empty modules are both named, racedir.web.js first |
+| diag-details-cut-short | KILLED | diagnose-ui.mjs: P4 two empty modules are both named, racedir.web.js first |
 | diag-older-copy-not-reported | KILLED | diagnose-ui.mjs: P8 an older finance.web.js: how many methods it has and which are missing |
-| diag-empty-module-not-reported | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-racedir-needs-lose-ai-core | KILLED | diagnose-ui.mjs: P0 racedir.web.js: the files the check expects are exactly the files it i |
-| diag-exposoft-needs-lose-auth | KILLED | diagnose-ui.mjs: P0 exposoft.web.js: the files the check expects are exactly the files it  |
+| diag-empty-module-not-reported | KILLED | diagnose-ui.mjs: P2 an empty privacy.web.js is named, with the advice to paste it again |
 | diag-method-name-allows-markup | KILLED | diagnose-ui.mjs: P15 markup in a method name is stripped to letters and digits |
 | diag-method-name-not-cut | KILLED | diagnose-ui.mjs: P15 a long name is cut to 40 characters |
 | diag-page-code-old-without-detail | KILLED | diagnose-ui.mjs: P14 an unlisted method: page_code_old and its name |
-| diag-backend-old-without-detail | KILLED | diagnose-ui.mjs: P2 a missing rd-privacy.js is named, then the three modules that cannot l |
-| diag-singular-empty-wrong | KILLED | diagnose-ui.mjs: P12 a fourth module that cannot load is "1 more module has none of its me |
+| diag-backend-old-without-detail | KILLED | diagnose-ui.mjs: P2 an empty privacy.web.js is named, with the advice to paste it again |
+| diag-singular-empty-wrong | KILLED | diagnose-ui.mjs: P12 a fourth empty module is "1 more module has none of its methods" |
 | diag-singular-old-wrong | KILLED | diagnose-ui.mjs: P10 two older copies are named, a third is counted |
 | diag-fallback-sentence-removed | KILLED | diagnose-ui.mjs: P13 when every module answers, the sentence is still advice |
 | diag-unlisted-method-ignored | KILLED | diagnose-ui.mjs |
@@ -737,8 +733,6 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | diag-coach-relay-ignores-unlisted | KILLED | diagnose-ui.mjs: V3 coach: a method the page code does not list is answered "page_code_old |
 | diag-coach-relay-no-backend-check | KILLED | diagnose-ui.mjs: V2 coach: a listed method the backend does not have is answered "backend_ |
 | diag-runner-embed-shows-details | KILLED | diagnose-ui.mjs: V9 runner: details after the bar are never shown |
-| diag-guide-calls-ai-core-optional | KILLED | diagnose-ui.mjs: G4 ai-core.js is said to be required, never optional |
-| diag-guide-says-21-files | KILLED | diagnose-ui.mjs: G4 the guide says all 22 are needed |
 | diag-guide-wrong-logs-path | KILLED | diagnose-ui.mjs: G6 the guide says where Wix shows server errors |
 | diag-guide-drops-end-marker | KILLED | diagnose-ui.mjs: G5 the guide tells you to look for the end marker with Ctrl+End |
 | diag-guide-allows-duplicating-rd | KILLED | diagnose-ui.mjs: G7 the guide says not to duplicate /rd for the volunteer page, and the el |
@@ -746,10 +740,53 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | diag-guide-drops-publish | KILLED | diagnose-ui.mjs: G8 the guide says to save, publish and test at the real address, not ?rc= |
 | diag-guide-misquotes-sentence | KILLED | diagnose-ui.mjs: G9 the guide quotes the two sentences of the Director screen word for wor |
 | diag-guide-drops-events-note | KILLED | diagnose-ui.mjs: G12 the guide says the Wix Events connection is opened only on the Regist |
+| diag-marker-missing-racedir | KILLED | diagnose-ui.mjs |
+| diag-marker-missing-ai-core | KILLED | diagnose-ui.mjs |
+| diag-all-empty-not-one-line | KILLED | diagnose-ui.mjs: P6 with every module empty the sentence is one line of advice |
+| diag-all-empty-count-wrong | KILLED | diagnose-ui.mjs: P6 with every module empty the sentence is one line of advice |
+| diag-empty-advice-names-first-module | KILLED | diagnose-ui.mjs: P2 an empty privacy.web.js is named, with the advice to paste it again |
+| diag-empty-method-count-wrong | KILLED | diagnose-ui.mjs: P2 an empty privacy.web.js is named, with the advice to paste it again |
+| diag-module-list-drops-privacy | KILLED | diagnose-ui.mjs: P0 the check knows the ten web modules the page imports |
+| diag-module-list-drops-racedir | KILLED | diagnose-ui.mjs: P0 the check knows the ten web modules the page imports |
+| diag-empty-means-any-missing | KILLED | diagnose-ui.mjs: P8 an older finance.web.js: how many methods it has and which are missing |
+| diag-old-includes-empty | KILLED | diagnose-ui.mjs: P2 an empty privacy.web.js is named, with the advice to paste it again |
+| diag-guide-says-10-files | KILLED | diagnose-ui.mjs: G4 the guide says all 11 are needed |
+| diag-guide-keeps-old-helpers | KILLED | diagnose-ui.mjs: G4 the guide says to delete the eleven old helper files |
+| diag-guide-quickstart-keeps-helpers | KILLED | diagnose-ui.mjs: G4 the guide says to delete the eleven old helper files |
 | diag-guide-drops-fallback-row | KILLED | diagnose-ui.mjs: G10 the guide explains the bracket sentence "every backend module answers |
-| diag-marker-missing-racedir | KILLED | diagnose-ui.mjs: G2 racedir.web.js ends with the line "// END racedir.web.js", once |
-| diag-marker-missing-ai-core | KILLED | diagnose-ui.mjs: G2 ai-core.js ends with the line "// END ai-core.js", once |
-| diag-marker-misnamed-auth | KILLED | diagnose-ui.mjs: G2 rd-auth.js ends with the line "// END rd-auth.js", once |
+| diag-guide-drops-all-empty-row | KILLED | diagnose-ui.mjs: G10 the guide explains the bracket sentence "none of the 10 backend files |
+| diag-guide-empty-row-misquoted | KILLED | diagnose-ui.mjs: G10 the guide explains the bracket sentence "racedir.web.js has none of i |
+| diag-quickstart-preview-address | KILLED | diagnose-ui.mjs: Q5 the quick start says to open the published address, not the Editor's P |
+| diag-quickstart-keeps-first-password | KILLED | diagnose-ui.mjs: Q6 the quick start says to sign in as master, to change that password at  |
+| diag-quickstart-drops-devmode | KILLED | diagnose-ui.mjs: Q2 the quick start says to turn Dev Mode on, add 11 web modules and check |
+| diag-quickstart-wrong-count | KILLED | diagnose-ui.mjs: G4 nothing in the guide still counts 22 files or asks for a helper beside |
+| diag-quickstart-wrong-login | KILLED | diagnose-ui.mjs: Q6 the quick start says to sign in as master, to change that password at  |
+| diag-upgrade-forgets-helper-delete | KILLED | diagnose-ui.mjs: Q9 UPGRADE.md says to delete the 11 helper files after step 1 and to give |
+| bundle-export-let-allowed | KILLED | bundle.mjs: B6 the tool refuses "export let" (a later change would not reach the importing |
+| bundle-cycle-allowed | KILLED | bundle.mjs: B6 the tool refuses an import cycle   [message: Maximum call stack size exceed |
+| bundle-default-import-allowed | KILLED | bundle.mjs: B6 the tool refuses a default import of one of our files   [message: Cannot re |
+| bundle-name-clash-not-checked | KILLED | bundle.mjs: B6 the tool refuses a helper that would find the web module's own name instead |
+| bundle-newer-syntax-allowed | KILLED | bundle.mjs: B6 the tool refuses syntax newer than ES2020 (Wix may not read it)   [message: |
+| bundle-end-line-not-required | KILLED | bundle.mjs: B6 the tool refuses a source file that does not end with its END line (a.web.j |
+| bundle-key-stays-in-body | KILLED | bundle.mjs |
+| bundle-helpers-in-wrong-order | KILLED | bundle.mjs |
+| bundle-wix-import-repeated | KILLED | bundle.mjs |
+| bundle-helper-end-line-kept | KILLED | bundle.mjs |
+| bundle-helper-export-kept | KILLED | bundle.mjs |
+| bundle-namespace-import-lost | KILLED | bundle.mjs |
+| bundle-rename-lost | KILLED | bundle.mjs |
+| bundle-missing-export-undetected | KILLED | bundle.mjs: B6 the tool refuses a name that the helper does not export   [message: it buil |
+| col-lock-weakened | KILLED | collections.mjs: C2 RDComms in comms.web.js: read, insert, update and remove are all Admin |
+| col-source-lock-weakened | KILLED | collections.mjs: C2 ExpoStaff in racedir.web.js: read, insert, update and remove are all A |
+| col-source-field-not-text | KILLED | collections.mjs: C2 ExpoStaff in racedir.web.js: every column is plain Text, named by its  |
+| col-doc-out-of-date | KILLED | collections.mjs: C5 docs/COLLECTIONS.md is exactly what "node tools/collections.mjs --doc" |
+| auth-password-length-uncapped | KILLED | unit-auth.mjs |
+| auth-plain-password-compared-loosely | KILLED | unit-auth.mjs:   and it is case sensitive |
+| auth-hash-without-salt | KILLED | unit-auth.mjs: the same password hashes differently each time (random salt) |
+| auth-any-h1-text-is-a-hash | KILLED | unit-auth.mjs: something that merely starts with h1$ but is not a hash is plain text |
+| auth-empty-password-matches-empty | KILLED | unit-auth.mjs: empty against empty does not match either |
+| auth-hash-not-stretched | KILLED | unit-auth.mjs: a stored hash made earlier (fixed salt, 1,500 rounds) is still accepted: lo |
+| diag-marker-misnamed-auth | KILLED | diagnose-ui.mjs |
 | events-static-import-returns | KILLED | events-lazy.mjs: E1 no backend file imports wix-events.v2 at the top (that import is the o |
 | events-every-failure-is-unavailable | KILLED | events-lazy.mjs: E4 the list of Wix events says "wix_events_denied" when the module is not |
 | events-every-failure-is-denied | KILLED | events-lazy.mjs: E4 the list of Wix events says "wix_events_unavailable" when the module c |

@@ -39,6 +39,11 @@ ok(!A.checkPassword(h, 'Tr@il-Runner8'), 'wrong password fails');
 ok(!A.checkPassword(h, 'tr@il-runner7'), 'passwords are case sensitive');
 ok(!A.checkPassword(h, ' Tr@il-Runner7'), 'a leading space is part of the password');
 ok(!A.checkPassword(h, 'Tr@il-Runner7 '), 'a trailing space is part of the password');
+// A fixed answer: a hash that was made once (salt 0123456789abcdef, 1,500 rounds of SHA-256) must keep being accepted.
+// If the number of rounds or the way the hash is built ever changes, every login already stored in the database stops working.
+const KNOWN = 'h1$0123456789abcdef$8d36a1268188c44c98c28332bfb78cf28baa86edd25a5a9642fec3a18cfab5b7';
+ok(A.checkPassword(KNOWN, 'Known-Answer 7'), 'a stored hash made earlier (fixed salt, 1,500 rounds) is still accepted: logins already in the database keep working');
+ok(!A.checkPassword(KNOWN, 'Known-Answer 7 ') && !A.checkPassword(KNOWN, 'known-answer 7'), 'and the same stored hash rejects a password that differs by a space or by case');
 ok(!A.checkPassword(h, ''), 'empty typed password fails');
 ok(!A.checkPassword(h, null) && !A.checkPassword(h, undefined), 'null and undefined typed passwords fail');
 ok(!A.checkPassword('', 'x') && !A.checkPassword(null, 'x') && !A.checkPassword(undefined, 'x'), 'an empty stored password never matches anything');
