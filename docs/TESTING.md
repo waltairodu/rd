@@ -6,12 +6,12 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 |---|---|---|---|
 | 1. Unit tests | 9 | 1617 | 0 |
 | 2. Penetration tests | 10 | 2786 | 0 |
-| 3. Integration tests | 23 | 5272 | 0 |
+| 3. Integration tests | 24 | 5438 | 0 |
 | 4. Security tests | 1 | 579 | 0 |
 | Component tests (older suites) | 18 | 1538 | 0 |
-| 5. Regression (older suites against the saved baseline) | 61 | 11792 | 0 |
+| 5. Regression (older suites against the saved baseline) | 62 | 11958 | 0 |
 
-**Total: 11792 checks passed, 0 failed.**
+**Total: 11958 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
@@ -48,7 +48,7 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back) and Backend loading (the backend file still loads and logs in when the Wix Events module cannot be opened, and only the three Registrations calls say so; when a backend file or a page code is missing the Director page names the file to look at, for one missing file, several at once, empty, cut and older files, hostile method names, and the Director screen shows it escaped; the volunteer, athlete, coach and runner pages say it in plain words with no technical details; the setup guide explains every sentence and the 11 backend files end with the marker it tells you to look for) and Bundles (the 11 files you paste into Wix are made by one build tool: each reads as ES2020, imports no file of ours and only the expected Wix modules, exports what its source exports, ends with its marker, takes in exactly the helper files its source imports, holds no state that two files would have to share, and the tool does the same as the modules it replaces and refuses, loudly, sixteen kinds of input it cannot turn into the same behaviour) and Collections (the 37 database collections the code makes: only Text columns, all four permissions Admin, shared ones agree, every name the code uses is in the list, the guide is exactly what the tool makes from the code).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back) and Backend loading (the backend file still loads and logs in when the Wix Events module cannot be opened, and only the three Registrations calls say so; when a backend file or a page code is missing the Director page names the file to look at, for one missing file, several at once, empty, cut and older files, hostile method names, and the Director screen shows it escaped; the volunteer, athlete, coach and runner pages say it in plain words with no technical details; the setup guide explains every sentence and the 11 backend files end with the marker it tells you to look for) and Bundles (the 11 files you paste into Wix are made by one build tool: each reads as ES2020, imports no file of ours and only the expected Wix modules, exports what its source exports, ends with its marker, takes in exactly the helper files its source imports, holds no state that two files would have to share, and the tool does the same as the modules it replaces and refuses, loudly, sixteen kinds of input it cannot turn into the same behaviour) and Collections (the 37 database collections the code makes: only Text columns, all four permissions Admin, shared ones agree, every name the code uses is in the list, the guide is exactly what the tool makes from the code) and the Wix publish check (the two rules Wix applies to every code file when you publish, no-undef and no-const-assign, run with ESLint itself over the 11 backend files and the 5 page codes under four settings; the line Wix rejected on 21 November 2026 is rejected at the same place, and the fix is accepted; the code uses no name beyond ES2015 except console, crypto and the page name $w; every page imports only files that exist).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -75,6 +75,7 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `diagnose-ui.mjs` | 286 | 0 |
 | `bundle.mjs` | 315 | 0 |
 | `collections.mjs` | 323 | 0 |
+| `wixcheck.mjs` | 166 | 0 |
 
 ## 4. Security tests
 
@@ -176,12 +177,13 @@ Every suite that existed before a change must still pass at least as many checks
 | `unit-waiver.mjs` | 128 | 128 |
 | `waivers-ui.mjs` | 309 | 309 |
 | `waivers.mjs` | 433 | 433 |
+| `wixcheck.mjs` | 166 | 166 |
 
 ## Do the tests really catch mistakes? (mutation spot-checks)
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
 
-**628 protections removed, 628 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed. Package 6b (19 November 2026) added 85 more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step) and ran those and 208 older ones again: all caught. Package 6c (21 November 2026) added 43 more (the build of one self-contained file per web module, the list of database collections, the new wording of the on-screen diagnosis, the check of a stored password against a fixed answer) and retired 10 that belonged to the old two-file layout; those 43 and 89 older ones that touch the files or tests that changed were run on the finished code: all 132 caught, none missed. The other 496 older ones were not run again for 6c (all caught when last run); to repeat them: `python3 tests/mutants.py --jobs 2`, about 70 minutes.
+**636 protections removed, 636 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed. Package 6b (19 November 2026) added 85 more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step) and ran those and 208 older ones again: all caught. Package 6c (21 November 2026) added 43 more (the build of one self-contained file per web module, the list of database collections, the new wording of the on-screen diagnosis, the check of a stored password against a fixed answer) and retired 10 that belonged to the old two-file layout; those 43 and 89 older ones that touch the files or tests that changed were run on the finished code: all 132 caught, none missed. Package 6d (22 November 2026) added 8 more (the check Wix runs on every code file when you publish, and the line it rejected) and ran those and the 7 older ones that touch the login code again: all 15 caught, none missed. The other 621 older ones were not run again for 6d (all caught when last run); to repeat them: `python3 tests/mutants.py --jobs 2`, about 70 minutes.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -813,6 +815,14 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | diag-embed-backend-sentence-no-buildlog | KILLED | diagnose-ui.mjs: E1 the login screen says the sentence for backend_old and the file to loo |
 | diag-guide-quote-lacks-buildlog | KILLED | diagnose-ui.mjs: G9 the guide quotes the two sentences of the Director screen word for wor |
 | diag-embed-backend-sentence-points-elsewhere | KILLED | diagnose-ui.mjs: E1 the login screen says the sentence for backend_old and the file to loo |
+| wix-lint-globalthis-returns | KILLED | wixcheck.mjs: X1 comms.web.js has no error under "es6 + browser"   [got ["no-undef 'global |
+| wix-lint-directive-removed | KILLED | wixcheck.mjs: X1 comms.web.js has no error under "strict"   [got ["no-undef 'crypto' is no |
+| wix-lint-window-used | KILLED | wixcheck.mjs: X1 comms.web.js has no error under "es6 + node"   [got ["no-undef 'window' i |
+| wix-lint-const-reassigned | KILLED | wixcheck.mjs: X1 comms.web.js has no error under "es6 + browser"   [got ["no-const-assign  |
+| wix-lint-newer-builtin-used | KILLED | wixcheck.mjs: X1 comms.web.js has no error under "es6 + browser"   [got ["no-undef 'BigInt |
+| wix-lint-crypto-hidden-by-local | KILLED | wixcheck.mjs: X3 comms.web.js: crypto is the only other name, and only the comment declare |
+| wix-lint-undeclared-name-in-page | KILLED | wixcheck.mjs: X1 wix/director/director-page-code.js has no error under "es6 + browser"   [ |
+| wix-page-imports-missing-module | KILLED | wixcheck.mjs: X4 wix/director/volunteer-page-code.js imports backend/racedir2.web, which i |
 
 ## How to run
 

@@ -114,9 +114,12 @@ export function same(a, b) {
 
 // 32 random bits. Uses the platform's secure generator when there is one; otherwise Math.random, which is why
 // every secret below (token, salt) is passed through SHA-256 together with the clock and a counter before it is used.
+// The generator is named `crypto` and not `globalThis.crypto`: Wix's publish check (no-undef) rejects `globalThis`, and a file
+// it rejects is left out of the build. The comment below tells that check that `crypto` is a name the platform provides.
 function rnd32() {
   try {
-    const c = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+    /* global crypto */
+    const c = typeof crypto !== 'undefined' ? crypto : null;
     if (c && typeof c.getRandomValues === 'function') {
       const a = new Uint32Array(1);
       c.getRandomValues(a);

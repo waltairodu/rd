@@ -701,6 +701,15 @@ MUTANTS = [
     ('diag-embed-backend-sentence-no-buildlog', DIR, "backend_old:'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6.'", "backend_old:'The backend file is out of date. Paste the latest backend files, then publish.'", ['diagnose-ui.mjs']),
     ('diag-guide-quote-lacks-buildlog', GUIDE, '| "The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6." with a sentence in brackets |', '| "The backend file is out of date. Paste the latest backend files, then publish." with a sentence in brackets |', ['diagnose-ui.mjs']),
     ('diag-embed-backend-sentence-points-elsewhere', DIR, "backend_old:'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6.'", "backend_old:'The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 9.'", ['diagnose-ui.mjs']),
+    # ---- Package 6d: Wix's publish check (no-undef, no-const-assign) is run on every shipped file by wixcheck.mjs
+    ('wix-lint-globalthis-returns', AUTH, "    const c = typeof crypto !== 'undefined' ? crypto : null;", "    const c = typeof globalThis !== 'undefined' ? globalThis.crypto : null;", ['wixcheck.mjs']),
+    ('wix-lint-directive-removed', AUTH, "    /* global crypto */\n", '', ['wixcheck.mjs']),
+    ('wix-lint-window-used', AUTH, "  return Math.floor(Math.random() * 0x100000000) >>> 0;", "  return Math.floor(window.Math.random() * 0x100000000) >>> 0;", ['wixcheck.mjs']),
+    ('wix-lint-const-reassigned', AUTH, "let counter = 0;", "const counter = 0;", ['wixcheck.mjs']),
+    ('wix-lint-newer-builtin-used', AUTH, "let counter = 0;", "let counter = Number(BigInt(0));", ['wixcheck.mjs']),
+    ('wix-lint-crypto-hidden-by-local', AUTH, "let counter = 0;", "let counter = 0;\nconst crypto = null;", ['wixcheck.mjs']),
+    ('wix-lint-undeclared-name-in-page', FINPAGE, "console.error('No HTML embed found on this page.", "consol.error('No HTML embed found on this page.", ['wixcheck.mjs']),
+    ('wix-page-imports-missing-module', VOLP, "import * as rd from 'backend/racedir.web';", "import * as rd from 'backend/racedir2.web';", ['wixcheck.mjs']),
 ]
 
 

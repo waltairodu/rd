@@ -1,3 +1,16 @@
+# Package 6d (the Wix build error): what to change on a site that runs Package 6c
+
+Date: 2026-11-22. Use this when Wix's build report (build.log) lists `no-undef: 'globalThis' is not defined` for the backend files, or when /rd says "Something went wrong (Error: Unable to handle the request ...)". **Only the 11 backend files change.** The page codes, the HTML embeds and the database stay as they are: do not touch them.
+
+**What was wrong.** When you click **Publish**, Wix checks every code file with two ESLint rules (`no-undef` and `no-const-assign`). It did not know the name `globalThis`, which the login code inside every backend file used to reach the platform's secure random generator, so it reported one error in each of the 11 files. A file with an error can end up left out of the build, and then every call to it fails: the login said "Unable to handle the request". The tests had not seen it, because they run in Node, where `globalThis` exists. The login code now says `crypto` and carries the comment that tells Wix's check the name is provided; nothing else in the code changed. The tests now run the same two rules with ESLint itself over the 11 files and the 5 page codes (`tests/wixcheck.mjs`), and the line Wix rejected is rejected there too.
+
+1. **Paste the 11 backend files again, each one whole.** In the Backend list click the file, press Ctrl+A, press Delete, paste the new file, and check that the last line reads `// END` and the file's own name. The names do not change.
+2. **Save, then Publish.** If a pop-up says errors were found in the code, choose **View build.log**. The 11 files must no longer be in it (check 6 in SETUP.md).
+3. **Clear the other errors in the report.** Lines such as `Cannot find module 'backend/expo.web'` (page `EXPO`) or `Cannot find module 'backend/bibLookup.web'` (page `DCB VHM Frame`) are about older pages of your own whose backend files are gone. On such a page delete the import line and the code that uses it, or delete the page, or restore the file if you still use it (SETUP.md, check 6). Publish again: the report should list nothing.
+4. **Sign in** at `https://www.vtra.run/rd` (the published address, not Preview) as `master`.
+
+---
+
 # Package 6c (one self-contained file per web module): what to change on a site that runs Package 6b or older
 
 Date: 2026-11-20. Installing for the first time? Ignore this page and follow SETUP.md ("Quick start: run it and log in").

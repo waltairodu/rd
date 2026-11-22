@@ -626,5 +626,13 @@ diag-upgrade-forgets-popup	KILLED	diagnose-ui.mjs: G14 the upgrade page tells yo
 diag-embed-backend-sentence-no-buildlog	KILLED	diagnose-ui.mjs: E1 the login screen says the sentence for backend_old and the file to look at in brackets
 diag-guide-quote-lacks-buildlog	KILLED	diagnose-ui.mjs: G9 the guide quotes the two sentences of the Director screen word for word
 diag-embed-backend-sentence-points-elsewhere	KILLED	diagnose-ui.mjs: E1 the login screen says the sentence for backend_old and the file to look at in brackets
-# 628 mutants, 628 killed, 0 survived
-# package-6c new=43 older_rerun=89 older_not_rerun=496
+wix-lint-globalthis-returns	KILLED	wixcheck.mjs: X1 comms.web.js has no error under "es6 + browser"   [got ["no-undef 'globalThis' is not define
+wix-lint-directive-removed	KILLED	wixcheck.mjs: X1 comms.web.js has no error under "strict"   [got ["no-undef 'crypto' is not defined. (151:47)
+wix-lint-window-used	KILLED	wixcheck.mjs: X1 comms.web.js has no error under "es6 + node"   [got ["no-undef 'window' is not defined. (161
+wix-lint-const-reassigned	KILLED	wixcheck.mjs: X1 comms.web.js has no error under "es6 + browser"   [got ["no-const-assign 'counter' is consta
+wix-lint-newer-builtin-used	KILLED	wixcheck.mjs: X1 comms.web.js has no error under "es6 + browser"   [got ["no-undef 'BigInt' is not defined. (
+wix-lint-crypto-hidden-by-local	KILLED	wixcheck.mjs: X3 comms.web.js: crypto is the only other name, and only the comment declares it   [got ["conso
+wix-lint-undeclared-name-in-page	KILLED	wixcheck.mjs: X1 wix/director/director-page-code.js has no error under "es6 + browser"   [got ["no-undef 'con
+wix-page-imports-missing-module	KILLED	wixcheck.mjs: X4 wix/director/volunteer-page-code.js imports backend/racedir2.web, which is one of the 11 bac
+# 636 mutants, 636 killed, 0 survived
+# package-6d new=8 older_rerun=7 older_not_rerun=621

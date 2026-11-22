@@ -43,3 +43,4 @@ integration diagnose-ui.mjs
 # Package 6c: one self-contained file per web module, and the database list
 integration bundle.mjs
 integration collections.mjs
+integration wixcheck.mjs

@@ -151,11 +151,16 @@ Right after you paste new files, nearly every error has one of six causes. Go th
 
    That form opens Wix Events when the file loads, so the Wix Events app must then be installed on the site; use it only if the report asks for it.
 
+   **What Wix checks.** Two ESLint rules: `no-undef` (a name that is used and never declared) and `no-const-assign` (a `const` that is changed). A report line reads like `error: no-undef: 'globalThis' is not defined. (149:51)`: the rule, the name and the line and column, under the name of the file. A file with such a line can end up left out of the build. The 11 files of this pack are checked with the same two rules before they are packed, so a line that names one of them is news: send me the whole line.
+
+   **Lines about other files.** A line such as `[/pages/EXPO.xxxxx.js]: Cannot find module 'backend/expo.web'` or `Cannot find module 'backend/bibLookup.web'` is about an older page of your own whose backend file is not there any more. It is not about this pack, but clear it so that the report shows no error at all: on that page, delete the import line and the code that uses it, or delete the page (the Expo desk is part of /rd now), or put the missing file back if you still use the page.
+
 ### What the page says, and what to do
 
 | The page says | What it means | What to do |
 |---|---|---|
 | "The backend file is out of date. Paste the latest backend files, then publish. Then read the build report (build.log) that Wix writes when you publish: SETUP.md, check 6." with a sentence in brackets | The page asked a backend file for a method that is not there: the file is missing, empty, cut, misnamed or from an older pack. The brackets say which file looks wrong. | Read the table below, then checks 1, 2, 4 and 6. |
+| "Something went wrong (Error: Unable to handle the request. Contact the site administrator or view site monitoring logs for more information.)" | Wix could not run the backend file. The page knows the method, but the server side has no working copy of the file. The usual reason is an error that Wix's build found in it: the file is left out, and the call fails. (On 21 November 2026 every file had the same one: `globalThis`. This pack does not use it.) | Click **Publish** and choose **View build.log** (check 6). Do not publish while the report lists an error for any of the 11 files. |
 | "This page's code is out of date. Paste the latest page-code.js for this page, then publish." with "(does not list ...)" in brackets | The page code on this page does not know that method: it is older than the embed, or it is the page code of another page. | Paste the `page-code.js` that belongs to this page (table in section A). Save, publish. |
 | "No answer from the server in time." | Nothing answered within 30 seconds. Usually the page code is not on this page (or not published), the HTML element has the wrong ID, or a backend file is missing. | Checks 5, 1, 4 and 6. |
 | "Something went wrong (server_error)" | The backend file ran and met a fault it did not expect. | Wix dashboard > Developer Tools > Logging Tools > Wix Logs > Open. Pick the live site, level Error, and look at the newest lines: the Source file column names the file. |
