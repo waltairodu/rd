@@ -44,3 +44,5 @@ integration diagnose-ui.mjs
 integration bundle.mjs
 integration collections.mjs
 integration wixcheck.mjs
+# Package 6e: a failure is an answer, not a thrown error (Wix hides the text of a thrown error on the live site)
+integration wire.mjs

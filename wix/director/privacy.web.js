@@ -14,7 +14,7 @@
 // Events, Wix Contacts and the findmybib collection are not changed from here.
 import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
-import { kindOf, unameOf, tidyError, takeSlot, slotKey } from './rd-auth.js';
+import { kindOf, unameOf, tidyError, takeSlot, slotKey, failure, WIRE } from './rd-auth.js';
 import { T, cleanText, lc } from './rd-results.js';
 import { SA, C, all, rows, getEvent } from './rd-data.js';
 import {
@@ -28,17 +28,23 @@ const CODES = new Set([
   'not_logged_in', 'not_allowed', 'director_only', 'no_event', 'setup_needed', 'server_error',
   'pv_bad_request', 'pv_need_reason', 'pv_not_found', 'pv_too_many', 'pv_audit_failed', 'pv_bad_person', 'pv_need_confirm', 'pv_stale', 'pv_too_big',
 ]);
-const guarded = (fn) => async (arg) => {
+// The page code passes WIRE as the second argument of every call it relays. Then a failure is ANSWERED, { __rdError: 'code' } (rd-auth.js failure), because Wix
+// hides the message of a thrown error on the live site. Called with one argument, as the tests and the code inside this file do, the error is thrown as before.
+const guarded = (fn) => async (arg, wire) => {
   try {
     return await fn(arg);
   } catch (e) {
     const t = tidyError(e, 'privacy');
-    if (t && typeof t.message === 'string' && CODES.has(t.message)) throw t;
+    if (t && typeof t.message === 'string' && CODES.has(t.message)) {
+      if (wire === WIRE) return failure(t);
+      throw t;
+    }
     try {
       console.error('privacy: ' + (e && e.stack ? e.stack : e));
     } catch (x) {
       // logging is best effort
     }
+    if (wire === WIRE) return failure(new Error('server_error'));
     throw new Error('server_error');
   }
 };

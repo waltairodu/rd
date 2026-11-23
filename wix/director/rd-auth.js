@@ -255,6 +255,27 @@ export function tidyError(e, where) {
   return e;
 }
 
+/* ---------- a failure is an answer, not a thrown error ---------- */
+// Wix does not pass on the message of an error that a web method throws. On the live site the page gets Wix's own text instead
+// ("Unable to handle the request. Contact the site administrator or view site monitoring logs for more information."), so a wrong
+// password could not be told from a crash (22 November 2026: the database counted three wrong passwords and the screen showed
+// only that text). So the page code asks for failures to be ANSWERED: it passes WIRE as the second argument of every call it relays,
+// and every web method then returns { __rdError: 'code' } (or 'code|details'), a plain value that always arrives, instead of throwing.
+// The page code gives the screen the same ok:false and code that it always got from a throw. Without WIRE (an older page code, the tests,
+// a call from inside a backend file) a method throws as before, so a page code and a backend file of different versions still work together.
+export const WIRE = 2;
+export const FAILURE_KEY = '__rdError';
+export function failure(e) {
+  let m = '';
+  try {
+    const x = e && typeof e === 'object' ? e.message : e;
+    if (typeof x === 'string') m = x;
+  } catch (c) {
+    m = '';
+  }
+  return { __rdError: m ? m.slice(0, 500) : 'server_error' };
+}
+
 /* ---------- a limited number of tries at the same moment ---------- */
 // A counter that is read, added to and written back cannot stop a burst: requests that arrive together all read the same
 // number. So the tries of a window (say ten minutes) are 'slots': records with fixed ids that can each be inserted only

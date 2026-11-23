@@ -12,7 +12,7 @@
 // answer, so a report never shows a zero for something that was not read.
 import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
-import { kindOf, unameOf, tidyError } from './rd-auth.js';
+import { kindOf, unameOf, tidyError, failure, WIRE } from './rd-auth.js';
 import { cleanText, lc, board, parseJson } from './rd-results.js';
 import { SA, C, rows, getEvent, raceOf, knownCats, regMap, getSettings } from './rd-data.js';
 import { oneLine } from './rd-comms.js';
@@ -23,17 +23,23 @@ import { reportOf, allowedFor, regReport, raceReport, volReport, waiverReport, m
 // Every method below goes through this: an error this module does not know (a native error, or the text of a failed read) is logged
 // and answered with 'server_error' only, so no internal detail ever reaches the browser. These are the only codes that leave.
 const CODES = new Set(['not_logged_in', 'not_allowed', 'director_only', 'rp_bad_report', 'rp_bad_table', 'no_event', 'setup_needed', 'server_error']);
-const guarded = (fn) => async (arg) => {
+// The page code passes WIRE as the second argument of every call it relays. Then a failure is ANSWERED, { __rdError: 'code' } (rd-auth.js failure), because Wix
+// hides the message of a thrown error on the live site. Called with one argument, as the tests and the code inside this file do, the error is thrown as before.
+const guarded = (fn) => async (arg, wire) => {
   try {
     return await fn(arg);
   } catch (e) {
     const t = tidyError(e, 'reports');
-    if (t && typeof t.message === 'string' && CODES.has(t.message)) throw t;
+    if (t && typeof t.message === 'string' && CODES.has(t.message)) {
+      if (wire === WIRE) return failure(t);
+      throw t;
+    }
     try {
       console.error('reports: ' + (e && e.stack ? e.stack : e));
     } catch (x) {
       // logging is best effort
     }
+    if (wire === WIRE) return failure(new Error('server_error'));
     throw new Error('server_error');
   }
 };

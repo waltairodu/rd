@@ -6,12 +6,12 @@ Made by `python3 tests/report.py` (every suite, run once). Re-run it after any c
 |---|---|---|---|
 | 1. Unit tests | 9 | 1617 | 0 |
 | 2. Penetration tests | 10 | 2786 | 0 |
-| 3. Integration tests | 24 | 5438 | 0 |
+| 3. Integration tests | 25 | 5855 | 0 |
 | 4. Security tests | 1 | 579 | 0 |
 | Component tests (older suites) | 18 | 1538 | 0 |
-| 5. Regression (older suites against the saved baseline) | 62 | 11958 | 0 |
+| 5. Regression (older suites against the saved baseline) | 63 | 12375 | 0 |
 
-**Total: 11958 checks passed, 0 failed.**
+**Total: 12375 checks passed, 0 failed.**
 
 ## 1. Unit tests
 
@@ -48,7 +48,7 @@ Attacks on logins, tokens, roles, the desk, the page relay, the Finance tab (mon
 
 ## 3. Integration tests
 
-Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back) and Backend loading (the backend file still loads and logs in when the Wix Events module cannot be opened, and only the three Registrations calls say so; when a backend file or a page code is missing the Director page names the file to look at, for one missing file, several at once, empty, cut and older files, hostile method names, and the Director screen shows it escaped; the volunteer, athlete, coach and runner pages say it in plain words with no technical details; the setup guide explains every sentence and the 11 backend files end with the marker it tells you to look for) and Bundles (the 11 files you paste into Wix are made by one build tool: each reads as ES2020, imports no file of ours and only the expected Wix modules, exports what its source exports, ends with its marker, takes in exactly the helper files its source imports, holds no state that two files would have to share, and the tool does the same as the modules it replaces and refuses, loudly, sixteen kinds of input it cannot turn into the same behaviour) and Collections (the 37 database collections the code makes: only Text columns, all four permissions Admin, shared ones agree, every name the code uses is in the list, the guide is exactly what the tool makes from the code) and the Wix publish check (the two rules Wix applies to every code file when you publish, no-undef and no-const-assign, run with ESLint itself over the 11 backend files and the 5 page codes under four settings; the line Wix rejected on 21 November 2026 is rejected at the same place, and the fix is accepted; the code uses no name beyond ES2015 except console, crypto and the page name $w; every page imports only files that exist).
+Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice to payment, order to refund, claim to payout, cash), Waves & results (waves to placed runners, results file to board to awards), Bibs & certificates (design, preview, print, public page, certificate) Messages (template to audience to batch to e-mails sent, retry, chat links, history, export) and Waivers (waiver text to versions, who has signed, papers recorded and marked as a mistake, papers printed, a message to the people who have not signed) and Reports (six reports on a real race checked against the Results, Waivers and Finance screens, a second race that must not leak in, tables saved as CSV files and the audit line, sources that cannot be read, a big race, the Reports screens) and Privacy (every list hiding numbers and addresses on every tab and for every role, Show with a reason and the note written first, a detail that goes away by itself, contact files page by page, erasing a person across registrations, Expo runners, volunteers, pacers and a training account, a refresh, a sync and Send to Expo desk that do not bring them back) and Backend loading (the backend file still loads and logs in when the Wix Events module cannot be opened, and only the three Registrations calls say so; when a backend file or a page code is missing the Director page names the file to look at, for one missing file, several at once, empty, cut and older files, hostile method names, and the Director screen shows it escaped; the volunteer, athlete, coach and runner pages say it in plain words with no technical details; the setup guide explains every sentence and the 11 backend files end with the marker it tells you to look for) and Bundles (the 11 files you paste into Wix are made by one build tool: each reads as ES2020, imports no file of ours and only the expected Wix modules, exports what its source exports, ends with its marker, takes in exactly the helper files its source imports, holds no state that two files would have to share, and the tool does the same as the modules it replaces and refuses, loudly, sixteen kinds of input it cannot turn into the same behaviour) and Collections (the 37 database collections the code makes: only Text columns, all four permissions Admin, shared ones agree, every name the code uses is in the list, the guide is exactly what the tool makes from the code) and Failures are answers (on the live site Wix replaces the text of a thrown error with its own, so no backend method throws to the page: a failure is returned as { __rdError: code } by all 11 files whatever they are given, the five page codes turn it into the code the screen knows, and the real sign-in screen with the real page code and the real backend says "Wrong username or password.", the ten-minute lock, and in plain words that Wix could not run the backend; a Show password box) and the Wix publish check (the two rules Wix applies to every code file when you publish, no-undef and no-const-assign, run with ESLint itself over the 11 backend files and the 5 page codes under four settings; the line Wix rejected on 21 November 2026 is rejected at the same place, and the fix is accepted; the code uses no name beyond ES2015 except console, crypto and the page name $w; every page imports only files that exist).
 
 | Suite | Passed | Failed |
 |---|---|---|
@@ -76,6 +76,7 @@ Whole journeys across RaceOS, the Expo desk, the coach pages, Finance (invoice t
 | `bundle.mjs` | 315 | 0 |
 | `collections.mjs` | 323 | 0 |
 | `wixcheck.mjs` | 166 | 0 |
+| `wire.mjs` | 417 | 0 |
 
 ## 4. Security tests
 
@@ -177,13 +178,14 @@ Every suite that existed before a change must still pass at least as many checks
 | `unit-waiver.mjs` | 128 | 128 |
 | `waivers-ui.mjs` | 309 | 309 |
 | `waivers.mjs` | 433 | 433 |
+| `wire.mjs` | 417 | 417 |
 | `wixcheck.mjs` | 166 | 166 |
 
 ## Do the tests really catch mistakes? (mutation spot-checks)
 
 One protection is removed on purpose in a scratch copy; the named suites must fail. KILLED is good, SURVIVED would mean a hole in the tests.
 
-**636 protections removed, 636 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed. Package 6b (19 November 2026) added 85 more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step) and ran those and 208 older ones again: all caught. Package 6c (21 November 2026) added 43 more (the build of one self-contained file per web module, the list of database collections, the new wording of the on-screen diagnosis, the check of a stored password against a fixed answer) and retired 10 that belonged to the old two-file layout; those 43 and 89 older ones that touch the files or tests that changed were run on the finished code: all 132 caught, none missed. Package 6d (22 November 2026) added 8 more (the check Wix runs on every code file when you publish, and the line it rejected) and ran those and the 7 older ones that touch the login code again: all 15 caught, none missed. The other 621 older ones were not run again for 6d (all caught when last run); to repeat them: `python3 tests/mutants.py --jobs 2`, about 70 minutes.
+**696 protections removed, 696 caught, 0 not caught.** The first 214 were last run in full for Package 5a; the 103 on Waivers and on the Waiver choice in Messages were run for Package 5b; the 88 on Reports were run for Package 5c; the 105 on Privacy were run for Package 6 (the first run left 9 not caught, so the tests were extended and all 105 are now caught, and three older ones whose lines Package 6 moved were repaired and run again). All 510 were then run together once more on the finished code for the final pack (16 November 2026): 510 caught, none missed. Package 6b (19 November 2026) added 85 more (the wrapper every backend method goes through, the lazy Wix Events load, the on-screen diagnosis of a missing file, the setup guide and its build-report step) and ran those and 208 older ones again: all caught. Package 6c (21 November 2026) added 43 more (the build of one self-contained file per web module, the list of database collections, the new wording of the on-screen diagnosis, the check of a stored password against a fixed answer) and retired 10 that belonged to the old two-file layout; those 43 and 89 older ones that touch the files or tests that changed were run on the finished code: all 132 caught, none missed. Package 6d (22 November 2026) added 8 more (the check Wix runs on every code file when you publish, and the line it rejected) and ran those and the 7 older ones that touch the login code again: all 15 caught, none missed. Package 6e (23 November 2026) added 60 more (a failure answered as a value instead of thrown, the page codes and the sign-in screen that read it, Wix's own error text explained, the Show password box, the guides) and ran those and 56 older ones again (the 16 that sit on lines this package changed, and 40 more picked at random from the older ones in the changed files). The first run of the new ones left 4 not caught (the "server_error" answer of the Privacy and Reports files), so a test was added; all 116 are now caught, none missed. The other 580 older ones were not run again for 6e (all caught when last run); to repeat them: `python3 tests/mutants.py --jobs 2`, about 70 minutes.
 
 | Protection removed | Result | Caught by |
 |---|---|---|
@@ -823,6 +825,66 @@ One protection is removed on purpose in a scratch copy; the named suites must fa
 | wix-lint-crypto-hidden-by-local | KILLED | wixcheck.mjs: X3 comms.web.js: crypto is the only other name, and only the comment declare |
 | wix-lint-undeclared-name-in-page | KILLED | wixcheck.mjs: X1 wix/director/director-page-code.js has no error under "es6 + browser"   [ |
 | wix-page-imports-missing-module | KILLED | wixcheck.mjs: X4 wix/director/volunteer-page-code.js imports backend/racedir2.web, which i |
+| wire-racedir-wrapper-never-answers | KILLED | wire.mjs |
+| wire-exposoft-wrapper-never-answers | KILLED | wire.mjs: W2 exposoft: asked with WIRE none of its 16 methods throws, whatever it is given |
+| wire-training-wrapper-never-answers | KILLED | wire.mjs: W2 training: asked with WIRE none of its 38 methods throws, whatever it is given |
+| wire-finance-wrapper-never-answers | KILLED | wire.mjs: W2 finance: asked with WIRE none of its 23 methods throws, whatever it is given  |
+| wire-results-wrapper-never-answers | KILLED | wire.mjs: W2 results: asked with WIRE none of its 12 methods throws, whatever it is given  |
+| wire-print-wrapper-never-answers | KILLED | wire.mjs: W2 print: asked with WIRE none of its 6 methods throws, whatever it is given (an |
+| wire-comms-wrapper-never-answers | KILLED | wire.mjs: W2 comms: asked with WIRE none of its 12 methods throws, whatever it is given (a |
+| wire-waivers-wrapper-never-answers | KILLED | wire.mjs: W2 waivers: asked with WIRE none of its 9 methods throws, whatever it is given ( |
+| wire-runner-wrapper-never-answers | KILLED | wire.mjs: W2 runner: asked with WIRE none of its 3 methods throws, whatever it is given (a |
+| wire-racedir-wrapper-always-answers | KILLED | wire.mjs: W2 called with one argument (an older page code, the other suites) it throws as  |
+| wire-racedir-wrapper-any-second-argument | KILLED | wire.mjs: W2 only WIRE itself asks: 1 still throws   [got "", wanted "bad_login"] |
+| wire-finance-wrapper-always-answers | KILLED | wire.mjs: W2 for every method and two bad calls: the code it throws is the code it answers |
+| wire-training-wrapper-any-second-argument | KILLED | wire.mjs: W5 wix/training/training.web.js: it answers only when wire is exactly WIRE (the  |
+| wire-privacy-wrapper-code-thrown | KILLED | wire.mjs: W2 privacy: asked with WIRE none of its 5 methods throws, whatever it is given ( |
+| wire-privacy-wrapper-server-error-thrown | KILLED | wire.mjs |
+| wire-privacy-wrapper-always-answers | KILLED | wire.mjs: W2 Privacy: a collection that cannot be read is thrown as "server_error" when no |
+| wire-reports-wrapper-code-thrown | KILLED | wire.mjs: W2 reports: asked with WIRE none of its 3 methods throws, whatever it is given ( |
+| wire-reports-wrapper-server-error-thrown | KILLED | wire.mjs |
+| wire-reports-wrapper-always-answers | KILLED | wire.mjs: W2 Reports: a collection that cannot be read is thrown as "server_error" when no |
+| wire-failure-key-renamed | KILLED | wire.mjs: W1 an error becomes { __rdError: its message }   [got {"rdError":"bad_login"}, w |
+| wire-failure-not-cut | KILLED | wire.mjs: W1 a long message is cut to 500 characters   [got 900, wanted 500] |
+| wire-failure-empty-code-allowed | KILLED | wire.mjs: W1 undefined becomes server_error (no "[object Object]" or "undefined" on the sc |
+| wire-failure-thrown-text-lost | KILLED | wire.mjs: W1 a thrown text is the code   [got {"__rdError":"server_error"}, wanted {"__rdE |
+| wire-failure-object-shown | KILLED | wire.mjs: W1 undefined becomes server_error (no "[object Object]" or "undefined" on the sc |
+| wire-wire-constant-changed | KILLED | wire.mjs: W1 WIRE is 2   [got 3, wanted 2] |
+| wire-page-director-rd-no-marker | KILLED | wire.mjs: W3 director-page-code.js -> rd.whoami: the call passes the screen's argument and |
+| wire-page-director-expo-no-marker | KILLED | wire.mjs: W3 director-page-code.js -> expo.enter: the call passes the screen's argument an |
+| wire-page-director-fin-no-marker | KILLED | wire.mjs: W3 director-page-code.js -> fin.finOverview: the call passes the screen's argume |
+| wire-page-director-pv-no-marker | KILLED | wire.mjs: W3 director-page-code.js -> pv.pvList: the call passes the screen's argument and |
+| wire-page-volunteer-no-marker | KILLED | wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: the call passes the screen's argumen |
+| wire-page-runner-no-marker | KILLED | wire.mjs: W3 runner-page-code.js -> pub.pubRaces: the call passes the screen's argument an |
+| wire-page-athlete-no-marker | KILLED | wire.mjs: W3 athlete-page-code.js -> tr.openPlans: the call passes the screen's argument a |
+| wire-page-coach-no-marker | KILLED | wire.mjs: W3 coach-page-code.js -> tr.tLogin: the call passes the screen's argument and as |
+| wire-page-director-answer-ignored | KILLED | wire.mjs: W3 director-page-code.js -> rd.whoami: an answer { __rdError } reaches the scree |
+| wire-page-director-marker-changed | KILLED | wire.mjs: W3 director-page-code.js -> rd.whoami: the call passes the screen's argument and |
+| wire-page-volunteer-answer-ignored | KILLED | wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: an answer { __rdError } reaches the  |
+| wire-page-volunteer-marker-changed | KILLED | wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: the call passes the screen's argumen |
+| wire-page-runner-answer-ignored | KILLED | wire.mjs: W3 runner-page-code.js -> pub.pubRaces: an answer { __rdError } reaches the scre |
+| wire-page-runner-marker-changed | KILLED | wire.mjs: W3 runner-page-code.js -> pub.pubRaces: the call passes the screen's argument an |
+| wire-page-athlete-answer-ignored | KILLED | wire.mjs: W3 athlete-page-code.js -> tr.openPlans: an answer { __rdError } reaches the scr |
+| wire-page-athlete-marker-changed | KILLED | wire.mjs: W3 athlete-page-code.js -> tr.openPlans: the call passes the screen's argument a |
+| wire-page-coach-answer-ignored | KILLED | wire.mjs: W3 coach-page-code.js -> tr.tLogin: an answer { __rdError } reaches the screen a |
+| wire-page-coach-marker-changed | KILLED | wire.mjs: W3 coach-page-code.js -> tr.tLogin: the call passes the screen's argument and as |
+| wire-page-director-answer-any-key | KILLED | wire.mjs: W3 director-page-code.js -> rd.whoami: a value that merely has that key with som |
+| wire-page-director-answer-posts-ok | KILLED | wire.mjs: W3 director-page-code.js -> rd.whoami: an answer { __rdError } reaches the scree |
+| wire-page-director-answer-drops-code | KILLED | wire.mjs: W3 director-page-code.js -> rd.whoami: an answer { __rdError } reaches the scree |
+| wire-page-volunteer-answer-drops-code | KILLED | wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: an answer { __rdError } reaches the  |
+| wire-page-coach-answer-posts-ok | KILLED | wire.mjs: W3 coach-page-code.js -> tr.tLogin: an answer { __rdError } reaches the screen a |
+| wire-embed-wix-text-unmapped | KILLED | wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong passw |
+| wire-embed-wix-text-case-sensitive | KILLED | wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong passw |
+| wire-embed-wix-sentence-blames-password | KILLED | wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong passw |
+| wire-embed-wix-sentence-no-buildlog | KILLED | wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong passw |
+| wire-embed-show-box-missing | KILLED | wire.mjs: W4 the sign-in form has a "Show password" box |
+| wire-embed-show-handler-missing | KILLED | wire.mjs: W4 ticking the box shows what was typed, and keeps it |
+| wire-embed-show-inverted | KILLED | wire.mjs: W4 ticking the box shows what was typed, and keeps it |
+| wire-embed-password-capitalised | KILLED | wire.mjs: W4 #lgPass is not capitalised or corrected by a phone keyboard |
+| wire-embed-username-capitalised | KILLED | wire.mjs: W4 #lgUser is not capitalised or corrected by a phone keyboard |
+| wire-upgrade-section-missing | KILLED | wire.mjs: W5 docs/UPGRADE.md says "# Package 6e (the sign-in message)" |
+| wire-upgrade-setup-key-note-missing | KILLED | wire.mjs: W5 docs/UPGRADE.md says "put it back after pasting" |
+| wire-setup-row-drops-history | KILLED | wire.mjs: W5 docs/SETUP.md says "Before Package 6e the same text also appeared for an ordi |
 
 ## How to run
 

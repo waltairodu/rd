@@ -1188,9 +1188,10 @@ const locked = (d) => d.permissions && ['read', 'insert', 'update', 'remove'].ev
 ok(rdDefs.every(locked), 'S7 every RaceOS collection can be read, added to, changed and emptied only by the site admin (never by a visitor, who could otherwise read logins and sessions)');
 ok(trDefs.every(locked), 'S7 every Training collection likewise (athlete PIN hashes, tokens, messages)');
 // Every backend module reaches Wix through Wix's own webMethod (imported from 'wix-web-module', never a copy of it), and every method is wrapped once in `guarded`,
-// which turns an unexpected error into "server_error" (Reports and Privacy let only a known code out as well)
-const plainGuard = (id) => new RegExp("const guarded = \\(fn\\) => async \\(arg\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*throw tidyError\\(e, '" + id + "'\\);\\s*\\}\\s*\\};");
-const codeGuard = (id) => new RegExp("const guarded = \\(fn\\) => async \\(arg\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*const t = tidyError\\(e, '" + id + "'\\);\\s*if \\(t && typeof t\\.message === 'string' && CODES\\.has\\(t\\.message\\)\\) throw t;[\\s\\S]*?throw new Error\\('server_error'\\);\\s*\\}\\s*\\};");
+// which turns an unexpected error into "server_error" (Reports and Privacy let only a known code out as well). When the page code asks (WIRE as the second argument) a failure is returned as an
+// answer ({ __rdError }) instead of thrown, because Wix hides the message of a thrown error on the live site (tests/wire.mjs).
+const plainGuard = (id) => new RegExp("const guarded = \\(fn\\) => async \\(arg, wire\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*const t = tidyError\\(e, '" + id + "'\\);\\s*if \\(wire === WIRE\\) return failure\\(t\\);\\s*throw t;\\s*\\}\\s*\\};");
+const codeGuard = (id) => new RegExp("const guarded = \\(fn\\) => async \\(arg, wire\\) => \\{\\s*try \\{\\s*return await fn\\(arg\\);\\s*\\} catch \\(e\\) \\{\\s*const t = tidyError\\(e, '" + id + "'\\);\\s*if \\(t && typeof t\\.message === 'string' && CODES\\.has\\(t\\.message\\)\\) \\{\\s*if \\(wire === WIRE\\) return failure\\(t\\);\\s*throw t;\\s*\\}[\\s\\S]*?if \\(wire === WIRE\\) return failure\\(new Error\\('server_error'\\)\\);\\s*throw new Error\\('server_error'\\);\\s*\\}\\s*\\};");
 const everyExportGuarded = (text) => {
   const all = [...text.matchAll(/^export const \w+ = /gm)].length;
   const good = [...text.matchAll(/^export const \w+ = webMethod\(Permissions\.Anyone, guarded\(async \((?:arg)?\) =>/gm)].length;

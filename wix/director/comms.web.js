@@ -17,7 +17,7 @@ import wixData from 'wix-data';
 import { elevate } from 'wix-auth';
 import { collections } from 'wix-data.v2';
 import { contacts, triggeredEmails } from 'wix-crm-backend';
-import { kindOf, unameOf, tidyError } from './rd-auth.js';
+import { kindOf, unameOf, tidyError, failure, WIRE } from './rd-auth.js';
 import { cleanText, lc, bibKey, parseJson, isKey } from './rd-results.js';
 import { SA, C, all, rows, getEvent, raceOf, knownCats, getWaves, loadRace } from './rd-data.js';
 import {
@@ -28,11 +28,15 @@ import {
 import { bookOf, runnerState, volunteerState } from './rd-waiver.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const guarded = (fn) => async (arg) => {
+// The page code passes WIRE as the second argument of every call it relays. Then a failure is ANSWERED, { __rdError: 'code' } (rd-auth.js failure), because Wix
+// hides the message of a thrown error on the live site. Called with one argument, as the tests and the code inside this file do, the error is thrown as before.
+const guarded = (fn) => async (arg, wire) => {
   try {
     return await fn(arg);
   } catch (e) {
-    throw tidyError(e, 'comms');
+    const t = tidyError(e, 'comms');
+    if (wire === WIRE) return failure(t);
+    throw t;
   }
 };
 

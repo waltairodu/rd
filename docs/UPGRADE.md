@@ -1,3 +1,25 @@
+# Package 6e (the sign-in message): what to change on a site that runs Package 6d
+
+Date: 2026-11-23. Use this when /rd says "Unable to handle the request" even for a password that you know is wrong, or when you simply want the pages to say what really happened. **The 11 backend files, the 5 page codes and the /rd screen (`rd-embed.html`) change.** The other four HTML embeds and the database stay as they are.
+
+**What was wrong.** On the live site Wix does not pass on the text of an error that a backend method throws; it puts its own sentence there ("Unable to handle the request. Contact the site administrator or view site monitoring logs for more information."). The sign-in threw `bad_login` for a wrong password, so a wrong password and a crash looked the same, and so did every other message of the screens (session ended, locked, not allowed, a field to fill in). On 22 November 2026 the database showed three wrong passwords counted on the `master` login while the screen showed only Wix's sentence. (The password given in the chat was checked against the stored hash and is correct.)
+
+**What changed**
+- The page codes now ask the backend, on every call, to **answer** a failure instead of throwing it. The backend answers `{ __rdError: 'bad_login' }`, a plain value that always arrives, and the page code gives the screen the same error as before. A backend file that is asked the old way (an older page code, a call inside a backend file) still throws as before, so **a page code and a backend file of different versions still work together**: nothing is worse than before if you paste only some of the files.
+- /rd says **"Wrong username or password."**, **"Too many wrong tries. Wait 10 minutes."**, "Your session has ended" and the rest, in words.
+- Wix's own sentence now gets a clear explanation of its own ("Wix could not run the backend for this request ... That is not a wrong password ... read build.log").
+- The sign-in form has a **Show password** box, and the username and password boxes stop a phone from capitalising or correcting what you type.
+
+1. **Paste the 11 backend files again, each one whole** (Backend list, click the file, Ctrl+A, Delete, paste; the last line reads `// END` and the file's own name). If you had put your own secret into the line `const SETUP_KEY = '...'` near the top of `racedir.web.js` or `training.web.js`, put it back after pasting. With the placeholder `'change-this-key'` the First-time setup form refuses to run, which is safe, and `master` signs in without it.
+2. **Replace the code of the 5 pages.** For each folder in `2-pages/` (`rd`, `volunteer`, `train`, `coach`, `runner`): on that page open the code panel, press Ctrl+A and paste that folder's `page-code.js`.
+3. **Replace the /rd screen.** On the /rd page click the HTML element (ID `dirFrame`), open its code (Enter Code) and paste the whole of `2-pages/rd/rd-embed.html` in place of the old one.
+4. **Save, then Publish.** If a pop-up lists errors, choose **View build.log**: none of the 11 backend files may be in it (check 6 in SETUP.md). The two older pages of your own (`EXPO` and `DCB VHM Frame`) still list errors until you clear them.
+5. **Sign in** at `https://www.vtra.run/rd` (the published address, not Preview) as `master`. Tick **Show password** to see what you type. After five wrong tries the login waits 10 minutes.
+
+What this pack cannot prove: it was tested here against copies of the Wix modules and the real screens, not on your live site. That Wix passes a second argument to a web method and returns a plain object unchanged is documented (web methods take any number of arguments) but has not been run on your site. If a wrong password still shows Wix's sentence after step 4, one of the 11 backend files or the page code was not replaced: the page code must pass the second argument (`WIRE`) on every call.
+
+---
+
 # Package 6d (the Wix build error): what to change on a site that runs Package 6c
 
 Date: 2026-11-22. Use this when Wix's build report (build.log) lists `no-undef: 'globalThis' is not defined` for the backend files, or when /rd says "Something went wrong (Error: Unable to handle the request ...)". **Only the 11 backend files change.** The page codes, the HTML embeds and the database stay as they are: do not touch them.

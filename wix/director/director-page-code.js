@@ -21,6 +21,15 @@ function pickFrame(byId) {
   return { onMessage() {}, postMessage() {} };
 }
 
+// Asks the backend to ANSWER a failure instead of throwing it (the second argument of every call; failure() and WIRE in rd-auth.js).
+const WIRE = 2;
+// A backend method asked this way does not throw to the page (Wix would replace the message of a thrown error with its own text on the live site):
+// a failure comes back as { __rdError: 'code' }, and the screen is told the same ok:false and code as for a thrown error. A real throw is relayed as before.
+function answer(frame, id, result) {
+  if (result && typeof result === 'object' && typeof result.__rdError === 'string') frame.postMessage({ kind: 'result', id, ok: false, error: result.__rdError });
+  else frame.postMessage({ kind: 'result', id, ok: true, result });
+}
+
 
 const ALLOWED = ['health', 'login', 'logout', 'whoami', 'ensureSetup', 'listEvents', 'saveEvent', 'listShifts', 'saveShift', 'removeShift', 'listVolunteers', 'setVolunteerStatus', 'setVolunteerNote', 'addVolunteer', 'assignShift', 'unassignShift', 'volunteerCheck', 'listRun', 'saveRunItem', 'removeRunItem', 'listLog', 'addLog', 'closeLog', 'listPacers', 'savePaceGroups', 'savePacer', 'removePacer', 'listChecklist', 'toggleCheck', 'addCheck', 'removeCheck', 'overview', 'listQuals', 'saveQualRules', 'saveQualClaim', 'decideQual', 'listWixEvents', 'linkWixEvent', 'wixFormFields', 'saveWixMap', 'importRegs', 'listRegs', 'saveCats', 'dashboard', 'racesSummary', 'listPlan', 'savePlanItem', 'setPlanStatus', 'removePlanItem', 'seedPlanLists', 'expoRaces', 'saveBibPlan', 'assignBibs', 'setBib', 'sendToExpo', 'expoSummary', 'aiStatus', 'aiForecastNow', 'aiBriefing', 'aiAsk', 'aiDraftKinds', 'aiDraft', 'eventInfo', 'saveEventInfo', 'approvalTemplate', 'applyApprovalTemplate', 'approvalLetter', 'setApprovalDoc', 'listTeam', 'saveTeam', 'resetTeamSecret', 'signOutTeam', 'removeTeam'];
 
@@ -145,8 +154,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await expo[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await expo[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -159,8 +168,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await train[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await train[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -173,8 +182,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await res[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await res[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -187,8 +196,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await prn[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await prn[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -201,8 +210,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await comms[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await comms[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -215,8 +224,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await wv[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await wv[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -229,8 +238,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await rp[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await rp[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -243,8 +252,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await pv[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await pv[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -257,8 +266,8 @@ $w.onReady(function () {
         return;
       }
       try {
-        const result = await fin[msg.method](msg.arg || {});
-        frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+        const result = await fin[msg.method](msg.arg || {}, WIRE);
+        answer(frame, msg.id, result);
       } catch (e) {
         frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
       }
@@ -270,8 +279,8 @@ $w.onReady(function () {
       return;
     }
     try {
-      const result = await rd[msg.method](msg.arg || {});
-      frame.postMessage({ kind: 'result', id: msg.id, ok: true, result });
+      const result = await rd[msg.method](msg.arg || {}, WIRE);
+      answer(frame, msg.id, result);
     } catch (e) {
       frame.postMessage({ kind: 'result', id: msg.id, ok: false, error: String((e && e.message) || e) });
     }

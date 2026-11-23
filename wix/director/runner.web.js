@@ -15,17 +15,21 @@
 // seconds per race, so a rush of runners looking at their results costs the database a few reads a minute, not one for each runner.
 import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
-import { tidyError } from './rd-auth.js';
+import { tidyError, failure, WIRE } from './rd-auth.js';
 import { cleanText, parseJson, bibKey, findByBib } from './rd-results.js';
 import { SA, C, all, loadRace } from './rd-data.js';
 import { publicIndex, searchPublic, flagsOf, anyOn, certTplOf, certVars, renderCerts, DOC_FOOT, MAX_FOUND } from './rd-print.js';
 
 // Every method below goes through this: an unexpected native error is logged and answered with 'server_error' only.
-const guarded = (fn) => async (arg) => {
+// The page code passes WIRE as the second argument of every call it relays. Then a failure is ANSWERED, { __rdError: 'code' } (rd-auth.js failure), because Wix
+// hides the message of a thrown error on the live site. Called with one argument, as the tests and the code inside this file do, the error is thrown as before.
+const guarded = (fn) => async (arg, wire) => {
   try {
     return await fn(arg);
   } catch (e) {
-    throw tidyError(e, 'runner');
+    const t = tidyError(e, 'runner');
+    if (wire === WIRE) return failure(t);
+    throw t;
   }
 };
 

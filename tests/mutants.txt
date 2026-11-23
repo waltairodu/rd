@@ -634,5 +634,66 @@ wix-lint-newer-builtin-used	KILLED	wixcheck.mjs: X1 comms.web.js has no error un
 wix-lint-crypto-hidden-by-local	KILLED	wixcheck.mjs: X3 comms.web.js: crypto is the only other name, and only the comment declares it   [got ["conso
 wix-lint-undeclared-name-in-page	KILLED	wixcheck.mjs: X1 wix/director/director-page-code.js has no error under "es6 + browser"   [got ["no-undef 'con
 wix-page-imports-missing-module	KILLED	wixcheck.mjs: X4 wix/director/volunteer-page-code.js imports backend/racedir2.web, which is one of the 11 bac
-# 636 mutants, 636 killed, 0 survived
+wire-racedir-wrapper-never-answers	KILLED	wire.mjs
+wire-exposoft-wrapper-never-answers	KILLED	wire.mjs: W2 exposoft: asked with WIRE none of its 16 methods throws, whatever it is given (and 132 more)
+wire-training-wrapper-never-answers	KILLED	wire.mjs: W2 training: asked with WIRE none of its 38 methods throws, whatever it is given (and 294 more)
+wire-finance-wrapper-never-answers	KILLED	wire.mjs: W2 finance: asked with WIRE none of its 23 methods throws, whatever it is given (and 204 more) 
+wire-results-wrapper-never-answers	KILLED	wire.mjs: W2 results: asked with WIRE none of its 12 methods throws, whatever it is given (and 105 more) 
+wire-print-wrapper-never-answers	KILLED	wire.mjs: W2 print: asked with WIRE none of its 6 methods throws, whatever it is given (and 51 more)   [g
+wire-comms-wrapper-never-answers	KILLED	wire.mjs: W2 comms: asked with WIRE none of its 12 methods throws, whatever it is given (and 105 more)   
+wire-waivers-wrapper-never-answers	KILLED	wire.mjs: W2 waivers: asked with WIRE none of its 9 methods throws, whatever it is given (and 78 more)   
+wire-runner-wrapper-never-answers	KILLED	wire.mjs: W2 runner: asked with WIRE none of its 3 methods throws, whatever it is given (and 15 more)   [
+wire-racedir-wrapper-always-answers	KILLED	wire.mjs: W2 called with one argument (an older page code, the other suites) it throws as before   [got "
+wire-racedir-wrapper-any-second-argument	KILLED	wire.mjs: W2 only WIRE itself asks: 1 still throws   [got "", wanted "bad_login"]
+wire-finance-wrapper-always-answers	KILLED	wire.mjs: W2 for every method and two bad calls: the code it throws is the code it answers (404 pairs)   
+wire-training-wrapper-any-second-argument	KILLED	wire.mjs: W5 wix/training/training.web.js: it answers only when wire is exactly WIRE (the one other menti
+wire-privacy-wrapper-code-thrown	KILLED	wire.mjs: W2 privacy: asked with WIRE none of its 5 methods throws, whatever it is given (and 42 more)   
+wire-privacy-wrapper-server-error-thrown	KILLED	wire.mjs
+wire-privacy-wrapper-always-answers	KILLED	wire.mjs: W2 Privacy: a collection that cannot be read is thrown as "server_error" when not asked with WI
+wire-reports-wrapper-code-thrown	KILLED	wire.mjs: W2 reports: asked with WIRE none of its 3 methods throws, whatever it is given (and 24 more)   
+wire-reports-wrapper-server-error-thrown	KILLED	wire.mjs
+wire-reports-wrapper-always-answers	KILLED	wire.mjs: W2 Reports: a collection that cannot be read is thrown as "server_error" when not asked with WI
+wire-failure-key-renamed	KILLED	wire.mjs: W1 an error becomes { __rdError: its message }   [got {"rdError":"bad_login"}, wanted {"__rdErr
+wire-failure-not-cut	KILLED	wire.mjs: W1 a long message is cut to 500 characters   [got 900, wanted 500]
+wire-failure-empty-code-allowed	KILLED	wire.mjs: W1 undefined becomes server_error (no "[object Object]" or "undefined" on the screen)   [got {"
+wire-failure-thrown-text-lost	KILLED	wire.mjs: W1 a thrown text is the code   [got {"__rdError":"server_error"}, wanted {"__rdError":"plain_co
+wire-failure-object-shown	KILLED	wire.mjs: W1 undefined becomes server_error (no "[object Object]" or "undefined" on the screen)   [got {"
+wire-wire-constant-changed	KILLED	wire.mjs: W1 WIRE is 2   [got 3, wanted 2]
+wire-page-director-rd-no-marker	KILLED	wire.mjs: W3 director-page-code.js -> rd.whoami: the call passes the screen's argument and asks for answe
+wire-page-director-expo-no-marker	KILLED	wire.mjs: W3 director-page-code.js -> expo.enter: the call passes the screen's argument and asks for answ
+wire-page-director-fin-no-marker	KILLED	wire.mjs: W3 director-page-code.js -> fin.finOverview: the call passes the screen's argument and asks for
+wire-page-director-pv-no-marker	KILLED	wire.mjs: W3 director-page-code.js -> pv.pvList: the call passes the screen's argument and asks for answe
+wire-page-volunteer-no-marker	KILLED	wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: the call passes the screen's argument and asks for 
+wire-page-runner-no-marker	KILLED	wire.mjs: W3 runner-page-code.js -> pub.pubRaces: the call passes the screen's argument and asks for answ
+wire-page-athlete-no-marker	KILLED	wire.mjs: W3 athlete-page-code.js -> tr.openPlans: the call passes the screen's argument and asks for ans
+wire-page-coach-no-marker	KILLED	wire.mjs: W3 coach-page-code.js -> tr.tLogin: the call passes the screen's argument and asks for answers 
+wire-page-director-answer-ignored	KILLED	wire.mjs: W3 director-page-code.js -> rd.whoami: an answer { __rdError } reaches the screen as ok:false w
+wire-page-director-marker-changed	KILLED	wire.mjs: W3 director-page-code.js -> rd.whoami: the call passes the screen's argument and asks for answe
+wire-page-volunteer-answer-ignored	KILLED	wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: an answer { __rdError } reaches the screen as ok:fa
+wire-page-volunteer-marker-changed	KILLED	wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: the call passes the screen's argument and asks for 
+wire-page-runner-answer-ignored	KILLED	wire.mjs: W3 runner-page-code.js -> pub.pubRaces: an answer { __rdError } reaches the screen as ok:false 
+wire-page-runner-marker-changed	KILLED	wire.mjs: W3 runner-page-code.js -> pub.pubRaces: the call passes the screen's argument and asks for answ
+wire-page-athlete-answer-ignored	KILLED	wire.mjs: W3 athlete-page-code.js -> tr.openPlans: an answer { __rdError } reaches the screen as ok:false
+wire-page-athlete-marker-changed	KILLED	wire.mjs: W3 athlete-page-code.js -> tr.openPlans: the call passes the screen's argument and asks for ans
+wire-page-coach-answer-ignored	KILLED	wire.mjs: W3 coach-page-code.js -> tr.tLogin: an answer { __rdError } reaches the screen as ok:false with
+wire-page-coach-marker-changed	KILLED	wire.mjs: W3 coach-page-code.js -> tr.tLogin: the call passes the screen's argument and asks for answers 
+wire-page-director-answer-any-key	KILLED	wire.mjs: W3 director-page-code.js -> rd.whoami: a value that merely has that key with something else tha
+wire-page-director-answer-posts-ok	KILLED	wire.mjs: W3 director-page-code.js -> rd.whoami: an answer { __rdError } reaches the screen as ok:false w
+wire-page-director-answer-drops-code	KILLED	wire.mjs: W3 director-page-code.js -> rd.whoami: an answer { __rdError } reaches the screen as ok:false w
+wire-page-volunteer-answer-drops-code	KILLED	wire.mjs: W3 volunteer-page-code.js -> rd.openEvents: an answer { __rdError } reaches the screen as ok:fa
+wire-page-coach-answer-posts-ok	KILLED	wire.mjs: W3 coach-page-code.js -> tr.tLogin: an answer { __rdError } reaches the screen as ok:false with
+wire-embed-wix-text-unmapped	KILLED	wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong password, read build
+wire-embed-wix-text-case-sensitive	KILLED	wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong password, read build
+wire-embed-wix-sentence-blames-password	KILLED	wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong password, read build
+wire-embed-wix-sentence-no-buildlog	KILLED	wire.mjs: W4 Wix's own text is explained: Wix could not run the backend, not a wrong password, read build
+wire-embed-show-box-missing	KILLED	wire.mjs: W4 the sign-in form has a "Show password" box
+wire-embed-show-handler-missing	KILLED	wire.mjs: W4 ticking the box shows what was typed, and keeps it
+wire-embed-show-inverted	KILLED	wire.mjs: W4 ticking the box shows what was typed, and keeps it
+wire-embed-password-capitalised	KILLED	wire.mjs: W4 #lgPass is not capitalised or corrected by a phone keyboard
+wire-embed-username-capitalised	KILLED	wire.mjs: W4 #lgUser is not capitalised or corrected by a phone keyboard
+wire-upgrade-section-missing	KILLED	wire.mjs: W5 docs/UPGRADE.md says "# Package 6e (the sign-in message)"
+wire-upgrade-setup-key-note-missing	KILLED	wire.mjs: W5 docs/UPGRADE.md says "put it back after pasting"
+wire-setup-row-drops-history	KILLED	wire.mjs: W5 docs/SETUP.md says "Before Package 6e the same text also appeared for an ordinary wrong pass
+# 696 mutants, 696 killed, 0 survived
 # package-6d new=8 older_rerun=7 older_not_rerun=621
+# package-6e new=60 older_rerun=56 older_not_rerun=580

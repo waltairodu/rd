@@ -64,3 +64,4 @@ diagnose-ui.mjs 286
 bundle.mjs 315
 collections.mjs 323
 wixcheck.mjs 166
+wire.mjs 417
